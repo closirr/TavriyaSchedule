@@ -2,9 +2,11 @@ import { useState, useRef } from "react";
 import { FileSpreadsheet, Download, HelpCircle, CheckCircle2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import TemplateGallery from "./template-gallery";
 
 export default function FileUpload() {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -120,72 +122,85 @@ export default function FileUpload() {
     <div className="mb-8">
       <Card className="border border-gray-200">
         <CardContent className="p-6">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-semibold text-navy-700 mb-2">Загрузка расписания</h2>
-              <p className="text-gray-600">Загрузите Excel файл с расписанием занятий для автоматического обновления</p>
-            </div>
-            <div className="flex space-x-3">
-              <Button 
-                variant="outline" 
-                onClick={downloadTemplate}
-                className="border-gray-300 hover:bg-gray-50"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Скачать шаблон
-              </Button>
-              <Button 
-                className="bg-navy-600 hover:bg-navy-700 text-white"
-              >
-                <HelpCircle className="w-4 h-4 mr-2" />
-                Инструкция
-              </Button>
-            </div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-navy-700 mb-2">Управление расписанием</h2>
+            <p className="text-gray-600">Скачайте шаблон, заполните его и загрузите обратно</p>
           </div>
           
-          {/* File Upload Area */}
-          <div 
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-              isDragOver ? 'border-navy-500 bg-navy-50' : 'border-gray-300 hover:border-navy-500'
-            }`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onClick={handleUploadAreaClick}
-          >
-            <div className="mx-auto w-16 h-16 bg-navy-50 rounded-full flex items-center justify-center mb-4">
-              {uploadMutation.isPending ? (
-                <Upload className="text-2xl text-navy-600 animate-bounce" />
-              ) : (
-                <FileSpreadsheet className="text-2xl text-navy-600" />
-              )}
-            </div>
-            <h3 className="text-lg font-medium text-navy-700 mb-2">
-              {uploadMutation.isPending ? 'Загружается...' : 'Перетащите Excel файл сюда'}
-            </h3>
-            <p className="text-gray-500 mb-4">или нажмите для выбора файла</p>
-            <p className="text-sm text-gray-400">Поддерживаются форматы: .xlsx, .xls (макс. 10 МБ)</p>
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              className="hidden" 
-              accept=".xlsx,.xls"
-              onChange={handleFileInputChange}
-            />
-          </div>
-
-          {/* Upload Status */}
-          {uploadedFile && !uploadMutation.isPending && (
-            <div className="mt-6">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-                <CheckCircle2 className="text-green-600 text-lg mr-3" />
-                <div>
-                  <p className="font-medium text-green-800">Файл успешно загружен</p>
-                  <p className="text-sm text-green-600">{uploadedFile} • Обновлено только что</p>
+          <Tabs defaultValue="templates" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="templates">Шаблоны Excel</TabsTrigger>
+              <TabsTrigger value="upload">Загрузка файла</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="templates" className="mt-6">
+              <TemplateGallery />
+            </TabsContent>
+            
+            <TabsContent value="upload" className="mt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Загрузка заполненного файла</h3>
+                    <p className="text-sm text-gray-600">Загрузите Excel файл с расписанием занятий</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={downloadTemplate}
+                    size="sm"
+                    className="border-gray-300 hover:bg-gray-50"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Старый шаблон
+                  </Button>
                 </div>
+                
+                {/* File Upload Area */}
+                <div 
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                    isDragOver ? 'border-navy-500 bg-navy-50' : 'border-gray-300 hover:border-navy-500'
+                  }`}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onClick={handleUploadAreaClick}
+                >
+                  <div className="mx-auto w-16 h-16 bg-navy-50 rounded-full flex items-center justify-center mb-4">
+                    {uploadMutation.isPending ? (
+                      <Upload className="text-2xl text-navy-600 animate-bounce" />
+                    ) : (
+                      <FileSpreadsheet className="text-2xl text-navy-600" />
+                    )}
+                  </div>
+                  <h3 className="text-lg font-medium text-navy-700 mb-2">
+                    {uploadMutation.isPending ? 'Загружается...' : 'Перетащите Excel файл сюда'}
+                  </h3>
+                  <p className="text-gray-500 mb-4">или нажмите для выбора файла</p>
+                  <p className="text-sm text-gray-400">Поддерживаются форматы: .xlsx, .xls (макс. 10 МБ)</p>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    className="hidden" 
+                    accept=".xlsx,.xls"
+                    onChange={handleFileInputChange}
+                  />
+                </div>
+
+                {/* Upload Status */}
+                {uploadedFile && !uploadMutation.isPending && (
+                  <div className="mt-6">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
+                      <CheckCircle2 className="text-green-600 text-lg mr-3" />
+                      <div>
+                        <p className="font-medium text-green-800">Файл успешно загружен</p>
+                        <p className="text-sm text-green-600">{uploadedFile} • Обновлено только что</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

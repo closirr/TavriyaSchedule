@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { scheduleFiltersSchema, insertLessonSchema } from "@shared/schema";
 import * as XLSX from 'xlsx';
 import multer from 'multer';
+import { generateAllTemplates, type TemplateVariant } from './template-generator';
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -74,7 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           dense: false,
           raw: false
         });
-      } catch (parseError) {
+      } catch (parseError: unknown) {
         console.error('Excel parse error:', parseError);
         // Try alternative parsing method
         try {
@@ -83,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Second Excel parse error:', secondError);
           return res.status(400).json({ 
             message: "Ошибка чтения Excel файла. Убедитесь, что файл имеет правильный формат .xlsx и не поврежден",
-            details: `Ошибка: ${parseError.message}`
+            details: `Ошибка: ${parseError instanceof Error ? parseError.message : 'Неизвестная ошибка'}`
           });
         }
       }
@@ -308,6 +309,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Template generation error:', error);
       res.status(500).json({ message: "Ошибка создания шаблона" });
+    }
+  });
+
+  // Get list of available templates
+  app.get("/api/templates", (req, res) => {
+    try {
+      const templates = generateAllTemplates();
+      const templateList = templates.map(t => ({
+        name: t.name,
+        filename: t.filename,
+        description: t.description
+      }));
+      res.json(templateList);
+    } catch (error) {
+      console.error('Template list error:', error);
+      res.status(500).json({ message: "Ошибка получения списка шаблонов" });
+    }
+  });
+
+  // Download specific template by filename
+  app.get("/api/templates/:filename", (req, res) => {
+    try {
+      const { filename } = req.params;
+      const templates = generateAllTemplates();
+      const template = templates.find(t => t.filename === filename);
+      
+      if (!template) {
+        return res.status(404).json({ message: "Шаблон не найден" });
+      }
+
+      // Create workbook from template data
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(template.data);
+      
+      // Set column widths for better readability
+      worksheet['!cols'] = [
+        { wch: 15 }, { wch: 20 }, { wch: 25 }, { wch: 25 },
+        { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+      ];
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Расписание');
+
+      // Generate buffer
+      const buffer = XLSX.write(workbook, { 
+        type: 'buffer', 
+        bookType: 'xlsx',
+        compression: false,
+        bookSST: false
+      });
+
+      // Set headers for download
+      res.setHeader('Content-Disposition', `attachment; filename="${template.filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Content-Length', buffer.length.toString());
+      
+      res.send(buffer);
+    } catch (error) {
+      console.error('Template download error:', error);
+      res.status(500).json({ message: "Ошибка скачивания шаблона" });
+    }
+  });
+
+  // Clear all schedule data
+  app.delete("/api/clear-schedule", async (req, res) => {
+    try {
+      await storage.clearAllLessons();
+      res.json({ message: "Все данные расписания очищены" });
+    } catch (error) {
+      console.error('Clear schedule error:', error);
+      res.status(500).json({ message: "Ошибка очистки данных" });
     }
   });
 
