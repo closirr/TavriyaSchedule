@@ -62,35 +62,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Файл не был загружен" });
       }
 
-      // Parse Excel file
-      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      // Parse Excel file with error handling
+      let workbook;
+      try {
+        workbook = XLSX.read(req.file.buffer, { 
+          type: 'buffer',
+          cellDates: true,
+          cellNF: false,
+          cellText: false
+        });
+      } catch (parseError) {
+        console.error('Excel parse error:', parseError);
+        return res.status(400).json({ message: "Ошибка чтения Excel файла. Убедитесь, что файл имеет правильный формат .xlsx" });
+      }
+
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        return res.status(400).json({ message: "Excel файл не содержит листов с данными" });
+      }
+
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const data = XLSX.utils.sheet_to_json(worksheet);
+      
+      if (!worksheet) {
+        return res.status(400).json({ message: "Не удалось прочитать данные из первого листа Excel файла" });
+      }
 
-      if (data.length === 0) {
-        return res.status(400).json({ message: "Excel файл пуст" });
+      const data = XLSX.utils.sheet_to_json(worksheet, { 
+        header: 1,
+        defval: "",
+        blankrows: false
+      });
+
+      // Преобразуем массив массивов в массив объектов
+      if (data.length < 2) {
+        return res.status(400).json({ message: "Excel файл должен содержать заголовки и хотя бы одну строку данных" });
+      }
+
+      const headers = data[0] as string[];
+      const rows = data.slice(1) as any[][];
+      
+      const jsonData = rows.map(row => {
+        const obj: any = {};
+        headers.forEach((header, index) => {
+          obj[header] = row[index] || "";
+        });
+        return obj;
+      });
+
+      if (jsonData.length === 0) {
+        return res.status(400).json({ message: "Excel файл не содержит данных" });
       }
 
       // Validate and transform data
       const lessons = [];
       const errors = [];
 
-      for (let i = 0; i < data.length; i++) {
-        const row = data[i] as any;
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i] as any;
         const rowNumber = i + 2; // +2 because Excel is 1-indexed and we skip header
 
         try {
-          // Map Excel columns to our schema
+          // Map Excel columns to our schema with better error handling
           const lesson = {
-            dayOfWeek: row['День недели'] || row['Day'] || '',
-            startTime: row['Время начала'] || row['Start Time'] || '',
-            endTime: row['Время окончания'] || row['End Time'] || '',
-            subject: row['Предмет'] || row['Subject'] || '',
-            teacher: row['Преподаватель'] || row['Teacher'] || '',
-            group: row['Группа'] || row['Group'] || '',
-            classroom: row['Аудитория'] || row['Classroom'] || '',
-            lessonType: row['Тип занятия'] || row['Lesson Type'] || ''
+            dayOfWeek: String(row['День недели'] || row['Day'] || '').trim(),
+            startTime: String(row['Время начала'] || row['Start Time'] || '').trim(),
+            endTime: String(row['Время окончания'] || row['End Time'] || '').trim(),
+            subject: String(row['Предмет'] || row['Subject'] || '').trim(),
+            teacher: String(row['Преподаватель'] || row['Teacher'] || '').trim(),
+            group: String(row['Группа'] || row['Group'] || '').trim(),
+            classroom: String(row['Аудитория'] || row['Classroom'] || '').trim(),
+            lessonType: String(row['Тип занятия'] || row['Lesson Type'] || '').trim()
           };
 
           // Validate required fields
