@@ -14,9 +14,9 @@ interface ScheduleFiltersProps {
 export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProps) {
   const [filters, setFilters] = useState<ScheduleFilters>({
     search: "",
-    group: undefined,
-    teacher: undefined,
-    classroom: undefined
+    group: "",
+    teacher: "",
+    classroom: ""
   });
 
   const { data: filterOptions } = useQuery({
@@ -30,7 +30,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
   const handleFilterChange = (key: keyof ScheduleFilters, value: string) => {
     setFilters(prev => ({
       ...prev,
-      [key]: value === "__all__" ? undefined : value || undefined
+      [key]: value === "__all__" ? "" : value
     }));
   };
 

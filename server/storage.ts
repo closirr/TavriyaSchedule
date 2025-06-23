@@ -28,96 +28,156 @@ export class MemStorage implements IStorage {
   }
 
   private initializeSampleData() {
+    // Загружаем реалистичные данные для Таврического колледжа
     const sampleLessons: InsertLesson[] = [
+      // Понедельник
       {
         dayOfWeek: "Понедельник",
-        startTime: "09:00",
-        endTime: "10:30",
-        subject: "Программирование",
-        teacher: "Иванов И.И.",
+        startTime: "08:30",
+        endTime: "10:00",
+        subject: "Основы программирования",
+        teacher: "Иванов Иван Иванович",
         group: "ИТ-21",
         classroom: "101",
         lessonType: "Лекция"
       },
       {
         dayOfWeek: "Понедельник",
-        startTime: "10:45",
-        endTime: "12:15",
+        startTime: "10:15",
+        endTime: "11:45",
         subject: "Базы данных",
-        teacher: "Петров П.П.",
+        teacher: "Петрова Мария Сергеевна",
         group: "ИТ-21",
-        classroom: "Лаб. 1",
+        classroom: "Лаб-1",
         lessonType: "Практика"
       },
       {
-        dayOfWeek: "Вторник",
-        startTime: "08:15",
-        endTime: "09:45",
-        subject: "Математика",
-        teacher: "Сидоров С.С.",
-        group: "ИТ-21",
-        classroom: "102",
-        lessonType: "Лекция"
-      },
-      {
-        dayOfWeek: "Вторник",
-        startTime: "10:00",
-        endTime: "11:30",
+        dayOfWeek: "Понедельник",
+        startTime: "12:15",
+        endTime: "13:45",
         subject: "Веб-разработка",
-        teacher: "Козлов К.К.",
+        teacher: "Сидоров Алексей Васильевич",
         group: "ИТ-22",
         classroom: "201",
         lessonType: "Практика"
       },
       {
-        dayOfWeek: "Среда",
-        startTime: "09:00",
-        endTime: "10:30",
-        subject: "Сети и протоколы",
-        teacher: "Николаев Н.Н.",
+        dayOfWeek: "Понедельник",
+        startTime: "14:00",
+        endTime: "15:30",
+        subject: "Экономика предприятия",
+        teacher: "Козлова Елена Петровна",
+        group: "ЭК-21",
+        classroom: "301",
+        lessonType: "Лекция"
+      },
+      
+      // Вторник
+      {
+        dayOfWeek: "Вторник",
+        startTime: "08:30",
+        endTime: "10:00",
+        subject: "Математика",
+        teacher: "Николаев Владимир Дмитриевич",
         group: "ИТ-21",
-        classroom: "101",
+        classroom: "102",
+        lessonType: "Лекция"
+      },
+      {
+        dayOfWeek: "Вторник",
+        startTime: "10:15",
+        endTime: "11:45",
+        subject: "Операционные системы",
+        teacher: "Морозов Сергей Александрович",
+        group: "ИТ-22",
+        classroom: "Лаб-2",
+        lessonType: "Практика"
+      },
+      {
+        dayOfWeek: "Вторник",
+        startTime: "12:15",
+        endTime: "13:45",
+        subject: "Физическая культура",
+        teacher: "Волков Андрей Игоревич",
+        group: "ИТ-21",
+        classroom: "Спортзал",
+        lessonType: "Практика"
+      },
+      
+      // Среда
+      {
+        dayOfWeek: "Среда",
+        startTime: "08:30",
+        endTime: "10:00",
+        subject: "Сетевые технологии",
+        teacher: "Зайцев Михаил Юрьевич",
+        group: "ИТ-21",
+        classroom: "Лаб-1",
+        lessonType: "Практика"
+      },
+      {
+        dayOfWeek: "Среда",
+        startTime: "10:15",
+        endTime: "11:45",
+        subject: "Алгоритмы и структуры данных",
+        teacher: "Иванов Иван Иванович",
+        group: "ИТ-22",
+        classroom: "103",
         lessonType: "Лекция"
       },
       {
         dayOfWeek: "Среда",
-        startTime: "10:45",
-        endTime: "12:15",
-        subject: "Физика",
-        teacher: "Морозов М.М.",
+        startTime: "12:15",
+        endTime: "13:45",
+        subject: "Английский язык",
+        teacher: "Смирнова Анна Викторовна",
         group: "ИТ-21",
-        classroom: "102",
+        classroom: "204",
+        lessonType: "Семинар"
+      },
+      
+      // Четверг
+      {
+        dayOfWeek: "Четверг",
+        startTime: "08:30",
+        endTime: "10:00",
+        subject: "Информационная безопасность",
+        teacher: "Романов Дмитрий Олегович",
+        group: "ИТ-21",
+        classroom: "105",
         lessonType: "Лекция"
       },
       {
         dayOfWeek: "Четверг",
-        startTime: "09:00",
-        endTime: "10:30",
-        subject: "Системное администрирование",
-        teacher: "Волков В.В.",
+        startTime: "10:15",
+        endTime: "11:45",
+        subject: "Мобильная разработка",
+        teacher: "Павлова Екатерина Сергеевна",
         group: "ИТ-22",
-        classroom: "Лаб. 2",
+        classroom: "Лаб-3",
         lessonType: "Практика"
       },
+      
+      // Пятница
       {
         dayOfWeek: "Пятница",
-        startTime: "08:15",
-        endTime: "09:45",
-        subject: "Английский язык",
-        teacher: "Белова Б.Б.",
+        startTime: "08:30",
+        endTime: "10:00",
+        subject: "Проектирование ПО",
+        teacher: "Соколов Виктор Михайлович",
         group: "ИТ-21",
-        classroom: "201",
+        classroom: "106",
         lessonType: "Семинар"
       },
       {
         dayOfWeek: "Пятница",
-        startTime: "10:00",
-        endTime: "11:30",
-        subject: "Экономика",
-        teacher: "Зайцев З.З.",
-        group: "ЭК-21",
-        classroom: "101",
-        lessonType: "Лекция"
+        startTime: "10:15",
+        endTime: "11:45",
+        subject: "Тестирование ПО",
+        teacher: "Лебедева Ирина Владимировна",
+        group: "ИТ-22",
+        classroom: "Лаб-2",
+        lessonType: "Практика"
       }
     ];
 
