@@ -65,15 +65,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Parse Excel file with error handling
       let workbook;
       try {
+        // Try different parsing approaches for better compatibility
         workbook = XLSX.read(req.file.buffer, { 
           type: 'buffer',
-          cellDates: true,
+          cellDates: false,
           cellNF: false,
-          cellText: false
+          cellText: true,
+          dense: false,
+          raw: false
         });
       } catch (parseError) {
         console.error('Excel parse error:', parseError);
-        return res.status(400).json({ message: "Ошибка чтения Excel файла. Убедитесь, что файл имеет правильный формат .xlsx" });
+        // Try alternative parsing method
+        try {
+          workbook = XLSX.read(req.file.buffer, { type: 'array' });
+        } catch (secondError) {
+          console.error('Second Excel parse error:', secondError);
+          return res.status(400).json({ 
+            message: "Ошибка чтения Excel файла. Убедитесь, что файл имеет правильный формат .xlsx и не поврежден",
+            details: `Ошибка: ${parseError.message}`
+          });
+        }
       }
 
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
@@ -191,40 +203,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download template Excel file
   app.get("/api/template", (req, res) => {
     try {
-      // Create template data
+      // Create template data as array of arrays for maximum compatibility
       const templateData = [
-        {
-          'День недели': 'Понедельник',
-          'Время начала': '09:00',
-          'Время окончания': '10:30',
-          'Предмет': 'Программирование',
-          'Преподаватель': 'Иванов И.И.',
-          'Группа': 'ИТ-21',
-          'Аудитория': '101',
-          'Тип занятия': 'Лекция'
-        },
-        {
-          'День недели': 'Понедельник',
-          'Время начала': '10:45',
-          'Время окончания': '12:15',
-          'Предмет': 'Базы данных',
-          'Преподаватель': 'Петров П.П.',
-          'Группа': 'ИТ-21',
-          'Аудитория': 'Лаб. 1',
-          'Тип занятия': 'Практика'
-        }
+        ['День недели', 'Время начала', 'Время окончания', 'Предмет', 'Преподаватель', 'Группа', 'Аудитория', 'Тип занятия'],
+        ['Понедельник', '08:30', '10:00', 'Основы программирования', 'Иванов Иван Иванович', 'ИТ-21', '101', 'Лекция'],
+        ['Понедельник', '10:15', '11:45', 'Базы данных', 'Петрова Мария Сергеевна', 'ИТ-21', 'Лаб-1', 'Практика'],
+        ['Понедельник', '12:15', '13:45', 'Веб-разработка', 'Сидоров Алексей Васильевич', 'ИТ-22', '201', 'Практика'],
+        ['Вторник', '08:30', '10:00', 'Математика', 'Николаев Владимир Дмитриевич', 'ИТ-21', '102', 'Лекция'],
+        ['Вторник', '10:15', '11:45', 'Операционные системы', 'Морозов Сергей Александрович', 'ИТ-22', 'Лаб-2', 'Практика'],
+        ['Среда', '08:30', '10:00', 'Сетевые технологии', 'Зайцев Михаил Юрьевич', 'ИТ-21', 'Лаб-1', 'Практика'],
+        ['Среда', '10:15', '11:45', 'Английский язык', 'Смирнова Анна Викторовна', 'ИТ-21', '204', 'Семинар'],
+        ['Четверг', '08:30', '10:00', 'Информационная безопасность', 'Романов Дмитрий Олегович', 'ИТ-21', '105', 'Лекция'],
+        ['Четверг', '10:15', '11:45', 'Мобильная разработка', 'Павлова Екатерина Сергеевна', 'ИТ-22', 'Лаб-3', 'Практика'],
+        ['Пятница', '08:30', '10:00', 'Проектирование ПО', 'Соколов Виктор Михайлович', 'ИТ-21', '106', 'Семинар'],
+        ['Пятница', '10:15', '11:45', 'Тестирование ПО', 'Лебедева Ирина Владимировна', 'ИТ-22', 'Лаб-2', 'Практика']
       ];
 
-      // Create workbook
+      // Create workbook from array
       const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.json_to_sheet(templateData);
+      const worksheet = XLSX.utils.aoa_to_sheet(templateData);
+      
+      // Set column widths
+      worksheet['!cols'] = [
+        { wch: 12 }, // День недели
+        { wch: 12 }, // Время начала
+        { wch: 12 }, // Время окончания
+        { wch: 30 }, // Предмет
+        { wch: 25 }, // Преподаватель
+        { wch: 8 },  // Группа
+        { wch: 10 }, // Аудитория
+        { wch: 12 }  // Тип занятия
+      ];
+
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Расписание');
 
-      // Generate buffer
-      const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      // Generate buffer with compatibility settings
+      const buffer = XLSX.write(workbook, { 
+        type: 'buffer', 
+        bookType: 'xlsx',
+        compression: false,
+        bookSST: false
+      });
 
-      res.setHeader('Content-Disposition', 'attachment; filename=template_schedule.xlsx');
+      // Set headers to force download and prevent caching
+      res.setHeader('Content-Disposition', 'attachment; filename="raspisanie_tavricheskiy_kolledzh.xlsx"');
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Content-Length', buffer.length.toString());
+      
       res.send(buffer);
     } catch (error) {
       console.error('Template generation error:', error);
