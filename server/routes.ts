@@ -105,21 +105,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         blankrows: false
       });
 
-      // Преобразуем массив массивов в массив объектов
-      if (data.length < 2) {
-        return res.status(400).json({ message: "Excel файл должен содержать заголовки и хотя бы одну строку данных" });
+      if (data.length < 3) {
+        return res.status(400).json({ message: "Excel файл должен содержать заголовки и данные" });
       }
 
       const headers = data[0] as string[];
-      const rows = data.slice(1) as any[][];
+      const rows = data.slice(2) as any[][]; // Skip first 2 rows (headers and example)
       
-      const jsonData = rows.map(row => {
-        const obj: any = {};
-        headers.forEach((header, index) => {
-          obj[header] = row[index] || "";
+      // Check if this is matrix format
+      const isMatrixFormat = headers.length >= 3 && headers.includes('ИТ-21');
+      
+      let jsonData: any[] = [];
+      
+      if (isMatrixFormat) {
+        // Parse matrix format
+        for (const row of rows) {
+          if (!row[0] || !row[1]) continue; // Skip empty or incomplete rows
+          
+          const day = String(row[0]).trim();
+          const time = String(row[1]).trim();
+          
+          // Parse time range
+          const timeMatch = time.match(/(\d{2}:\d{2})-(\d{2}:\d{2})/);
+          if (!timeMatch) continue;
+          
+          const startTime = timeMatch[1];
+          const endTime = timeMatch[2];
+          
+          // Process each group column (starting from column 2)
+          for (let i = 2; i < headers.length; i++) {
+            const groupName = headers[i];
+            const cellValue = String(row[i] || '').trim();
+            
+            if (cellValue && cellValue !== '') {
+              // Parse cell format: "Предмет - Преподаватель - Аудитория - Тип"
+              const parts = cellValue.split(' - ');
+              if (parts.length >= 4) {
+                jsonData.push({
+                  'День недели': day,
+                  'Время начала': startTime,
+                  'Время окончания': endTime,
+                  'Предмет': parts[0],
+                  'Преподаватель': parts[1],
+                  'Группа': groupName,
+                  'Аудитория': parts[2],
+                  'Тип занятия': parts[3]
+                });
+              }
+            }
+          }
+        }
+      } else {
+        // Standard format
+        jsonData = rows.map(row => {
+          const obj: any = {};
+          headers.forEach((header, index) => {
+            obj[header] = row[index] || "";
+          });
+          return obj;
         });
-        return obj;
-      });
+      }
 
       if (jsonData.length === 0) {
         return res.status(400).json({ message: "Excel файл не содержит данных" });
@@ -203,36 +248,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download template Excel file
   app.get("/api/template", (req, res) => {
     try {
-      // Create template data as array of arrays for maximum compatibility
+      // Матричная структура - более удобная для заполнения
       const templateData = [
-        ['День недели', 'Время начала', 'Время окончания', 'Предмет', 'Преподаватель', 'Группа', 'Аудитория', 'Тип занятия'],
-        ['Понедельник', '08:30', '10:00', 'Основы программирования', 'Иванов Иван Иванович', 'ИТ-21', '101', 'Лекция'],
-        ['Понедельник', '10:15', '11:45', 'Базы данных', 'Петрова Мария Сергеевна', 'ИТ-21', 'Лаб-1', 'Практика'],
-        ['Понедельник', '12:15', '13:45', 'Веб-разработка', 'Сидоров Алексей Васильевич', 'ИТ-22', '201', 'Практика'],
-        ['Вторник', '08:30', '10:00', 'Математика', 'Николаев Владимир Дмитриевич', 'ИТ-21', '102', 'Лекция'],
-        ['Вторник', '10:15', '11:45', 'Операционные системы', 'Морозов Сергей Александрович', 'ИТ-22', 'Лаб-2', 'Практика'],
-        ['Среда', '08:30', '10:00', 'Сетевые технологии', 'Зайцев Михаил Юрьевич', 'ИТ-21', 'Лаб-1', 'Практика'],
-        ['Среда', '10:15', '11:45', 'Английский язык', 'Смирнова Анна Викторовна', 'ИТ-21', '204', 'Семинар'],
-        ['Четверг', '08:30', '10:00', 'Информационная безопасность', 'Романов Дмитрий Олегович', 'ИТ-21', '105', 'Лекция'],
-        ['Четверг', '10:15', '11:45', 'Мобильная разработка', 'Павлова Екатерина Сергеевна', 'ИТ-22', 'Лаб-3', 'Практика'],
-        ['Пятница', '08:30', '10:00', 'Проектирование ПО', 'Соколов Виктор Михайлович', 'ИТ-21', '106', 'Семинар'],
-        ['Пятница', '10:15', '11:45', 'Тестирование ПО', 'Лебедева Ирина Владимировна', 'ИТ-22', 'Лаб-2', 'Практика']
+        ['День недели', 'Время', 'ИТ-21', 'ИТ-22', 'ЭК-21'],
+        ['', '', '(Предмет - Преподаватель - Аудитория - Тип)', '(Предмет - Преподаватель - Аудитория - Тип)', '(Предмет - Преподаватель - Аудитория - Тип)'],
+        ['Понедельник', '08:30-10:00', 'Математика - Иванов И.И. - 101 - Лекция', 'Программирование - Петров П.П. - Лаб-1 - Практика', ''],
+        ['Понедельник', '10:15-11:45', 'Базы данных - Сидоров А.В. - 102 - Лекция', '', 'Экономика - Козлов К.К. - 205 - Лекция'],
+        ['Понедельник', '12:15-13:45', '', 'Веб-разработка - Морозов М.М. - 201 - Практика', 'Менеджмент - Федоров Ф.Ф. - 206 - Семинар'],
+        ['', '', '', '', ''],
+        ['Вторник', '08:30-10:00', '', '', ''],
+        ['Вторник', '10:15-11:45', '', '', ''],
+        ['Вторник', '12:15-13:45', '', '', ''],
+        ['', '', '', '', ''],
+        ['Среда', '08:30-10:00', '', '', ''],
+        ['Среда', '10:15-11:45', '', '', ''],
+        ['Среда', '12:15-13:45', '', '', ''],
+        ['', '', '', '', ''],
+        ['Четверг', '08:30-10:00', '', '', ''],
+        ['Четверг', '10:15-11:45', '', '', ''],
+        ['Четверг', '12:15-13:45', '', '', ''],
+        ['', '', '', '', ''],
+        ['Пятница', '08:30-10:00', '', '', ''],
+        ['Пятница', '10:15-11:45', '', '', ''],
+        ['Пятница', '12:15-13:45', '', '', '']
       ];
 
       // Create workbook from array
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.aoa_to_sheet(templateData);
       
-      // Set column widths
+      // Set column widths for matrix structure
       worksheet['!cols'] = [
         { wch: 12 }, // День недели
-        { wch: 12 }, // Время начала
-        { wch: 12 }, // Время окончания
-        { wch: 30 }, // Предмет
-        { wch: 25 }, // Преподаватель
-        { wch: 8 },  // Группа
-        { wch: 10 }, // Аудитория
-        { wch: 12 }  // Тип занятия
+        { wch: 15 }, // Время
+        { wch: 35 }, // ИТ-21
+        { wch: 35 }, // ИТ-22
+        { wch: 35 }  // ЭК-21
       ];
 
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Расписание');
