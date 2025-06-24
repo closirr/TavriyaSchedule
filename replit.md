@@ -127,6 +127,12 @@ The system uses a single `lessons` table with the following structure:
 
 ```
 Changelog:
+- June 24, 2025. PDF export functionality added
+  - Implemented PDF generation with jsPDF and jspdf-autotable
+  - Added tabular schedule export matching print format
+  - Support for full schedule and group-specific exports
+  - Landscape orientation optimized for printing
+  - Ukrainian localization for export files
 - June 24, 2025. Unified search system implemented
   - Replaced separate filters with single search input
   - Added autocomplete suggestions for groups, teachers, and classrooms

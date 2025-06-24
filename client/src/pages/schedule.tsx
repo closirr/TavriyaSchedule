@@ -5,6 +5,7 @@ import ScheduleFilters from "@/components/schedule-filters";
 import WeekNavigation from "@/components/week-navigation";
 import ScheduleGrid from "@/components/schedule-grid";
 import StatisticsDashboard from "@/components/statistics-dashboard";
+import ExportButtons from "@/components/export-buttons";
 import { type ScheduleFilters as ScheduleFiltersType } from "@shared/schema";
 
 export default function Schedule() {
