@@ -584,6 +584,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         worksheet['!merges'] = merges;
+      } else if (template.filename === 'template_vertical_3groups.xlsx') {
+        worksheet['!cols'] = [
+          { wch: 12 }, // Время
+          { wch: 15 }, { wch: 20 }, { wch: 12 }, // Группа 1
+          { wch: 15 }, { wch: 20 }, { wch: 12 }, // Группа 2
+          { wch: 15 }, { wch: 20 }, { wch: 12 }  // Группа 3
+        ];
+        
+        // Находим все строки с заголовками групп и создаем объединения
+        const merges = [];
+        const rows = template.data;
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex];
+          if (row && row.length > 1 && typeof row[1] === 'string' && 
+              (row[1].includes('МЕТ-') || row[1].includes('МТ-') || row[1].includes('ЕкДл-') || 
+               row[1].includes('А-') || row[1].includes('ІТ-') || row[1].includes('КН-') || 
+               row[1].includes('ФК-') || row[1].includes('СП-'))) {
+            // Это строка с заголовками групп, создаем объединения
+            for (let groupIndex = 0; groupIndex < 3; groupIndex++) {
+              const startCol = 1 + (groupIndex * 3);
+              const endCol = startCol + 2;
+              if (startCol < row.length) {
+                merges.push({ s: { c: startCol, r: rowIndex }, e: { c: endCol, r: rowIndex } });
+              }
+            }
+          }
+        }
+        worksheet['!merges'] = merges;
       } else {
         worksheet['!cols'] = [
           { wch: 15 }, { wch: 20 }, { wch: 25 }, { wch: 25 },
