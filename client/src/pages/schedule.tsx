@@ -8,9 +8,7 @@ import StatisticsDashboard from "@/components/statistics-dashboard";
 import { type ScheduleFilters as ScheduleFiltersType } from "@shared/schema";
 
 export default function Schedule() {
-  const [filters, setFilters] = useState<ScheduleFiltersType>({
-    search: undefined
-  });
+  const [filters, setFilters] = useState<ScheduleFiltersType>({});
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

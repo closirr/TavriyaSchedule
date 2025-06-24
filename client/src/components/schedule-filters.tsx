@@ -39,7 +39,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
     const searchLower = search.toLowerCase();
     const newSuggestions: SearchSuggestion[] = [];
 
-    // Add group suggestions
+    // Add group suggestions (from 2 characters)
     filterOptions.groups?.forEach((group: string) => {
       if (group.toLowerCase().includes(searchLower)) {
         newSuggestions.push({
@@ -50,18 +50,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
       }
     });
 
-    // Add teacher suggestions
-    filterOptions.teachers?.forEach((teacher: string) => {
-      if (teacher.toLowerCase().includes(searchLower)) {
-        newSuggestions.push({
-          value: teacher,
-          type: 'teacher',
-          label: `${teacher} (викладач)`
-        });
-      }
-    });
-
-    // Add classroom suggestions
+    // Add classroom suggestions (from 2 characters)
     filterOptions.classrooms?.forEach((classroom: string) => {
       if (classroom.toLowerCase().includes(searchLower)) {
         newSuggestions.push({
@@ -71,6 +60,19 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
         });
       }
     });
+
+    // Add teacher suggestions only from 3 characters
+    if (search.length >= 3) {
+      filterOptions.teachers?.forEach((teacher: string) => {
+        if (teacher.toLowerCase().includes(searchLower)) {
+          newSuggestions.push({
+            value: teacher,
+            type: 'teacher',
+            label: `${teacher} (викладач)`
+          });
+        }
+      });
+    }
 
     setSuggestions(newSuggestions.slice(0, 8)); // Limit to 8 suggestions
     setShowSuggestions(newSuggestions.length > 0);
@@ -86,7 +88,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
 
   const handleInputChange = (value: string) => {
     setSearch(value);
-    updateFilters(value);
+    // Don't update filters on input change - only when selecting from suggestions
   };
 
   const handleSuggestionSelect = (suggestion: SearchSuggestion) => {
@@ -130,7 +132,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
   const clearSearch = () => {
     setSearch('');
     setShowSuggestions(false);
-    updateFilters('');
+    updateFilters(''); // Clear filters when clearing search
     inputRef.current?.focus();
   };
 
@@ -143,7 +145,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
             <Input
               ref={inputRef}
               type="text"
-              placeholder="Пошук за групою, викладачем або аудиторією..."
+              placeholder="Введіть мінімум 2 символи для пошуку..."
               value={search}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}

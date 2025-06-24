@@ -145,4 +145,9 @@ Changelog:
 ```
 Preferred communication style: Simple, everyday language.
 Language: Ukrainian - complete website translation to Ukrainian completed.
+Search behavior: 
+- No table updates after 1 character
+- Suggestions appear after 2 characters (groups + classrooms only)
+- Teachers included in suggestions after 3 characters
+- Table updates only when user selects from suggestions dropdown
 ```
