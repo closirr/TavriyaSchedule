@@ -549,14 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         worksheet['!cols'] = cols;
         
-        // Объединение ячеек для заголовков групп (5 групп)
-        const merges = [];
-        for (let i = 0; i < 5; i++) {
-          const startCol = 1 + (i * 3);
-          const endCol = startCol + 2;
-          merges.push({ s: { c: startCol, r: 2 }, e: { c: endCol, r: 2 } });
-        }
-        worksheet['!merges'] = merges;
+
       } else if (template.filename === 'template_vertical_4groups.xlsx') {
         worksheet['!cols'] = [
           { wch: 12 }, // Время

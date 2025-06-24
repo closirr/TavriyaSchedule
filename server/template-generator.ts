@@ -148,7 +148,7 @@ export function createGroupBasedTemplate(): TemplateVariant {
   };
 }
 
-// Вариант 4: Горизонтальный формат с отдельными столбцами (20 групп с реальными данными)
+// Вариант 1: Горизонтальный формат с отдельными столбцами (20 групп с реальными данными)
 export function createTeacherTimeMatrix(): TemplateVariant {
   // Создаем список групп из реального расписания
   const groups = [
@@ -287,103 +287,9 @@ export function createTeacherTimeMatrix(): TemplateVariant {
   };
 }
 
-// Вариант 5: Демо шаблон с 5 группами с реальными данными
-export function createDemoTemplate(): TemplateVariant {
-  const groups = ['МЕТ-11', 'МТ-11', 'ЕкДл-11', 'А-11', 'МЕТ-21'];
 
-  const headerRow1 = ['РОЗКЛАД ЗАНЯТЬ (ДЕМО - 5 ГРУП З РЕАЛЬНИМИ ДАНИМИ)'];
-  const headerRow2 = ['Час'];
-  const headerRow3 = ['ПОНЕДІЛЬОК'];
 
-  groups.forEach(group => {
-    headerRow1.push(group, '', '');
-    headerRow2.push(group, '', '');
-    headerRow3.push('Предмет', 'Викладач', 'Аудиторія');
-  });
-
-  const createEmptyRow = (timeSlot: string) => {
-    const row = [timeSlot];
-    groups.forEach(() => {
-      row.push('', '', '');
-    });
-    return row;
-  };
-
-  const createDayRow = (day: string) => {
-    const row = [day];
-    groups.forEach(() => {
-      row.push('', '', '');
-    });
-    return row;
-  };
-
-  // Добавляем реальные данные
-  const createDataRow = (timeSlot: string, schedule: any) => {
-    const row = [timeSlot];
-    groups.forEach(group => {
-      const lesson = schedule[group];
-      if (lesson) {
-        row.push(lesson.subject, lesson.teacher, lesson.classroom);
-      } else {
-        row.push('', '', '');
-      }
-    });
-    return row;
-  };
-
-  const data = [
-    headerRow1,
-    [''],
-    headerRow2,
-    headerRow3,
-    createDataRow('9:00-10:20', {
-      'МТ-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
-      'ЕкДл-11': { subject: 'Фізична культура', teacher: 'Тарнавський А.М.', classroom: 'спортзал' }
-    }),
-    createDataRow('10:30-11:50', {
-      'МЕТ-11': { subject: 'Інформатика', teacher: 'Ленченко О.А.', classroom: 'комп.клас' },
-      'МТ-11': { subject: 'Українська мова', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
-      'ЕкДл-11': { subject: 'Іноземна мова', teacher: 'Носуля Н.І.', classroom: 'ауд.12' },
-      'А-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' }
-    }),
-    createDataRow('12:10-13:30', {
-      'МЕТ-11': { subject: 'Іноземна мова', teacher: 'Носуля Н.І.', classroom: 'ауд.12' },
-      'МТ-11': { subject: 'Інформатика', teacher: 'Глушко Л.М.', classroom: 'комп.клас' },
-      'ЕкДл-11': { subject: 'Математика', teacher: 'Тимкіна Л.Л.', classroom: 'ауд.20' },
-      'А-11': { subject: 'Математика', teacher: 'Одинець А.М.', classroom: 'ауд.18' }
-    }),
-    createDataRow('13:40-15:00', {
-      'МЕТ-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
-      'ЕкДл-11': { subject: 'Українська мова', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
-      'А-11': { subject: 'Іноземна мова', teacher: 'Підручна А.В.', classroom: 'ауд.12' }
-    }),
-    createDayRow('ВІВТОРОК'),
-    createDataRow('9:00-10:20', {
-      'МЕТ-11': { subject: 'Історія України', teacher: 'Любченко Л.В.', classroom: 'ауд.10' },
-      'МТ-11': { subject: 'Громадянська освіта', teacher: 'Фуртат С.О.', classroom: 'ауд.14' },
-      'ЕкДл-11': { subject: 'Фізика і астрономія', teacher: 'Плешивцева І.А.', classroom: 'ауд.16' }
-    }),
-    createEmptyRow('10:30-11:50'),
-    createEmptyRow('12:10-13:30'),
-    createEmptyRow('13:40-15:00'),
-    createEmptyRow('15:10-16:30'),
-    [''],
-    ['ІНСТРУКЦІЯ:'],
-    ['1. Кожна група має 3 стовпці: Предмет | Викладач | Аудиторія'],
-    ['2. Заголовки груп об\'єднані в одну комірку'],
-    ['3. Заповнюйте тільки потрібні комірки, порожні залишайте незаповненими'],
-    ['4. Реальні дані з розкладу Таврического коледжу 2024-2025 н.р.']
-  ];
-
-  return {
-    name: 'Демо 5 груп',
-    filename: 'template_demo_5groups.xlsx',
-    description: 'Демонстраційний шаблон з 5 групами та реальними даними коледжу.',
-    data
-  };
-}
-
-// Вариант 6: Вертикальный шаблон с реальными данными (группы по 4 в ряду)
+// Вариант 2: Вертикальный шаблон с реальными данными (группы по 4 в ряду)
 export function createVerticalTemplate(): TemplateVariant {
   // Создаем группы по 4 в ряду из реального расписания
   const allGroups = [
@@ -592,7 +498,7 @@ export function createVerticalTemplate(): TemplateVariant {
   };
 }
 
-// Вариант 7: Вертикальный шаблон с группами по 3 в ряду
+// Вариант 3: Вертикальный шаблон с группами по 3 в ряду
 export function createVertical3GroupsTemplate(): TemplateVariant {
   // Создаем группы по 3 в ряду из реального расписания
   const allGroups = [
@@ -866,11 +772,7 @@ export function createVertical3GroupsTemplate(): TemplateVariant {
 
 export function generateAllTemplates(): TemplateVariant[] {
   return [
-    createWeeklyTemplate(),
-    createSimpleListTemplate(),
-    createGroupBasedTemplate(),
     createTeacherTimeMatrix(),
-    createDemoTemplate(),
     createVerticalTemplate(),
     createVertical3GroupsTemplate()
   ];
@@ -900,23 +802,7 @@ export function saveTemplateToFile(template: TemplateVariant, outputDir: string 
     }
     ws['!merges'] = merges;
   } else if (template.filename === 'template_demo_5groups.xlsx') {
-    // Настройки для демо шаблона с 5 группами
-    const cols = [{ width: 12 }]; // Время
-    for (let i = 0; i < 5; i++) {
-      cols.push({ width: 15 }); // Предмет
-      cols.push({ width: 20 }); // Преподаватель  
-      cols.push({ width: 12 }); // Аудитория
-    }
-    ws['!cols'] = cols;
-    
-    // Объединение ячеек для заголовков групп (5 групп)
-    const merges = [];
-    for (let i = 0; i < 5; i++) {
-      const startCol = 1 + (i * 3);
-      const endCol = startCol + 2;
-      merges.push({ s: { c: startCol, r: 2 }, e: { c: endCol, r: 2 } });
-    }
-    ws['!merges'] = merges;
+
   } else if (template.filename === 'template_vertical_4groups.xlsx') {
     // Настройки для вертикального шаблона с группами по 4
     ws['!cols'] = [
