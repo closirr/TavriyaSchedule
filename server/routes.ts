@@ -231,11 +231,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (headers.length > 7 && 
                  (headers.includes('Предмет') || headers.includes('Преподаватель') || headers.includes('Аудитория'))) {
         
-        // Separate columns format parsing
+        // Separate columns format parsing (both horizontal and vertical)
         let currentDay = '';
         const groupsInfo: Array<{name: string, startCol: number}> = [];
         
-        // Find groups and their column positions
+        // Find groups and their column positions in first row
         for (let i = 1; i < headers.length; i++) {
           const header = headers[i];
           if (header && (header.includes('ИТ-') || header.includes('ЭК-') || 
@@ -245,9 +245,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
+        // If no groups found in headers, look in data rows (vertical format)
+        if (groupsInfo.length === 0) {
+          for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+            const row = rows[rowIndex];
+            for (let colIndex = 1; colIndex < row.length; colIndex++) {
+              const cell = String(row[colIndex] || '').trim();
+              if (cell && (cell.includes('ИТ-') || cell.includes('ЭК-') || 
+                          cell.includes('А-') || cell.includes('М-') ||
+                          /^[А-Я]+-\d+$/.test(cell))) {
+                if (!groupsInfo.find(g => g.name === cell)) {
+                  groupsInfo.push({name: cell, startCol: colIndex});
+                }
+              }
+            }
+          }
+        }
+        
+        // Dynamic group detection for each row (for vertical format)
         for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
           const row = rows[rowIndex];
           const dayCell = String(row[0] || '').trim();
+          
+          // Check if this row contains group headers
+          const currentRowGroups: Array<{name: string, startCol: number}> = [];
+          for (let colIndex = 1; colIndex < row.length; colIndex++) {
+            const cell = String(row[colIndex] || '').trim();
+            if (cell && (cell.includes('ИТ-') || cell.includes('ЭК-') || 
+                        cell.includes('А-') || cell.includes('М-') ||
+                        /^[А-Я]+-\d+$/.test(cell))) {
+              currentRowGroups.push({name: cell, startCol: colIndex});
+            }
+          }
+          
+          // If we found groups in this row, use them for subsequent rows
+          if (currentRowGroups.length > 0) {
+            groupsInfo.length = 0; // Clear existing
+            groupsInfo.push(...currentRowGroups);
+            continue;
+          }
           
           // Update current day
           if (dayCell && (dayCell.includes('ПОНЕДЕЛЬНИК') || dayCell.includes('ПОНЕДІЛЬОК') ||
@@ -272,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Parse time slots
           const timeCell = String(row[0] || '').trim();
-          if (timeCell && timeCell.includes('-') && currentDay) {
+          if (timeCell && timeCell.includes('-') && currentDay && groupsInfo.length > 0) {
             const normalizedTime = timeCell.replace(/\./g, ':');
             const timeMatch = normalizedTime.match(/(\d{1,2}):?(\d{2})-(\d{1,2}):?(\d{2})/);
             if (!timeMatch) continue;
@@ -519,6 +555,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const startCol = 1 + (i * 3);
           const endCol = startCol + 2;
           merges.push({ s: { c: startCol, r: 2 }, e: { c: endCol, r: 2 } });
+        }
+        worksheet['!merges'] = merges;
+      } else if (template.filename === 'template_vertical_4groups.xlsx') {
+        worksheet['!cols'] = [
+          { wch: 12 }, // Время
+          { wch: 15 }, { wch: 20 }, { wch: 12 }, // Группа 1
+          { wch: 15 }, { wch: 20 }, { wch: 12 }, // Группа 2
+          { wch: 15 }, { wch: 20 }, { wch: 12 }, // Группа 3
+          { wch: 15 }, { wch: 20 }, { wch: 12 }  // Группа 4
+        ];
+        
+        // Находим все строки с заголовками групп и создаем объединения
+        const merges = [];
+        const rows = template.data;
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex];
+          if (row && row.length > 1 && typeof row[1] === 'string' && 
+              (row[1].includes('ИТ-') || row[1].includes('ЭК-') || row[1].includes('А-') || row[1].includes('М-'))) {
+            // Это строка с заголовками групп, создаем объединения
+            for (let groupIndex = 0; groupIndex < 4; groupIndex++) {
+              const startCol = 1 + (groupIndex * 3);
+              const endCol = startCol + 2;
+              if (startCol < row.length) {
+                merges.push({ s: { c: startCol, r: rowIndex }, e: { c: endCol, r: rowIndex } });
+              }
+            }
+          }
         }
         worksheet['!merges'] = merges;
       } else {

@@ -307,13 +307,103 @@ export function createDemoTemplate(): TemplateVariant {
   };
 }
 
+// Вариант 6: Вертикальный шаблон (группы по 4 в ряду, вертикальная прокрутка)
+export function createVerticalTemplate(): TemplateVariant {
+  // Создаем группы по 4 в ряду
+  const allGroups = [
+    'ИТ-21', 'ИТ-22', 'ИТ-23', 'ИТ-24',
+    'ИТ-25', 'ЭК-21', 'ЭК-22', 'ЭК-23', 
+    'ЭК-24', 'ЭК-25', 'А-21', 'А-22',
+    'А-23', 'А-24', 'А-25', 'М-21',
+    'М-22', 'М-23', 'М-24', 'М-25'
+  ];
+
+  const data = [];
+  
+  // Заголовок
+  data.push(['РАСПИСАНИЕ ЗАНЯТИЙ - ВЕРТИКАЛЬНЫЙ ФОРМАТ (ГРУППЫ ПО 4 В РЯДУ)']);
+  data.push(['']);
+
+  // Обрабатываем группы по 4 штуки
+  for (let groupIndex = 0; groupIndex < allGroups.length; groupIndex += 4) {
+    const currentGroups = allGroups.slice(groupIndex, groupIndex + 4);
+    
+    // Заголовок групп
+    const groupHeaderRow = ['Время'];
+    currentGroups.forEach(group => {
+      groupHeaderRow.push(group, '', '');
+    });
+    data.push(groupHeaderRow);
+    
+    // Подзаголовки (Предмет, Преподаватель, Аудитория)
+    const subHeaderRow = [''];
+    currentGroups.forEach(() => {
+      subHeaderRow.push('Предмет', 'Преподаватель', 'Аудитория');
+    });
+    data.push(subHeaderRow);
+    
+    // Дни недели и временные слоты
+    const days = ['ПОНЕДЕЛЬНИК', 'ВТОРНИК', 'СРЕДА', 'ЧЕТВЕРГ', 'ПЯТНИЦА'];
+    const timeSlots = ['9:00-10:20', '10:30-11:50', '12:10-13:30', '13:40-15:00', '15:10-16:30'];
+    
+    days.forEach(day => {
+      // День недели
+      const dayRow = [day];
+      currentGroups.forEach(() => {
+        dayRow.push('', '', '');
+      });
+      data.push(dayRow);
+      
+      // Временные слоты
+      timeSlots.forEach(timeSlot => {
+        const timeRow = [timeSlot];
+        currentGroups.forEach(() => {
+          timeRow.push('', '', '');
+        });
+        data.push(timeRow);
+      });
+      
+      // Пустая строка между днями
+      const emptyRow = [''];
+      currentGroups.forEach(() => {
+        emptyRow.push('', '', '');
+      });
+      data.push(emptyRow);
+    });
+    
+    // Разделитель между блоками групп
+    if (groupIndex + 4 < allGroups.length) {
+      data.push(['', '', '', '', '', '', '', '', '', '', '', '', '']);
+      data.push(['='.repeat(50)]);
+      data.push(['']);
+    }
+  }
+  
+  // Инструкция
+  data.push(['']);
+  data.push(['ИНСТРУКЦИЯ ПО ЗАПОЛНЕНИЮ:']);
+  data.push(['1. Группы расположены блоками по 4 штуки']);
+  data.push(['2. Каждая группа имеет 3 столбца: Предмет | Преподаватель | Аудитория']);
+  data.push(['3. Прокручивайте вниз чтобы увидеть следующие блоки групп']);
+  data.push(['4. Заполняйте только нужные ячейки, пустые оставляйте незаполненными']);
+  data.push(['5. Можете удалить ненужные группы или изменить их названия']);
+
+  return {
+    name: 'Вертикальный (группы по 4)',
+    filename: 'template_vertical_4groups.xlsx',
+    description: 'Вертикальный формат с группами по 4 в ряду. Удобно для вертикальной прокрутки большого количества групп.',
+    data
+  };
+}
+
 export function generateAllTemplates(): TemplateVariant[] {
   return [
     createWeeklyTemplate(),
     createSimpleListTemplate(),
     createGroupBasedTemplate(),
     createTeacherTimeMatrix(),
-    createDemoTemplate()
+    createDemoTemplate(),
+    createVerticalTemplate()
   ];
 }
 
@@ -356,6 +446,34 @@ export function saveTemplateToFile(template: TemplateVariant, outputDir: string 
       const startCol = 1 + (i * 3);
       const endCol = startCol + 2;
       merges.push({ s: { c: startCol, r: 2 }, e: { c: endCol, r: 2 } });
+    }
+    ws['!merges'] = merges;
+  } else if (template.filename === 'template_vertical_4groups.xlsx') {
+    // Настройки для вертикального шаблона с группами по 4
+    ws['!cols'] = [
+      { width: 12 }, // Время
+      { width: 15 }, { width: 20 }, { width: 12 }, // Группа 1
+      { width: 15 }, { width: 20 }, { width: 12 }, // Группа 2
+      { width: 15 }, { width: 20 }, { width: 12 }, // Группа 3
+      { width: 15 }, { width: 20 }, { width: 12 }  // Группа 4
+    ];
+    
+    // Находим все строки с заголовками групп и создаем объединения
+    const merges = [];
+    const rows = template.data;
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      const row = rows[rowIndex];
+      if (row && row.length > 1 && typeof row[1] === 'string' && 
+          (row[1].includes('ИТ-') || row[1].includes('ЭК-') || row[1].includes('А-') || row[1].includes('М-'))) {
+        // Это строка с заголовками групп, создаем объединения
+        for (let groupIndex = 0; groupIndex < 4; groupIndex++) {
+          const startCol = 1 + (groupIndex * 3);
+          const endCol = startCol + 2;
+          if (startCol < row.length) {
+            merges.push({ s: { c: startCol, r: rowIndex }, e: { c: endCol, r: rowIndex } });
+          }
+        }
+      }
     }
     ws['!merges'] = merges;
   } else {
