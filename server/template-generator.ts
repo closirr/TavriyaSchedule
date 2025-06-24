@@ -287,18 +287,18 @@ export function createTeacherTimeMatrix(): TemplateVariant {
   };
 }
 
-// Вариант 5: Демо шаблон с 5 группами для примера
+// Вариант 5: Демо шаблон с 5 группами с реальными данными
 export function createDemoTemplate(): TemplateVariant {
-  const groups = ['ИТ-21', 'ИТ-22', 'ЭК-21', 'А-21', 'М-21'];
+  const groups = ['МЕТ-11', 'МТ-11', 'ЕкДл-11', 'А-11', 'МЕТ-21'];
 
-  const headerRow1 = ['РАСПИСАНИЕ ЗАНЯТИЙ (ДЕМО - 5 ГРУПП)'];
-  const headerRow2 = ['Время'];
-  const headerRow3 = ['ПОНЕДЕЛЬНИК'];
+  const headerRow1 = ['РОЗКЛАД ЗАНЯТЬ (ДЕМО - 5 ГРУП З РЕАЛЬНИМИ ДАНИМИ)'];
+  const headerRow2 = ['Час'];
+  const headerRow3 = ['ПОНЕДІЛЬОК'];
 
   groups.forEach(group => {
     headerRow1.push(group, '', '');
     headerRow2.push(group, '', '');
-    headerRow3.push('Предмет', 'Преподаватель', 'Аудитория');
+    headerRow3.push('Предмет', 'Викладач', 'Аудиторія');
   });
 
   const createEmptyRow = (timeSlot: string) => {
@@ -317,14 +317,17 @@ export function createDemoTemplate(): TemplateVariant {
     return row;
   };
 
-  // Добавляем пример заполнения
-  const createExampleRow = (timeSlot: string) => {
+  // Добавляем реальные данные
+  const createDataRow = (timeSlot: string, schedule: any) => {
     const row = [timeSlot];
-    row.push('Математика', 'Иванов И.И.', 'каб.101'); // ИТ-21
-    row.push('', '', ''); // ИТ-22
-    row.push('Экономика', 'Петров П.П.', 'каб.201'); // ЭК-21
-    row.push('', '', ''); // А-21
-    row.push('', '', ''); // М-21
+    groups.forEach(group => {
+      const lesson = schedule[group];
+      if (lesson) {
+        row.push(lesson.subject, lesson.teacher, lesson.classroom);
+      } else {
+        row.push('', '', '');
+      }
+    });
     return row;
   };
 
@@ -333,28 +336,49 @@ export function createDemoTemplate(): TemplateVariant {
     [''],
     headerRow2,
     headerRow3,
-    createExampleRow('9:00-10:20'),
-    createEmptyRow('10:30-11:50'),
-    createEmptyRow('12:10-13:30'),
-    createEmptyRow('13:40-15:00'),
-    createDayRow('ВТОРНИК'),
-    createEmptyRow('9:00-10:20'),
+    createDataRow('9:00-10:20', {
+      'МТ-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+      'ЕкДл-11': { subject: 'Фізична культура', teacher: 'Тарнавський А.М.', classroom: 'спортзал' }
+    }),
+    createDataRow('10:30-11:50', {
+      'МЕТ-11': { subject: 'Інформатика', teacher: 'Ленченко О.А.', classroom: 'комп.клас' },
+      'МТ-11': { subject: 'Українська мова', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
+      'ЕкДл-11': { subject: 'Іноземна мова', teacher: 'Носуля Н.І.', classroom: 'ауд.12' },
+      'А-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' }
+    }),
+    createDataRow('12:10-13:30', {
+      'МЕТ-11': { subject: 'Іноземна мова', teacher: 'Носуля Н.І.', classroom: 'ауд.12' },
+      'МТ-11': { subject: 'Інформатика', teacher: 'Глушко Л.М.', classroom: 'комп.клас' },
+      'ЕкДл-11': { subject: 'Математика', teacher: 'Тимкіна Л.Л.', classroom: 'ауд.20' },
+      'А-11': { subject: 'Математика', teacher: 'Одинець А.М.', classroom: 'ауд.18' }
+    }),
+    createDataRow('13:40-15:00', {
+      'МЕТ-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+      'ЕкДл-11': { subject: 'Українська мова', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
+      'А-11': { subject: 'Іноземна мова', teacher: 'Підручна А.В.', classroom: 'ауд.12' }
+    }),
+    createDayRow('ВІВТОРОК'),
+    createDataRow('9:00-10:20', {
+      'МЕТ-11': { subject: 'Історія України', teacher: 'Любченко Л.В.', classroom: 'ауд.10' },
+      'МТ-11': { subject: 'Громадянська освіта', teacher: 'Фуртат С.О.', classroom: 'ауд.14' },
+      'ЕкДл-11': { subject: 'Фізика і астрономія', teacher: 'Плешивцева І.А.', classroom: 'ауд.16' }
+    }),
     createEmptyRow('10:30-11:50'),
     createEmptyRow('12:10-13:30'),
     createEmptyRow('13:40-15:00'),
     createEmptyRow('15:10-16:30'),
     [''],
-    ['ИНСТРУКЦИЯ:'],
-    ['1. Каждая группа имеет 3 столбца: Предмет | Преподаватель | Аудитория'],
-    ['2. Заголовки групп объединены в одну ячейку'],
-    ['3. Заполняйте только нужные ячейки, пустые оставляйте незаполненными'],
-    ['4. Этот шаблон показывает принцип работы для любого количества групп']
+    ['ІНСТРУКЦІЯ:'],
+    ['1. Кожна група має 3 стовпці: Предмет | Викладач | Аудиторія'],
+    ['2. Заголовки груп об\'єднані в одну комірку'],
+    ['3. Заповнюйте тільки потрібні комірки, порожні залишайте незаповненими'],
+    ['4. Реальні дані з розкладу Таврического коледжу 2024-2025 н.р.']
   ];
 
   return {
-    name: 'Демо 5 групп',
+    name: 'Демо 5 груп',
     filename: 'template_demo_5groups.xlsx',
-    description: 'Демонстрационный шаблон с 5 группами. Показывает принцип работы с объединенными ячейками.',
+    description: 'Демонстраційний шаблон з 5 групами та реальними даними коледжу.',
     data
   };
 }
