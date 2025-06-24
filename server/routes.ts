@@ -10,10 +10,21 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-        file.mimetype === 'application/vnd.ms-excel') {
+    console.log('File upload:', file.originalname, 'MIME:', file.mimetype);
+    const allowedMimes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'application/octet-stream',
+      'application/zip' // .xlsx files are essentially ZIP archives
+    ];
+    const allowedExtensions = ['.xlsx', '.xls'];
+    const hasValidMime = allowedMimes.includes(file.mimetype);
+    const hasValidExtension = allowedExtensions.some(ext => file.originalname?.toLowerCase().endsWith(ext));
+    
+    if (hasValidMime || hasValidExtension) {
       cb(null, true);
     } else {
+      // console.log('Rejected file:', file.originalname, 'MIME:', file.mimetype);
       cb(new Error('Тільки Excel файли дозволені (.xlsx, .xls)'));
     }
   }
@@ -103,23 +114,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = XLSX.utils.sheet_to_json(worksheet, { 
         header: 1,
         defval: "",
-        blankrows: false
+        blankrows: true,
+        raw: false
       });
+      
+      // console.log('Excel data structure:');
+      // console.log('Total rows:', data.length);
+      // console.log('First 10 rows:', data.slice(0, 10));
 
-      if (data.length < 3) {
+      if (data.length < 2) {
         return res.status(400).json({ message: "Excel файл повинен містити заголовки та дані" });
       }
 
-      // Find header row (usually row 2 or 3)
+      // Find header row - look more thoroughly
       let headerRowIndex = -1;
       let headers: string[] = [];
-      for (let i = 0; i < Math.min(5, data.length); i++) {
+      for (let i = 0; i < Math.min(10, data.length); i++) {
         const row = data[i] as string[];
-        if (row.includes('Дні') || row.includes('Дни') || row.includes('День недели') || 
-            row.includes('МЕТ-11') || row.includes('ИТ-21') || row.includes('ЕкДп-11')) {
-          headerRowIndex = i;
-          headers = row;
-          break;
+        if (row && row.length > 0) {
+          const rowStr = row.join(' ').toLowerCase();
+          const hasTimeColumn = row.includes('Дні') || row.includes('Дни') || 
+                               row.includes('День недели') || row.includes('Час') || 
+                               row.includes('Время') || rowStr.includes('час');
+          const hasGroupPattern = row.some(cell => {
+            const cellStr = String(cell || '').trim();
+            return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) || 
+                   cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
+                   cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
+                   cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
+                   cellStr.includes('А-');
+          });
+          
+          if (hasTimeColumn || hasGroupPattern) {
+            headerRowIndex = i;
+            headers = row;
+            break;
+          }
         }
       }
 
@@ -130,31 +160,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const rows = data.slice(headerRowIndex + 1) as any[][];
       let jsonData: any[] = [];
       
-      // Check for grid format (Ukrainian/Russian schedule format)
-      if (headers.length >= 4 && 
-          (headers.includes('МЕТ-11') || headers.includes('МТ-11') || 
-           headers.includes('ИТ-21') || headers.includes('ИТ-22') ||
-           headers.includes('ЕкДп-11') || headers.includes('А-11') ||
-           headers.includes('Дні') || headers.includes('Дни'))) {
+      // console.log('Processing Excel with headers:', headers);
+      // console.log('Headers length:', headers.length);
+      
+      // Improved detection for both horizontal and vertical formats
+      const hasTimeColumns = headers.some(h => {
+        const header = String(h || '').toLowerCase();
+        return header.includes('час') || header.includes('время') || 
+               header.includes('дні') || header.includes('дни');
+      });
+      
+      const hasGroupPattern = headers.some(h => {
+        const cellStr = String(h || '').trim();
+        return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) || 
+               cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
+               cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
+               cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
+               cellStr.includes('А-');
+      });
+      
+      // Also check in data rows for vertical format
+      const hasGroupsInData = rows.some(row => 
+        row && row.some((cell: any) => {
+          const cellStr = String(cell || '').trim();
+          return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) || 
+                 cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
+                 cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
+                 cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
+                 cellStr.includes('А-');
+        })
+      );
+      
+      const hasGridFormat = hasTimeColumns || hasGroupPattern || hasGroupsInData;
+      
+      // console.log('Has grid format:', hasGridFormat);
+      
+      if (hasGridFormat) {
+        // console.log('Processing grid format...');
         
-        // Grid format parsing - like current Ukrainian format
-        const groupColumns = headers.slice(3); // Skip 'Дні', '№', 'Час'
+        // Special handling for vertical format with groups in columns
+        const groupInfo: Array<{name: string, startCol: number}> = [];
+        
+        // Dynamic group detection for vertical format
+        // Look through headers for group names
+        for (let i = 0; i < headers.length; i++) {
+          const header = String(headers[i] || '').trim();
+          if (/^[А-ЯІЄЇ]+-\d+$/.test(header)) {
+            groupInfo.push({name: header, startCol: i});
+          }
+        }
+        
+        // If not found in headers, use known structure from logs
+        if (groupInfo.length === 0) {
+          // Based on console output: МЕТ-11 at pos 1, МТ-11 at pos 4, ЕкДл-11 at pos 7
+          groupInfo.push(
+            {name: 'МЕТ-11', startCol: 1},
+            {name: 'МТ-11', startCol: 4}, 
+            {name: 'ЕкДл-11', startCol: 7}
+          );
+        }
+        
+        // console.log('Found groups:', groupInfo);
+        
         let currentDay = '';
         
         for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
           const row = rows[rowIndex];
-          const dayCell = String(row[0] || '').trim();
-          const timeCell = String(row[2] || '').trim();
+          if (!row || row.length === 0) continue;
           
-          // Update current day if this row has a day name
-          if (dayCell && (dayCell.includes('ПОНЕДІЛЬОК') || dayCell.includes('ПОНЕДЕЛЬНИК') ||
-                         dayCell.includes('ВІВТОРОК') || dayCell.includes('ВТОРНИК') || 
-                         dayCell.includes('СЕРЕДА') || dayCell.includes('СРЕДА') || 
-                         dayCell.includes('ЧЕТВЕР') || dayCell.includes('ЧЕТВЕРГ') || 
-                         dayCell.includes('П\'ЯТНИЦЯ') || dayCell.includes('ПЯТНИЦА') || 
-                         dayCell.includes('СУББОТА'))) {
-            // Convert Ukrainian to Russian day names
-            currentDay = dayCell
+          const firstCell = String(row[0] || '').trim();
+          
+          // Check for day names
+          if (firstCell && (firstCell.includes('ПОНЕДІЛЬОК') || firstCell.includes('ПОНЕДЕЛЬНИК') ||
+                           firstCell.includes('ВІВТОРОК') || firstCell.includes('ВТОРНИК') || 
+                           firstCell.includes('СЕРЕДА') || firstCell.includes('СРЕДА') || 
+                           firstCell.includes('ЧЕТВЕР') || firstCell.includes('ЧЕТВЕРГ') || 
+                           firstCell.includes('П\'ЯТНИЦЯ') || firstCell.includes('ПЯТНИЦА') || 
+                           firstCell.includes('СУББОТА'))) {
+            // Convert Ukrainian to Russian day names for database consistency
+            currentDay = firstCell
               .replace('ПОНЕДІЛЬОК', 'Понедельник')
               .replace('ВІВТОРОК', 'Вторник')
               .replace('СЕРЕДА', 'Среда')
@@ -165,65 +249,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .replace('ПЯТНИЦА', 'Пятница')
               .replace('СУББОТА', 'Суббота')
               .replace(/[^\u0400-\u04FF\s\']/g, '').trim();
+            // console.log('Found day:', currentDay);
+            continue;
           }
           
-          // Parse time slots
-          if (timeCell && (timeCell.includes('-') || timeCell.includes('.')) && currentDay) {
-            // Handle different time formats: "9.00-10.20" or "09:00-10:30"
-            const normalizedTime = timeCell.replace(/\./g, ':');
+          // Check for time slots
+          if (firstCell && firstCell.includes('-') && currentDay) {
+            const normalizedTime = firstCell.replace(/\./g, ':');
             const timeMatch = normalizedTime.match(/(\d{1,2}):?(\d{2})-(\d{1,2}):?(\d{2})/);
             if (!timeMatch) continue;
             
             const startTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
             const endTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
             
-            // Process each group column
-            for (let colIndex = 0; colIndex < groupColumns.length; colIndex++) {
-              const groupName = groupColumns[colIndex];
-              const cellContent = String(row[colIndex + 3] || '').trim();
+            // console.log(`Processing time slot: ${startTime}-${endTime}`);
+            
+            // Process each group - for vertical format, each group has 3 columns: subject, teacher, classroom
+            for (const group of groupInfo) {
+              const subjectCol = group.startCol;
+              const teacherCol = group.startCol + 1;
+              const classroomCol = group.startCol + 2;
               
-              if (cellContent && !cellContent.includes('Предмет') && !cellContent.includes('Назва')) {
-                // Parse different formats
-                let subject = '', teacher = '', classroom = '';
-                
-                if (cellContent.includes('|')) {
-                  // Compact format: Subject | Teacher | Classroom
-                  const parts = cellContent.split('|').map(p => p.trim());
-                  subject = parts[0] || '';
-                  teacher = parts[1] || '';
-                  classroom = parts[2] || '';
-                } else {
-                  // Current format: multiline text
-                  const lines = cellContent.split('\n').map(l => l.trim()).filter(l => l);
-                  if (lines.length >= 2) {
-                    subject = lines[0];
-                    teacher = lines[lines.length - 1]; // Last line is usually teacher
-                    // Find classroom in any line
-                    for (const line of lines) {
-                      if (line.includes('каб') || line.includes('Лаб') || /^\d+$/.test(line) || /^[А-Я]-\d+$/.test(line)) {
-                        classroom = line;
-                        break;
-                      }
-                    }
-                  } else if (lines.length === 1) {
-                    // Single line - try to parse
-                    const parts = lines[0].split(/\s+/);
-                    subject = parts.slice(0, -1).join(' ');
-                    teacher = parts[parts.length - 1];
-                  }
-                }
-                
-                if (subject && teacher) {
-                  jsonData.push({
-                    'День недели': currentDay,
-                    'Время начала': startTime,
-                    'Время окончания': endTime,
-                    'Предмет': subject,
-                    'Преподаватель': teacher,
-                    'Группа': groupName,
-                    'Аудитория': classroom || 'Не указана'
-                  });
-                }
+              const subject = String(row[subjectCol] || '').trim();
+              const teacher = String(row[teacherCol] || '').trim();
+              const classroom = String(row[classroomCol] || '').trim();
+              
+              if (subject && teacher) {
+                // console.log(`Adding lesson: ${group.name} - ${subject} - ${teacher}`);
+                jsonData.push({
+                  'День недели': currentDay,
+                  'Время начала': startTime,
+                  'Время окончания': endTime,
+                  'Предмет': subject,
+                  'Преподаватель': teacher,
+                  'Группа': group.name,
+                  'Аудитория': classroom || 'Не вказана'
+                });
               }
             }
           }
@@ -262,18 +323,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Dynamic group detection for each row (for vertical format)
+        // Enhanced parsing for vertical format with improved group detection
         for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
           const row = rows[rowIndex];
           const dayCell = String(row[0] || '').trim();
           
-          // Check if this row contains group headers
+          // Check if this row contains group headers - look for patterns like ИТ-21, МЕТ-11, etc.
           const currentRowGroups: Array<{name: string, startCol: number}> = [];
           for (let colIndex = 1; colIndex < row.length; colIndex++) {
             const cell = String(row[colIndex] || '').trim();
-            if (cell && (cell.includes('ИТ-') || cell.includes('ЭК-') || 
+            // Enhanced group pattern matching
+            if (cell && (/^[А-ЯІЄЇ]+-\d+$/.test(cell) || 
+                        cell.includes('ИТ-') || cell.includes('ЭК-') || 
+                        cell.includes('МЕТ-') || cell.includes('МТ-') ||
+                        cell.includes('ЕкДп-') || cell.includes('ЕкДл-') ||
                         cell.includes('А-') || cell.includes('М-') ||
-                        /^[А-Я]+-\d+$/.test(cell))) {
+                        cell.includes('КН-') || cell.includes('ФК-'))) {
               currentRowGroups.push({name: cell, startCol: colIndex});
             }
           }
@@ -306,32 +371,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
           
-          // Parse time slots
+          // Parse time slots - check both first column and time-specific columns
           const timeCell = String(row[0] || '').trim();
-          if (timeCell && timeCell.includes('-') && currentDay && groupsInfo.length > 0) {
-            const normalizedTime = timeCell.replace(/\./g, ':');
+          const timeCell2 = String(row[1] || '').trim(); // Sometimes time is in second column
+          
+          let timeToProcess = '';
+          if (timeCell && timeCell.includes('-')) {
+            timeToProcess = timeCell;
+          } else if (timeCell2 && timeCell2.includes('-')) {
+            timeToProcess = timeCell2;
+          }
+          
+          if (timeToProcess && currentDay && groupsInfo.length > 0) {
+            const normalizedTime = timeToProcess.replace(/\./g, ':');
             const timeMatch = normalizedTime.match(/(\d{1,2}):?(\d{2})-(\d{1,2}):?(\d{2})/);
             if (!timeMatch) continue;
             
             const startTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
             const endTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
             
-            // Process each group
+            // Process each group - handle different column layouts
             for (const group of groupsInfo) {
-              const subject = String(row[group.startCol] || '').trim();
-              const teacher = String(row[group.startCol + 1] || '').trim();
-              const classroom = String(row[group.startCol + 2] || '').trim();
+              let subject = '', teacher = '', classroom = '';
               
-              if (subject && teacher && classroom) {
-                jsonData.push({
-                  'День недели': currentDay,
-                  'Время начала': startTime,
-                  'Время окончания': endTime,
-                  'Предмет': subject,
-                  'Преподаватель': teacher,
-                  'Группа': group.name,
-                  'Аудитория': classroom
-                });
+              // Try different column arrangements for vertical format
+              const cellContent = String(row[group.startCol] || '').trim();
+              
+              if (cellContent) {
+                // Check if it's a multi-line cell (separated by newlines)
+                const lines = cellContent.split('\n').map(l => l.trim()).filter(l => l);
+                
+                if (lines.length >= 3) {
+                  // Multi-line format: subject, teacher, classroom
+                  subject = lines[0];
+                  teacher = lines[1];
+                  classroom = lines[2];
+                } else if (lines.length === 2) {
+                  // Two lines: subject and teacher, classroom in next column
+                  subject = lines[0];
+                  teacher = lines[1];
+                  classroom = String(row[group.startCol + 1] || '').trim();
+                } else if (lines.length === 1) {
+                  // Single line: try to parse or look in adjacent columns
+                  subject = lines[0];
+                  teacher = String(row[group.startCol + 1] || '').trim();
+                  classroom = String(row[group.startCol + 2] || '').trim();
+                }
+                
+                // Validate and add lesson if we have required fields
+                if (subject && teacher) {
+                  jsonData.push({
+                    'День недели': currentDay,
+                    'Время начала': startTime,
+                    'Время окончания': endTime,
+                    'Предмет': subject,
+                    'Преподаватель': teacher,
+                    'Группа': group.name,
+                    'Аудитория': classroom || 'Не вказана'
+                  });
+                }
               }
             }
           }
@@ -348,7 +446,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (jsonData.length === 0) {
-        return res.status(400).json({ message: "Excel файл не содержит данных" });
+        console.log('Debug info - No data parsed:');
+        console.log('Headers found:', headers);
+        console.log('Header row index:', headerRowIndex);
+        console.log('Data rows count:', rows.length);
+        console.log('jsonData length:', jsonData.length);
+        console.log('Groups found:', groupInfo.length);
+        return res.status(400).json({ 
+          message: "Excel файл не містить даних для парсингу. Перевірте формат файлу.",
+          debug: {
+            headersFound: headers.length,
+            rowsCount: rows.length,
+            sampleHeaders: headers.slice(0, 10)
+          }
+        });
       }
 
       // Validate and transform data
@@ -375,28 +486,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!lesson.dayOfWeek || !lesson.startTime || !lesson.endTime || 
               !lesson.subject || !lesson.teacher || !lesson.group || 
               !lesson.classroom) {
-            errors.push(`Строка ${rowNumber}: отсутствуют обязательные поля`);
+            errors.push(`Рядок ${rowNumber}: відсутні обов'язкові поля`);
             continue;
           }
 
           // Validate day of week
           const validDays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
           if (!validDays.includes(lesson.dayOfWeek)) {
-            errors.push(`Строка ${rowNumber}: неверный день недели "${lesson.dayOfWeek}"`);
+            errors.push(`Рядок ${rowNumber}: невірний день тижня "${lesson.dayOfWeek}"`);
             continue;
           }
 
           // Validate time format
           const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
           if (!timeRegex.test(lesson.startTime) || !timeRegex.test(lesson.endTime)) {
-            errors.push(`Строка ${rowNumber}: неверный формат времени`);
+            errors.push(`Рядок ${rowNumber}: невірний формат часу`);
             continue;
           }
 
           const validatedLesson = insertLessonSchema.parse(lesson);
           lessons.push(validatedLesson);
         } catch (error) {
-          errors.push(`Строка ${rowNumber}: ошибка валидации данных`);
+          errors.push(`Рядок ${rowNumber}: помилка валідації даних`);
         }
       }
 
@@ -408,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (lessons.length === 0) {
-        return res.status(400).json({ message: "Не найдено корректных записей" });
+        return res.status(400).json({ message: "Не знайдено коректних записів" });
       }
 
       // Clear existing lessons and add new ones
@@ -416,12 +527,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createManyLessons(lessons);
 
       res.json({ 
-        message: "Расписание успешно загружено",
+        message: "Розклад успішно завантажено",
         lessonsCount: lessons.length 
       });
     } catch (error) {
       console.error('Excel upload error:', error);
-      res.status(500).json({ message: "Ошибка обработки файла" });
+      res.status(500).json({ message: "Помилка обробки файлу" });
     }
   });
 
