@@ -43,6 +43,9 @@ export default function Schedule() {
         {/* File Upload */}
         <FileUpload />
 
+        {/* Export Buttons */}
+        <ExportButtons />
+
         {/* Filters */}
         <ScheduleFilters onFiltersChange={setFilters} />
 

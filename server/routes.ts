@@ -5,6 +5,7 @@ import { scheduleFiltersSchema, insertLessonSchema } from "@shared/schema";
 import * as XLSX from 'xlsx';
 import multer from 'multer';
 import { generateAllTemplates, type TemplateVariant } from './template-generator';
+import { generateSchedulePDF, generateWeeklySchedulePDF, generateGroupSchedulePDF } from './pdf-generator';
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -615,6 +616,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Template list error:', error);
       res.status(500).json({ message: "Ошибка получения списка шаблонов" });
+    }
+  });
+
+  // Export schedule as PDF
+  app.get("/api/export/pdf", async (req, res) => {
+    try {
+      const lessons = await storage.getAllLessons();
+      const pdfBuffer = generateWeeklySchedulePDF(lessons);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="rozklad-${new Date().toISOString().split('T')[0]}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('PDF export error:', error);
+      res.status(500).json({ message: "Помилка експорту в PDF" });
+    }
+  });
+
+  // Export schedule for specific group as PDF
+  app.get("/api/export/pdf/:group", async (req, res) => {
+    try {
+      const group = req.params.group;
+      const lessons = await storage.getAllLessons();
+      const pdfBuffer = generateGroupSchedulePDF(lessons, group);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="rozklad-${group}-${new Date().toISOString().split('T')[0]}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('PDF export error:', error);
+      res.status(500).json({ message: "Помилка експорту в PDF" });
+    }
+  });
+
+  // Clear all lessons
+  app.delete("/api/clear-schedule", async (req, res) => {
+    try {
+      await storage.clearAllLessons();
+      res.json({ message: "Розклад очищено" });
+    } catch (error) {
+      res.status(500).json({ message: "Помилка очищення розкладу" });
     }
   });
 
