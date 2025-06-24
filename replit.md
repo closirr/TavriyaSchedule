@@ -72,11 +72,11 @@ The system uses a single `lessons` table with the following structure:
    - Current day and active lessons are highlighted
    - Real-time updates via React Query
 
-3. **Filtering System**:
-   - Text search across subjects and teachers
-   - Dropdown filters for groups, teachers, and classrooms
-   - Filter options are dynamically loaded from database
-   - Filters are applied on the backend for performance
+3. **Search System**:
+   - Unified search input with autocomplete functionality
+   - Real-time suggestions for groups, teachers, and classrooms
+   - Keyboard navigation support (arrows, enter, escape)
+   - Backend search covers all lesson fields simultaneously
 
 ## External Dependencies
 
@@ -127,6 +127,11 @@ The system uses a single `lessons` table with the following structure:
 
 ```
 Changelog:
+- June 24, 2025. Unified search system implemented
+  - Replaced separate filters with single search input
+  - Added autocomplete suggestions for groups, teachers, and classrooms
+  - Improved search to cover all fields simultaneously
+  - Enhanced user experience with keyboard navigation
 - January 25, 2025. Complete Ukrainian translation implemented
   - All frontend components translated from Russian to Ukrainian
   - Backend error messages translated to Ukrainian

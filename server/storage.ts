@@ -184,23 +184,18 @@ export class MemStorage implements IStorage {
       lessons = lessons.filter(lesson => 
         lesson.subject.toLowerCase().includes(searchLower) ||
         lesson.teacher.toLowerCase().includes(searchLower) ||
-        lesson.group.toLowerCase().includes(searchLower)
+        lesson.group.toLowerCase().includes(searchLower) ||
+        lesson.classroom.toLowerCase().includes(searchLower)
       );
     }
 
-    if (filters.group) {
-      lessons = lessons.filter(lesson => lesson.group === filters.group);
-    }
-
-    if (filters.teacher) {
-      lessons = lessons.filter(lesson => lesson.teacher === filters.teacher);
-    }
-
-    if (filters.classroom) {
-      lessons = lessons.filter(lesson => lesson.classroom === filters.classroom);
-    }
-
-    return lessons;
+    // Sort by day and time
+    return lessons.sort((a, b) => {
+      const dayOrder = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+      const dayDiff = dayOrder.indexOf(a.dayOfWeek) - dayOrder.indexOf(b.dayOfWeek);
+      if (dayDiff !== 0) return dayDiff;
+      return a.startTime.localeCompare(b.startTime);
+    });
   }
 
   async createLesson(insertLesson: InsertLesson): Promise<Lesson> {
