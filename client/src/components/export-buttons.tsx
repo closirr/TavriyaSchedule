@@ -15,11 +15,11 @@ export default function ExportButtons() {
     staleTime: Infinity
   });
 
-  const handleExportPDF = async (group?: string) => {
+  const handleExport = async (format: 'pdf' | 'html' | 'rtf', group?: string) => {
     setIsExporting(true);
     try {
-      const url = group ? `/api/export/pdf/${encodeURIComponent(group)}` : '/api/export/pdf';
-      const response = await fetch(url);
+      const baseUrl = group ? `/api/export/${format}/${encodeURIComponent(group)}` : `/api/export/${format}`;
+      const response = await fetch(baseUrl);
       
       if (!response.ok) {
         throw new Error('Помилка експорту');
@@ -30,9 +30,10 @@ export default function ExportButtons() {
       const link = document.createElement('a');
       link.href = downloadUrl;
       
+      const extensions = { pdf: 'pdf', html: 'html', rtf: 'rtf' };
       const filename = group 
-        ? `rozklad-${group}-${new Date().toISOString().split('T')[0]}.pdf`
-        : `rozklad-${new Date().toISOString().split('T')[0]}.pdf`;
+        ? `rozklad-${group}-${new Date().toISOString().split('T')[0]}.${extensions[format]}`
+        : `rozklad-${new Date().toISOString().split('T')[0]}.${extensions[format]}`;
       
       link.download = filename;
       document.body.appendChild(link);
@@ -40,9 +41,10 @@ export default function ExportButtons() {
       link.remove();
       window.URL.revokeObjectURL(downloadUrl);
       
+      const formatNames = { pdf: 'PDF (латиниця)', html: 'HTML (кириліца)', rtf: 'Word (кириліца)' };
       toast({
         title: "Успіх",
-        description: "PDF файл успішно завантажено",
+        description: `${formatNames[format]} файл успішно завантажено`,
       });
     } catch (error) {
       console.error('Export error:', error);
@@ -64,25 +66,57 @@ export default function ExportButtons() {
           <span className="font-medium text-gray-700 dark:text-gray-300">Експорт розкладу:</span>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3 flex-1">
-          {/* Export full schedule */}
-          <Button
-            onClick={() => handleExportPDF()}
-            disabled={isExporting}
-            className="flex items-center gap-2"
-          >
-            {isExporting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            Повний розклад (PDF)
-          </Button>
+        <div className="flex flex-col gap-4 flex-1">
+          {/* Format selection buttons */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => handleExport('pdf')}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+              variant="default"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              PDF (латиниця)
+            </Button>
+            
+            <Button
+              onClick={() => handleExport('html')}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+              variant="outline"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              HTML (кириліца)
+            </Button>
+            
+            <Button
+              onClick={() => handleExport('rtf')}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+              variant="outline"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Word (кириліца)
+            </Button>
+          </div>
           
           {/* Export by group */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <span className="text-sm text-gray-600">Для групи:</span>
             <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-40">
                 <SelectValue placeholder="Виберіть групу" />
               </SelectTrigger>
               <SelectContent>
@@ -95,24 +129,39 @@ export default function ExportButtons() {
             </Select>
             
             <Button
-              onClick={() => selectedGroup && handleExportPDF(selectedGroup)}
+              onClick={() => selectedGroup && handleExport('pdf', selectedGroup)}
               disabled={isExporting || !selectedGroup}
-              variant="outline"
-              className="flex items-center gap-2"
+              variant="secondary"
+              size="sm"
             >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              PDF групи
+              PDF
+            </Button>
+            
+            <Button
+              onClick={() => selectedGroup && handleExport('html', selectedGroup)}
+              disabled={isExporting || !selectedGroup}
+              variant="secondary"
+              size="sm"
+            >
+              HTML
+            </Button>
+            
+            <Button
+              onClick={() => selectedGroup && handleExport('rtf', selectedGroup)}
+              disabled={isExporting || !selectedGroup}
+              variant="secondary"
+              size="sm"
+            >
+              Word
             </Button>
           </div>
         </div>
       </div>
       
       <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-        PDF файл буде збережено у форматі, придатному для друку та розміщення на дошці оголошень
+        <div>• PDF (латиниця) - стабільний формат для друку</div>
+        <div>• HTML (кириліца) - відкривається в браузері, можна роздрукувати</div>
+        <div>• Word (кириліца) - відкривається в Microsoft Word</div>
       </div>
     </div>
   );

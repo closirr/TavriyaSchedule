@@ -6,6 +6,8 @@ import * as XLSX from 'xlsx';
 import multer from 'multer';
 import { generateAllTemplates, type TemplateVariant } from './template-generator';
 import { generateWeeklySchedulePDFKit, generateGroupSchedulePDFKit } from './pdfkit-generator';
+import { generateWeeklyScheduleHTML, generateGroupScheduleHTML } from './html-pdf-generator';
+import { generateWeeklyScheduleRTF, generateGroupScheduleRTF } from './docx-generator';
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -634,6 +636,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export schedule as HTML
+  app.get("/api/export/html", async (req, res) => {
+    try {
+      const lessons = await storage.getAllLessons();
+      const htmlContent = generateWeeklyScheduleHTML(lessons);
+      
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="rozklad-${new Date().toISOString().split('T')[0]}.html"`);
+      res.send(htmlContent);
+    } catch (error) {
+      console.error('HTML export error:', error);
+      res.status(500).json({ message: "Помилка експорту в HTML" });
+    }
+  });
+
+  // Export schedule as RTF (Word compatible)
+  app.get("/api/export/rtf", async (req, res) => {
+    try {
+      const lessons = await storage.getAllLessons();
+      const rtfBuffer = generateWeeklyScheduleRTF(lessons);
+      
+      res.setHeader('Content-Type', 'application/rtf');
+      res.setHeader('Content-Disposition', `attachment; filename="rozklad-${new Date().toISOString().split('T')[0]}.rtf"`);
+      res.send(rtfBuffer);
+    } catch (error) {
+      console.error('RTF export error:', error);
+      res.status(500).json({ message: "Помилка експорту в RTF" });
+    }
+  });
+
   // Export schedule for specific group as PDF
   app.get("/api/export/pdf/:group", async (req, res) => {
     try {
@@ -648,6 +680,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('PDF export error:', error);
       res.status(500).json({ message: "Помилка експорту в PDF" });
+    }
+  });
+
+  // Export schedule for specific group as HTML
+  app.get("/api/export/html/:group", async (req, res) => {
+    try {
+      const group = req.params.group;
+      const lessons = await storage.getAllLessons();
+      const htmlContent = generateGroupScheduleHTML(lessons, group);
+      
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      const safeGroup = encodeURIComponent(group);
+      res.setHeader('Content-Disposition', `attachment; filename="rozklad-${safeGroup}-${new Date().toISOString().split('T')[0]}.html"`);
+      res.send(htmlContent);
+    } catch (error) {
+      console.error('HTML export error:', error);
+      res.status(500).json({ message: "Помилка експорту в HTML" });
+    }
+  });
+
+  // Export schedule for specific group as RTF
+  app.get("/api/export/rtf/:group", async (req, res) => {
+    try {
+      const group = req.params.group;
+      const lessons = await storage.getAllLessons();
+      const rtfBuffer = generateGroupScheduleRTF(lessons, group);
+      
+      res.setHeader('Content-Type', 'application/rtf');
+      const safeGroup = encodeURIComponent(group);
+      res.setHeader('Content-Disposition', `attachment; filename="rozklad-${safeGroup}-${new Date().toISOString().split('T')[0]}.rtf"`);
+      res.send(rtfBuffer);
+    } catch (error) {
+      console.error('RTF export error:', error);
+      res.status(500).json({ message: "Помилка експорту в RTF" });
     }
   });
 
