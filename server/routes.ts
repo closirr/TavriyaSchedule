@@ -238,7 +238,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Find groups and their column positions
         for (let i = 1; i < headers.length; i++) {
           const header = headers[i];
-          if (header && header.includes('ИТ') || header.includes('ЭК') || header.includes('А-')) {
+          if (header && (header.includes('ИТ-') || header.includes('ЭК-') || 
+                        header.includes('А-') || header.includes('М-') ||
+                        /^[А-Я]+-\d+$/.test(header))) {
             groupsInfo.push({name: header, startCol: i});
           }
         }
@@ -486,20 +488,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set column widths for better readability
       if (template.filename === 'template_separate_columns.xlsx') {
-        worksheet['!cols'] = [
-          { wch: 12 }, // Время
-          { wch: 15 }, { wch: 20 }, { wch: 12 }, // ИТ-21
-          { wch: 15 }, { wch: 20 }, { wch: 12 }, // ИТ-22
-          { wch: 15 }, { wch: 20 }, { wch: 12 }, // ЭК-21
-          { wch: 15 } // А-21
-        ];
+        const cols = [{ wch: 12 }]; // Время
+        for (let i = 0; i < 20; i++) {
+          cols.push({ wch: 15 }); // Предмет
+          cols.push({ wch: 20 }); // Преподаватель  
+          cols.push({ wch: 12 }); // Аудитория
+        }
+        worksheet['!cols'] = cols;
         
-        // Объединение ячеек для заголовков групп
-        worksheet['!merges'] = [
-          { s: { c: 1, r: 2 }, e: { c: 3, r: 2 } }, // ИТ-21
-          { s: { c: 4, r: 2 }, e: { c: 6, r: 2 } }, // ИТ-22
-          { s: { c: 7, r: 2 }, e: { c: 9, r: 2 } }, // ЭК-21
-        ];
+        // Объединение ячеек для заголовков групп (20 групп)
+        const merges = [];
+        for (let i = 0; i < 20; i++) {
+          const startCol = 1 + (i * 3);
+          const endCol = startCol + 2;
+          merges.push({ s: { c: startCol, r: 2 }, e: { c: endCol, r: 2 } });
+        }
+        worksheet['!merges'] = merges;
+      } else if (template.filename === 'template_demo_5groups.xlsx') {
+        const cols = [{ wch: 12 }]; // Время
+        for (let i = 0; i < 5; i++) {
+          cols.push({ wch: 15 }); // Предмет
+          cols.push({ wch: 20 }); // Преподаватель  
+          cols.push({ wch: 12 }); // Аудитория
+        }
+        worksheet['!cols'] = cols;
+        
+        // Объединение ячеек для заголовков групп (5 групп)
+        const merges = [];
+        for (let i = 0; i < 5; i++) {
+          const startCol = 1 + (i * 3);
+          const endCol = startCol + 2;
+          merges.push({ s: { c: startCol, r: 2 }, e: { c: endCol, r: 2 } });
+        }
+        worksheet['!merges'] = merges;
       } else {
         worksheet['!cols'] = [
           { wch: 15 }, { wch: 20 }, { wch: 25 }, { wch: 25 },

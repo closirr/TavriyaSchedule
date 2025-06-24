@@ -148,51 +148,161 @@ export function createGroupBasedTemplate(): TemplateVariant {
   };
 }
 
-// Вариант 4: Формат с отдельными столбцами (как на скриншоте)
+// Вариант 4: Формат с отдельными столбцами для 20 групп
 export function createTeacherTimeMatrix(): TemplateVariant {
+  // Создаем список групп
+  const groups = [
+    'ИТ-21', 'ИТ-22', 'ИТ-23', 'ИТ-24', 'ИТ-25',
+    'ЭК-21', 'ЭК-22', 'ЭК-23', 'ЭК-24', 'ЭК-25',
+    'А-21', 'А-22', 'А-23', 'А-24', 'А-25',
+    'М-21', 'М-22', 'М-23', 'М-24', 'М-25'
+  ];
+
+  // Создаем заголовок
+  const headerRow1 = ['РАСПИСАНИЕ ЗАНЯТИЙ'];
+  const headerRow2 = ['Время'];
+  const headerRow3 = ['ПОНЕДЕЛЬНИК'];
+
+  // Добавляем группы и подзаголовки
+  groups.forEach(group => {
+    headerRow1.push(group, '', '');
+    headerRow2.push(group, '', '');
+    headerRow3.push('Предмет', 'Преподаватель', 'Аудитория');
+  });
+
+  // Создаем пустые строки для заполнения
+  const createEmptyRow = (timeSlot: string) => {
+    const row = [timeSlot];
+    groups.forEach(() => {
+      row.push('', '', '');
+    });
+    return row;
+  };
+
+  const createDayRow = (day: string) => {
+    const row = [day];
+    groups.forEach(() => {
+      row.push('', '', '');
+    });
+    return row;
+  };
+
   const data = [
-    ['РАСПИСАНИЕ ЗАНЯТИЙ', '', '', '', '', '', '', '', '', '', ''],
+    headerRow1,
     [''],
-    ['Время', 'ИТ-21', '', '', 'ИТ-22', '', '', 'ЭК-21', '', '', 'А-21'],
-    ['ПОНЕДЕЛЬНИК', 'Предмет', 'Преподаватель', 'Аудитория', 'Предмет', 'Преподаватель', 'Аудитория', 'Предмет', 'Преподаватель', 'Аудитория', 'Предмет'],
-    ['9:00-10:20', 'Математика', 'Иванов И.И.', 'каб.101', '', '', '', '', '', '', ''],
-    ['10:30-11:50', '', '', '', 'Программирование', 'Петров П.П.', 'Лаб-1', '', '', '', ''],
-    ['12:10-13:30', '', '', '', '', '', '', 'Экономика', 'Козлов К.К.', 'каб.301', ''],
-    ['13:40-15:00', '', '', '', '', '', '', '', '', '', ''],
-    ['ВТОРНИК', '', '', '', '', '', '', '', '', '', ''],
-    ['9:00-10:20', '', '', '', '', '', '', '', '', '', ''],
-    ['10:30-11:50', '', '', '', '', '', '', '', '', '', ''],
-    ['12:10-13:30', '', '', '', '', '', '', '', '', '', ''],
-    ['13:40-15:00', '', '', '', '', '', '', '', '', '', ''],
-    ['15:10-16:30', '', '', '', '', '', '', '', '', '', ''],
-    ['СРЕДА', '', '', '', '', '', '', '', '', '', ''],
-    ['9:00-10:20', '', '', '', '', '', '', '', '', '', ''],
-    ['10:30-11:50', '', '', '', '', '', '', '', '', '', ''],
-    ['12:10-13:30', '', '', '', '', '', '', '', '', '', ''],
-    ['13:40-15:00', '', '', '', '', '', '', '', '', '', ''],
-    ['ЧЕТВЕРГ', '', '', '', '', '', '', '', '', '', ''],
-    ['9:00-10:20', '', '', '', '', '', '', '', '', '', ''],
-    ['10:30-11:50', '', '', '', '', '', '', '', '', '', ''],
-    ['12:10-13:30', '', '', '', '', '', '', '', '', '', ''],
-    ['13:40-15:00', '', '', '', '', '', '', '', '', '', ''],
-    ['ПЯТНИЦА', '', '', '', '', '', '', '', '', '', ''],
-    ['9:00-10:20', '', '', '', '', '', '', '', '', '', ''],
-    ['10:30-11:50', '', '', '', '', '', '', '', '', '', ''],
-    ['12:10-13:30', '', '', '', '', '', '', '', '', '', ''],
-    ['13:40-15:00', '', '', '', '', '', '', '', '', '', ''],
+    headerRow2,
+    headerRow3,
+    createEmptyRow('9:00-10:20'),
+    createEmptyRow('10:30-11:50'),
+    createEmptyRow('12:10-13:30'),
+    createEmptyRow('13:40-15:00'),
+    createDayRow('ВТОРНИК'),
+    createEmptyRow('9:00-10:20'),
+    createEmptyRow('10:30-11:50'),
+    createEmptyRow('12:10-13:30'),
+    createEmptyRow('13:40-15:00'),
+    createEmptyRow('15:10-16:30'),
+    createDayRow('СРЕДА'),
+    createEmptyRow('9:00-10:20'),
+    createEmptyRow('10:30-11:50'),
+    createEmptyRow('12:10-13:30'),
+    createEmptyRow('13:40-15:00'),
+    createDayRow('ЧЕТВЕРГ'),
+    createEmptyRow('9:00-10:20'),
+    createEmptyRow('10:30-11:50'),
+    createEmptyRow('12:10-13:30'),
+    createEmptyRow('13:40-15:00'),
+    createDayRow('ПЯТНИЦА'),
+    createEmptyRow('9:00-10:20'),
+    createEmptyRow('10:30-11:50'),
+    createEmptyRow('12:10-13:30'),
+    createEmptyRow('13:40-15:00'),
     [''],
     ['ИНСТРУКЦИЯ ПО ЗАПОЛНЕНИЮ:'],
     ['1. Заполняйте отдельно каждый столбец для каждой группы'],
     ['2. Предмет - в первый столбец группы'],
     ['3. Преподаватель - во второй столбец группы'],
     ['4. Аудитория - в третий столбец группы'],
-    ['5. Если занятия нет - оставьте все три ячейки пустыми']
+    ['5. Если занятия нет - оставьте все три ячейки пустыми'],
+    ['6. Можете удалить ненужные группы или добавить новые']
   ];
 
   return {
-    name: 'Отдельные столбцы',
+    name: 'Отдельные столбцы (20 групп)',
     filename: 'template_separate_columns.xlsx',
-    description: 'Формат с отдельными столбцами для предмета, преподавателя и аудитории. Как показано на скриншоте.',
+    description: 'Формат с отдельными столбцами для 20 групп. Каждая группа имеет 3 столбца: предмет, преподаватель, аудитория.',
+    data
+  };
+}
+
+// Вариант 5: Демо шаблон с 5 группами для примера
+export function createDemoTemplate(): TemplateVariant {
+  const groups = ['ИТ-21', 'ИТ-22', 'ЭК-21', 'А-21', 'М-21'];
+
+  const headerRow1 = ['РАСПИСАНИЕ ЗАНЯТИЙ (ДЕМО - 5 ГРУПП)'];
+  const headerRow2 = ['Время'];
+  const headerRow3 = ['ПОНЕДЕЛЬНИК'];
+
+  groups.forEach(group => {
+    headerRow1.push(group, '', '');
+    headerRow2.push(group, '', '');
+    headerRow3.push('Предмет', 'Преподаватель', 'Аудитория');
+  });
+
+  const createEmptyRow = (timeSlot: string) => {
+    const row = [timeSlot];
+    groups.forEach(() => {
+      row.push('', '', '');
+    });
+    return row;
+  };
+
+  const createDayRow = (day: string) => {
+    const row = [day];
+    groups.forEach(() => {
+      row.push('', '', '');
+    });
+    return row;
+  };
+
+  // Добавляем пример заполнения
+  const createExampleRow = (timeSlot: string) => {
+    const row = [timeSlot];
+    row.push('Математика', 'Иванов И.И.', 'каб.101'); // ИТ-21
+    row.push('', '', ''); // ИТ-22
+    row.push('Экономика', 'Петров П.П.', 'каб.201'); // ЭК-21
+    row.push('', '', ''); // А-21
+    row.push('', '', ''); // М-21
+    return row;
+  };
+
+  const data = [
+    headerRow1,
+    [''],
+    headerRow2,
+    headerRow3,
+    createExampleRow('9:00-10:20'),
+    createEmptyRow('10:30-11:50'),
+    createEmptyRow('12:10-13:30'),
+    createEmptyRow('13:40-15:00'),
+    createDayRow('ВТОРНИК'),
+    createEmptyRow('9:00-10:20'),
+    createEmptyRow('10:30-11:50'),
+    createEmptyRow('12:10-13:30'),
+    createEmptyRow('13:40-15:00'),
+    createEmptyRow('15:10-16:30'),
+    [''],
+    ['ИНСТРУКЦИЯ:'],
+    ['1. Каждая группа имеет 3 столбца: Предмет | Преподаватель | Аудитория'],
+    ['2. Заголовки групп объединены в одну ячейку'],
+    ['3. Заполняйте только нужные ячейки, пустые оставляйте незаполненными'],
+    ['4. Этот шаблон показывает принцип работы для любого количества групп']
+  ];
+
+  return {
+    name: 'Демо 5 групп',
+    filename: 'template_demo_5groups.xlsx',
+    description: 'Демонстрационный шаблон с 5 группами. Показывает принцип работы с объединенными ячейками.',
     data
   };
 }
@@ -202,7 +312,8 @@ export function generateAllTemplates(): TemplateVariant[] {
     createWeeklyTemplate(),
     createSimpleListTemplate(),
     createGroupBasedTemplate(),
-    createTeacherTimeMatrix()
+    createTeacherTimeMatrix(),
+    createDemoTemplate()
   ];
 }
 
@@ -212,21 +323,41 @@ export function saveTemplateToFile(template: TemplateVariant, outputDir: string 
 
   // Настройки для разных шаблонов
   if (template.filename === 'template_separate_columns.xlsx') {
-    // Специальные настройки для шаблона с отдельными столбцами
-    ws['!cols'] = [
-      { width: 12 }, // Время
-      { width: 15 }, { width: 20 }, { width: 12 }, // ИТ-21
-      { width: 15 }, { width: 20 }, { width: 12 }, // ИТ-22
-      { width: 15 }, { width: 20 }, { width: 12 }, // ЭК-21
-      { width: 15 } // А-21
-    ];
+    // Специальные настройки для шаблона с отдельными столбцами (20 групп)
+    const cols = [{ width: 12 }]; // Время
+    for (let i = 0; i < 20; i++) {
+      cols.push({ width: 15 }); // Предмет
+      cols.push({ width: 20 }); // Преподаватель  
+      cols.push({ width: 12 }); // Аудитория
+    }
+    ws['!cols'] = cols;
     
-    // Объединение ячеек для заголовков групп
-    ws['!merges'] = [
-      { s: { c: 1, r: 2 }, e: { c: 3, r: 2 } }, // ИТ-21
-      { s: { c: 4, r: 2 }, e: { c: 6, r: 2 } }, // ИТ-22
-      { s: { c: 7, r: 2 }, e: { c: 9, r: 2 } }, // ЭК-21
-    ];
+    // Объединение ячеек для заголовков групп (20 групп)
+    const merges = [];
+    for (let i = 0; i < 20; i++) {
+      const startCol = 1 + (i * 3);
+      const endCol = startCol + 2;
+      merges.push({ s: { c: startCol, r: 2 }, e: { c: endCol, r: 2 } });
+    }
+    ws['!merges'] = merges;
+  } else if (template.filename === 'template_demo_5groups.xlsx') {
+    // Настройки для демо шаблона с 5 группами
+    const cols = [{ width: 12 }]; // Время
+    for (let i = 0; i < 5; i++) {
+      cols.push({ width: 15 }); // Предмет
+      cols.push({ width: 20 }); // Преподаватель  
+      cols.push({ width: 12 }); // Аудитория
+    }
+    ws['!cols'] = cols;
+    
+    // Объединение ячеек для заголовков групп (5 групп)
+    const merges = [];
+    for (let i = 0; i < 5; i++) {
+      const startCol = 1 + (i * 3);
+      const endCol = startCol + 2;
+      merges.push({ s: { c: startCol, r: 2 }, e: { c: endCol, r: 2 } });
+    }
+    ws['!merges'] = merges;
   } else {
     // Стандартные настройки
     ws['!cols'] = [
