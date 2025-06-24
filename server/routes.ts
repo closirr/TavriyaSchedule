@@ -8,6 +8,7 @@ import { generateAllTemplates, type TemplateVariant } from './template-generator
 import { generateWeeklySchedulePDFKit, generateGroupSchedulePDFKit } from './pdfkit-generator';
 import { generateWeeklyScheduleHTML, generateGroupScheduleHTML } from './html-pdf-generator';
 import { generateWeeklyScheduleRTF, generateGroupScheduleRTF } from './docx-generator';
+import { generateWeeklySchedulePuppeteerPDF, generateGroupSchedulePuppeteerPDF } from './puppeteer-pdf-generator';
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -621,7 +622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export schedule as PDF
+  // Export schedule as PDF (Latin transliteration)
   app.get("/api/export/pdf", async (req, res) => {
     try {
       const lessons = await storage.getAllLessons();
@@ -633,6 +634,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('PDF export error:', error);
       res.status(500).json({ message: "Помилка експорту в PDF" });
+    }
+  });
+
+  // Export schedule as PDF with Cyrillic (via Puppeteer)
+  app.get("/api/export/pdf-cyrillic", async (req, res) => {
+    try {
+      const lessons = await storage.getAllLessons();
+      const pdfBuffer = await generateWeeklySchedulePuppeteerPDF(lessons);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="rozklad-cyrillic-${new Date().toISOString().split('T')[0]}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('Puppeteer PDF export error:', error);
+      res.status(500).json({ message: "Помилка експорту PDF з кирилицею" });
     }
   });
 
@@ -666,7 +682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export schedule for specific group as PDF
+  // Export schedule for specific group as PDF (Latin transliteration)
   app.get("/api/export/pdf/:group", async (req, res) => {
     try {
       const group = req.params.group;
@@ -680,6 +696,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('PDF export error:', error);
       res.status(500).json({ message: "Помилка експорту в PDF" });
+    }
+  });
+
+  // Export schedule for specific group as PDF with Cyrillic (via Puppeteer)
+  app.get("/api/export/pdf-cyrillic/:group", async (req, res) => {
+    try {
+      const group = req.params.group;
+      const lessons = await storage.getAllLessons();
+      const pdfBuffer = await generateGroupSchedulePuppeteerPDF(lessons, group);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      const safeGroup = encodeURIComponent(group);
+      res.setHeader('Content-Disposition', `attachment; filename="rozklad-cyrillic-${safeGroup}-${new Date().toISOString().split('T')[0]}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('Puppeteer PDF export error:', error);
+      res.status(500).json({ message: "Помилка експорту PDF з кирилицею" });
     }
   });
 

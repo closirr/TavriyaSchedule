@@ -15,7 +15,7 @@ export default function ExportButtons() {
     staleTime: Infinity
   });
 
-  const handleExport = async (format: 'pdf' | 'html' | 'rtf', group?: string) => {
+  const handleExport = async (format: 'pdf' | 'pdf-cyrillic' | 'html' | 'rtf', group?: string) => {
     setIsExporting(true);
     try {
       const baseUrl = group ? `/api/export/${format}/${encodeURIComponent(group)}` : `/api/export/${format}`;
@@ -30,7 +30,7 @@ export default function ExportButtons() {
       const link = document.createElement('a');
       link.href = downloadUrl;
       
-      const extensions = { pdf: 'pdf', html: 'html', rtf: 'rtf' };
+      const extensions = { pdf: 'pdf', 'pdf-cyrillic': 'pdf', html: 'html', rtf: 'rtf' };
       const filename = group 
         ? `rozklad-${group}-${new Date().toISOString().split('T')[0]}.${extensions[format]}`
         : `rozklad-${new Date().toISOString().split('T')[0]}.${extensions[format]}`;
@@ -41,7 +41,12 @@ export default function ExportButtons() {
       link.remove();
       window.URL.revokeObjectURL(downloadUrl);
       
-      const formatNames = { pdf: 'PDF (латиниця)', html: 'HTML (кириліца)', rtf: 'Word (кириліца)' };
+      const formatNames = { 
+        pdf: 'PDF (латиниця)', 
+        'pdf-cyrillic': 'PDF (кириліца)', 
+        html: 'HTML (кириліца)', 
+        rtf: 'Word (кириліца)' 
+      };
       toast({
         title: "Успіх",
         description: `${formatNames[format]} файл успішно завантажено`,
@@ -70,7 +75,7 @@ export default function ExportButtons() {
           {/* Format selection buttons */}
           <div className="flex flex-wrap gap-2">
             <Button
-              onClick={() => handleExport('pdf')}
+              onClick={() => handleExport('pdf-cyrillic')}
               disabled={isExporting}
               className="flex items-center gap-2"
               variant="default"
@@ -80,11 +85,11 @@ export default function ExportButtons() {
               ) : (
                 <Download className="h-4 w-4" />
               )}
-              PDF (латиниця)
+              PDF (кириліца)
             </Button>
             
             <Button
-              onClick={() => handleExport('html')}
+              onClick={() => handleExport('pdf')}
               disabled={isExporting}
               className="flex items-center gap-2"
               variant="outline"
@@ -94,7 +99,7 @@ export default function ExportButtons() {
               ) : (
                 <Download className="h-4 w-4" />
               )}
-              HTML (кириліца)
+              PDF (латиниця)
             </Button>
             
             <Button
@@ -109,6 +114,21 @@ export default function ExportButtons() {
                 <Download className="h-4 w-4" />
               )}
               Word (кириліца)
+            </Button>
+            
+            <Button
+              onClick={() => handleExport('html')}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+              variant="outline"
+              size="sm"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              HTML
             </Button>
           </div>
           
@@ -129,21 +149,21 @@ export default function ExportButtons() {
             </Select>
             
             <Button
+              onClick={() => selectedGroup && handleExport('pdf-cyrillic', selectedGroup)}
+              disabled={isExporting || !selectedGroup}
+              variant="secondary"
+              size="sm"
+            >
+              PDF (кир)
+            </Button>
+            
+            <Button
               onClick={() => selectedGroup && handleExport('pdf', selectedGroup)}
               disabled={isExporting || !selectedGroup}
               variant="secondary"
               size="sm"
             >
-              PDF
-            </Button>
-            
-            <Button
-              onClick={() => selectedGroup && handleExport('html', selectedGroup)}
-              disabled={isExporting || !selectedGroup}
-              variant="secondary"
-              size="sm"
-            >
-              HTML
+              PDF (лат)
             </Button>
             
             <Button
@@ -159,9 +179,9 @@ export default function ExportButtons() {
       </div>
       
       <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-        <div>• PDF (латиниця) - стабільний формат для друку</div>
-        <div>• HTML (кириліца) - відкривається в браузері, можна роздрукувати</div>
-        <div>• Word (кириліца) - відкривається в Microsoft Word</div>
+        <div>• PDF (кириліца) - повноцінний PDF з українським текстом</div>
+        <div>• PDF (латиниця) - резервний варіант з транслітерацією</div>
+        <div>• Word (кириліца) - для редагування в Microsoft Word</div>
       </div>
     </div>
   );
