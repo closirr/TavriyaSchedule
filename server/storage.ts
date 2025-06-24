@@ -38,8 +38,7 @@ export class MemStorage implements IStorage {
         subject: "Основы программирования",
         teacher: "Иванов Иван Иванович",
         group: "ИТ-21",
-        classroom: "101",
-        lessonType: "Лекция"
+        classroom: "101"
       },
       {
         dayOfWeek: "Понедельник",
@@ -48,8 +47,7 @@ export class MemStorage implements IStorage {
         subject: "Базы данных",
         teacher: "Петрова Мария Сергеевна",
         group: "ИТ-21",
-        classroom: "Лаб-1",
-        lessonType: "Практика"
+        classroom: "Лаб-1"
       },
       {
         dayOfWeek: "Понедельник",
@@ -58,8 +56,7 @@ export class MemStorage implements IStorage {
         subject: "Веб-разработка",
         teacher: "Сидоров Алексей Васильевич",
         group: "ИТ-22",
-        classroom: "201",
-        lessonType: "Практика"
+        classroom: "201"
       },
       {
         dayOfWeek: "Понедельник",
@@ -68,8 +65,7 @@ export class MemStorage implements IStorage {
         subject: "Экономика предприятия",
         teacher: "Козлова Елена Петровна",
         group: "ЭК-21",
-        classroom: "301",
-        lessonType: "Лекция"
+        classroom: "301"
       },
       
       // Вторник
@@ -80,8 +76,7 @@ export class MemStorage implements IStorage {
         subject: "Математика",
         teacher: "Николаев Владимир Дмитриевич",
         group: "ИТ-21",
-        classroom: "102",
-        lessonType: "Лекция"
+        classroom: "102"
       },
       {
         dayOfWeek: "Вторник",
@@ -90,8 +85,7 @@ export class MemStorage implements IStorage {
         subject: "Операционные системы",
         teacher: "Морозов Сергей Александрович",
         group: "ИТ-22",
-        classroom: "Лаб-2",
-        lessonType: "Практика"
+        classroom: "Лаб-2"
       },
       {
         dayOfWeek: "Вторник",
@@ -100,8 +94,7 @@ export class MemStorage implements IStorage {
         subject: "Физическая культура",
         teacher: "Волков Андрей Игоревич",
         group: "ИТ-21",
-        classroom: "Спортзал",
-        lessonType: "Практика"
+        classroom: "Спортзал"
       },
       
       // Среда
@@ -112,8 +105,7 @@ export class MemStorage implements IStorage {
         subject: "Сетевые технологии",
         teacher: "Зайцев Михаил Юрьевич",
         group: "ИТ-21",
-        classroom: "Лаб-1",
-        lessonType: "Практика"
+        classroom: "Лаб-1"
       },
       {
         dayOfWeek: "Среда",
@@ -122,8 +114,7 @@ export class MemStorage implements IStorage {
         subject: "Алгоритмы и структуры данных",
         teacher: "Иванов Иван Иванович",
         group: "ИТ-22",
-        classroom: "103",
-        lessonType: "Лекция"
+        classroom: "103"
       },
       {
         dayOfWeek: "Среда",
@@ -132,8 +123,7 @@ export class MemStorage implements IStorage {
         subject: "Английский язык",
         teacher: "Смирнова Анна Викторовна",
         group: "ИТ-21",
-        classroom: "204",
-        lessonType: "Семинар"
+        classroom: "204"
       },
       
       // Четверг
@@ -144,8 +134,7 @@ export class MemStorage implements IStorage {
         subject: "Информационная безопасность",
         teacher: "Романов Дмитрий Олегович",
         group: "ИТ-21",
-        classroom: "105",
-        lessonType: "Лекция"
+        classroom: "105"
       },
       {
         dayOfWeek: "Четверг",
@@ -154,8 +143,7 @@ export class MemStorage implements IStorage {
         subject: "Мобильная разработка",
         teacher: "Павлова Екатерина Сергеевна",
         group: "ИТ-22",
-        classroom: "Лаб-3",
-        lessonType: "Практика"
+        classroom: "Лаб-3"
       },
       
       // Пятница
@@ -166,8 +154,7 @@ export class MemStorage implements IStorage {
         subject: "Проектирование ПО",
         teacher: "Соколов Виктор Михайлович",
         group: "ИТ-21",
-        classroom: "106",
-        lessonType: "Семинар"
+        classroom: "106"
       },
       {
         dayOfWeek: "Пятница",
@@ -176,8 +163,7 @@ export class MemStorage implements IStorage {
         subject: "Тестирование ПО",
         teacher: "Лебедева Ирина Владимировна",
         group: "ИТ-22",
-        classroom: "Лаб-2",
-        lessonType: "Практика"
+        classroom: "Лаб-2"
       }
     ];
 

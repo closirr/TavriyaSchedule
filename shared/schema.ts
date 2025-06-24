@@ -11,7 +11,6 @@ export const lessons = pgTable("lessons", {
   teacher: text("teacher").notNull(),
   group: text("group").notNull(),
   classroom: text("classroom").notNull(),
-  lessonType: text("lesson_type").notNull(), // "Лекция", "Практика", "Семинар"
   createdAt: timestamp("created_at").defaultNow(),
 });
 

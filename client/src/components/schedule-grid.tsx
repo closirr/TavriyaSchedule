@@ -53,18 +53,7 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
     return currentTime >= lesson.startTime && currentTime <= lesson.endTime;
   };
 
-  const getLessonTypeColor = (lessonType: string) => {
-    switch (lessonType.toLowerCase()) {
-      case 'лекция':
-        return 'text-navy-600';
-      case 'практика':
-        return 'text-navy-600';
-      case 'семинар':
-        return 'text-navy-600';
-      default:
-        return 'text-navy-600';
-    }
-  };
+  // Removed getLessonTypeColor function since lessonType field is no longer used
 
   if (isLoading) {
     return (
@@ -150,11 +139,11 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
                             <span className="text-xs text-gray-500">
                               {lesson.group}
                             </span>
-                            <span className={`text-xs font-medium ${
-                              isCurrent ? 'text-navy-700' : getLessonTypeColor(lesson.lessonType)
-                            }`}>
-                              {isCurrent ? 'Текущая' : lesson.lessonType}
-                            </span>
+                            {isCurrent && (
+                              <span className="text-xs font-medium text-navy-700">
+                                Текущая
+                              </span>
+                            )}
                           </div>
                         </div>
                       );
