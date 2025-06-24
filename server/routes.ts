@@ -5,7 +5,7 @@ import { scheduleFiltersSchema, insertLessonSchema } from "@shared/schema";
 import * as XLSX from 'xlsx';
 import multer from 'multer';
 import { generateAllTemplates, type TemplateVariant } from './template-generator';
-import { generateSchedulePDF, generateWeeklySchedulePDF, generateGroupSchedulePDF } from './pdf-generator';
+import { generateWeeklySchedulePDF, generateGroupSchedulePDF } from './pdf-generator';
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -642,7 +642,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pdfBuffer = generateGroupSchedulePDF(lessons, group);
       
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="rozklad-${group}-${new Date().toISOString().split('T')[0]}.pdf"`);
+      const safeGroup = encodeURIComponent(group);
+      res.setHeader('Content-Disposition', `attachment; filename="rozklad-${safeGroup}-${new Date().toISOString().split('T')[0]}.pdf"`);
       res.send(pdfBuffer);
     } catch (error) {
       console.error('PDF export error:', error);

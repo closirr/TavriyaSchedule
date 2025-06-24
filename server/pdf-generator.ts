@@ -6,6 +6,22 @@ const require = createRequire(import.meta.url);
 const jsPDFLib = require('jspdf');
 const jsPDF = jsPDFLib.jsPDF || jsPDFLib.default || jsPDFLib;
 
+// Transliteration map for Ukrainian/Russian to Latin
+const transliterationMap: Record<string, string> = {
+  'а': 'a', 'б': 'b', 'в': 'v', 'г': 'h', 'ґ': 'g', 'д': 'd', 'е': 'e', 'є': 'ye', 'ж': 'zh', 'з': 'z',
+  'и': 'y', 'і': 'i', 'ї': 'yi', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
+  'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch',
+  'ь': '', 'ю': 'yu', 'я': 'ya', 'ё': 'yo', 'ъ': '', 'ы': 'y', 'э': 'e',
+  'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'H', 'Ґ': 'G', 'Д': 'D', 'Е': 'E', 'Є': 'YE', 'Ж': 'ZH', 'З': 'Z',
+  'И': 'Y', 'І': 'I', 'Ї': 'YI', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O', 'П': 'P',
+  'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'KH', 'Ц': 'TS', 'Ч': 'CH', 'Ш': 'SH', 'Щ': 'SHCH',
+  'Ь': '', 'Ю': 'YU', 'Я': 'YA', 'Ё': 'YO', 'Ъ': '', 'Ы': 'Y', 'Э': 'E'
+};
+
+function transliterate(text: string): string {
+  return text.split('').map(char => transliterationMap[char] || char).join('');
+}
+
 interface ScheduleDay {
   day: string;
   timeSlots: Array<{
@@ -21,14 +37,17 @@ interface ScheduleDay {
 export function generateSchedulePDF(lessons: Lesson[], title: string = "Розклад занять"): Buffer {
   const doc = new jsPDF('l', 'mm', 'a4'); // Landscape orientation
   
-  // Set fonts
-  doc.setFont('helvetica');
+  // Use courier font which has better character support
+  doc.setFont('courier');
   
-  // Title
+  // Title - use latin transliteration for better compatibility
   doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('courier', 'bold');
   const titleY = 20;
-  doc.text(title, doc.internal.pageSize.width / 2, titleY, { align: 'center' });
+  
+  // Transliterate title to Latin characters
+  const transliteratedTitle = transliterate(title);
+  doc.text(transliteratedTitle, doc.internal.pageSize.width / 2, titleY, { align: 'center' });
   
   // Get all unique groups and sort them
   const groups = [...new Set(lessons.map(l => l.group))].sort();
@@ -36,12 +55,12 @@ export function generateSchedulePDF(lessons: Lesson[], title: string = "Розк
   // Days in Ukrainian with proper order
   const dayOrder = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
   const dayTranslations: Record<string, string> = {
-    'Понедельник': 'ПОНЕДІЛОК',
-    'Вторник': 'ВІВТОРОК', 
-    'Среда': 'СЕРЕДА',
-    'Четверг': 'ЧЕТВЕР',
-    'Пятница': 'П\'ЯТНИЦЯ',
-    'Суббота': 'СУБОТА'
+    'Понедельник': 'MONDAY',
+    'Вторник': 'TUESDAY', 
+    'Среда': 'WEDNESDAY',
+    'Четверг': 'THURSDAY',
+    'Пятница': 'FRIDAY',
+    'Суббота': 'SATURDAY'
   };
   
   let currentY = titleY + 20;
@@ -63,8 +82,9 @@ export function generateSchedulePDF(lessons: Lesson[], title: string = "Розк
     
     // Add day title
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text(dayTranslations[day] || day.toUpperCase(), margin, currentY);
+    doc.setFont('courier', 'bold');
+    const dayText = dayTranslations[day] || transliterate(day).toUpperCase();
+    doc.text(dayText, margin, currentY);
     currentY += 15;
     
     // Get time slots for this day
@@ -76,23 +96,24 @@ export function generateSchedulePDF(lessons: Lesson[], title: string = "Розк
     
     // Draw table headers
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('courier', 'bold');
     
     // Time header
     doc.rect(margin, currentY, timeColWidth, headerHeight);
-    doc.text('Час', margin + timeColWidth/2, currentY + 7, { align: 'center' });
+    doc.text('TIME', margin + timeColWidth/2, currentY + 7, { align: 'center' });
     
     // Group headers
     groups.forEach((group, index) => {
       const x = margin + timeColWidth + index * groupColWidth;
       doc.rect(x, currentY, groupColWidth, headerHeight);
-      doc.text(group, x + groupColWidth/2, currentY + 7, { align: 'center' });
+      const groupText = transliterate(group);
+      doc.text(groupText, x + groupColWidth/2, currentY + 7, { align: 'center' });
     });
     
     currentY += headerHeight;
     
     // Draw rows
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('courier', 'normal');
     doc.setFontSize(8);
     
     dayTimeSlots.forEach((timeSlot) => {
@@ -110,9 +131,13 @@ export function generateSchedulePDF(lessons: Lesson[], title: string = "Розк
         const lesson = timeLessons.find(l => l.group === group);
         if (lesson) {
           const maxWidth = groupColWidth - 4;
-          doc.text(lesson.subject, x + 2, currentY + 3, { maxWidth });
-          doc.text(lesson.teacher, x + 2, currentY + 6, { maxWidth });
-          doc.text(lesson.classroom, x + 2, currentY + 9, { maxWidth });
+          const subjectText = transliterate(lesson.subject);
+          const teacherText = transliterate(lesson.teacher);
+          const classroomText = transliterate(lesson.classroom);
+          
+          doc.text(subjectText, x + 2, currentY + 3, { maxWidth });
+          doc.text(teacherText, x + 2, currentY + 6, { maxWidth });
+          doc.text(classroomText, x + 2, currentY + 9, { maxWidth });
         }
       });
       
@@ -126,9 +151,10 @@ export function generateSchedulePDF(lessons: Lesson[], title: string = "Розк
 }
 
 export function generateWeeklySchedulePDF(lessons: Lesson[]): Buffer {
-  return generateSchedulePDF(lessons, "Тижневий розклад занять");
+  return generateSchedulePDF(lessons, "Tyzhnevyy rozklad zanyat");
 }
 
 export function generateGroupSchedulePDF(lessons: Lesson[], group: string): Buffer {
-  return generateSchedulePDF(lessons, `Розклад занять для групи ${group}`);
+  const groupLessons = lessons.filter(l => l.group === group);
+  return generateSchedulePDF(groupLessons, `Rozklad zanyat dlya grupy ${transliterate(group)}`);
 }
