@@ -148,33 +148,37 @@ export function createGroupBasedTemplate(): TemplateVariant {
   };
 }
 
-// Вариант 4: Формат с отдельными столбцами для 20 групп
+// Вариант 4: Горизонтальный формат с отдельными столбцами (20 групп с реальными данными)
 export function createTeacherTimeMatrix(): TemplateVariant {
-  // Создаем список групп
+  // Создаем список групп из реального расписания
   const groups = [
-    'ИТ-21', 'ИТ-22', 'ИТ-23', 'ИТ-24', 'ИТ-25',
-    'ЭК-21', 'ЭК-22', 'ЭК-23', 'ЭК-24', 'ЭК-25',
-    'А-21', 'А-22', 'А-23', 'А-24', 'А-25',
-    'М-21', 'М-22', 'М-23', 'М-24', 'М-25'
+    'МЕТ-11', 'МТ-11', 'ЕкДл-11', 'А-11', 'МЕТ-21', 'МТ-21', 'ЕкДл-21', 'А-21',
+    'МЕТ-31', 'МТ-31', 'ЕкДл-31', 'А-31', 'ІТ-11', 'ІТ-21', 'ІТ-31', 'КН-11',
+    'КН-21', 'КН-31', 'ФК-11', 'ФК-21'
   ];
 
   // Создаем заголовок
-  const headerRow1 = ['РАСПИСАНИЕ ЗАНЯТИЙ'];
-  const headerRow2 = ['Время'];
-  const headerRow3 = ['ПОНЕДЕЛЬНИК'];
+  const headerRow1 = ['РОЗКЛАД ЗАНЯТЬ - ГОРИЗОНТАЛЬНИЙ ФОРМАТ'];
+  const headerRow2 = ['Час'];
+  const headerRow3 = ['ПОНЕДІЛЬОК'];
 
   // Добавляем группы и подзаголовки
   groups.forEach(group => {
     headerRow1.push(group, '', '');
     headerRow2.push(group, '', '');
-    headerRow3.push('Предмет', 'Преподаватель', 'Аудитория');
+    headerRow3.push('Предмет', 'Викладач', 'Аудиторія');
   });
 
-  // Создаем пустые строки для заполнения
-  const createEmptyRow = (timeSlot: string) => {
+  // Функция для создания строки с данными
+  const createDataRow = (timeSlot: string, schedule: any) => {
     const row = [timeSlot];
-    groups.forEach(() => {
-      row.push('', '', '');
+    groups.forEach(group => {
+      const lesson = schedule[group];
+      if (lesson) {
+        row.push(lesson.subject, lesson.teacher, lesson.classroom);
+      } else {
+        row.push('', '', '');
+      }
     });
     return row;
   };
@@ -187,50 +191,98 @@ export function createTeacherTimeMatrix(): TemplateVariant {
     return row;
   };
 
+  // Реальные данные из расписания
+  const mondaySchedule = {
+    '10:30-11:50': {
+      'МЕТ-11': { subject: 'Інформатика', teacher: 'Ленченко О.А.', classroom: 'комп.клас' },
+      'МТ-11': { subject: 'Українська мова', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
+      'ЕкДл-11': { subject: 'Іноземна мова', teacher: 'Носуля Н.І.', classroom: 'ауд.12' },
+      'А-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' }
+    },
+    '12:10-13:30': {
+      'МЕТ-11': { subject: 'Іноземна мова', teacher: 'Носуля Н.І.', classroom: 'ауд.12' },
+      'МТ-11': { subject: 'Інформатика', teacher: 'Глушко Л.М.', classroom: 'комп.клас' },
+      'ЕкДл-11': { subject: 'Математика', teacher: 'Тимкіна Л.Л.', classroom: 'ауд.20' },
+      'А-11': { subject: 'Математика', teacher: 'Одинець А.М.', classroom: 'ауд.18' }
+    }
+  };
+
   const data = [
     headerRow1,
     [''],
     headerRow2,
     headerRow3,
-    createEmptyRow('9:00-10:20'),
-    createEmptyRow('10:30-11:50'),
-    createEmptyRow('12:10-13:30'),
-    createEmptyRow('13:40-15:00'),
-    createDayRow('ВТОРНИК'),
-    createEmptyRow('9:00-10:20'),
-    createEmptyRow('10:30-11:50'),
-    createEmptyRow('12:10-13:30'),
-    createEmptyRow('13:40-15:00'),
-    createEmptyRow('15:10-16:30'),
-    createDayRow('СРЕДА'),
-    createEmptyRow('9:00-10:20'),
-    createEmptyRow('10:30-11:50'),
-    createEmptyRow('12:10-13:30'),
-    createEmptyRow('13:40-15:00'),
-    createDayRow('ЧЕТВЕРГ'),
-    createEmptyRow('9:00-10:20'),
-    createEmptyRow('10:30-11:50'),
-    createEmptyRow('12:10-13:30'),
-    createEmptyRow('13:40-15:00'),
-    createDayRow('ПЯТНИЦА'),
-    createEmptyRow('9:00-10:20'),
-    createEmptyRow('10:30-11:50'),
-    createEmptyRow('12:10-13:30'),
-    createEmptyRow('13:40-15:00'),
+    createDataRow('9:00-10:20', {
+      'МТ-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+      'ЕкДл-11': { subject: 'Фізична культура', teacher: 'Тарнавський А.М.', classroom: 'спортзал' }
+    }),
+    createDataRow('10:30-11:50', mondaySchedule['10:30-11:50']),
+    createDataRow('12:10-13:30', mondaySchedule['12:10-13:30']),
+    createDataRow('13:40-15:00', {
+      'МЕТ-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+      'ЕкДл-11': { subject: 'Українська мова', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
+      'А-11': { subject: 'Іноземна мова', teacher: 'Підручна А.В.', classroom: 'ауд.12' }
+    }),
+    createDayRow('ВІВТОРОК'),
+    createDataRow('9:00-10:20', {
+      'МЕТ-11': { subject: 'Історія України', teacher: 'Любченко Л.В.', classroom: 'ауд.10' },
+      'МТ-11': { subject: 'Громадянська освіта', teacher: 'Фуртат С.О.', classroom: 'ауд.14' },
+      'ЕкДл-11': { subject: 'Фізика і астрономія', teacher: 'Плешивцева І.А.', classroom: 'ауд.16' }
+    }),
+    createDataRow('10:30-11:50', {
+      'МЕТ-11': { subject: 'Громадянська освіта', teacher: 'Фуртат С.О.', classroom: 'ауд.14' },
+      'МТ-11': { subject: 'Історія України', teacher: 'Любченко Л.В.', classroom: 'ауд.10' },
+      'ЕкДл-11': { subject: 'Всесвітня історія', teacher: 'Пустовойт Л.А.', classroom: 'ауд.11' },
+      'А-11': { subject: 'Історія України', teacher: 'Самотгуга О.А.', classroom: 'ауд.10' }
+    }),
+    createDataRow('12:10-13:30', {
+      'МЕТ-11': { subject: 'Математика', teacher: 'Тараненко О.С.', classroom: 'ауд.20' },
+      'МТ-11': { subject: 'Українська література', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
+      'ЕкДл-11': { subject: 'Громадянська освіта', teacher: 'Фуртат С.О.', classroom: 'ауд.14' },
+      'А-11': { subject: 'Всесвітня історія', teacher: 'Пустовойт Л.А.', classroom: 'ауд.11' }
+    }),
+    createDataRow('13:40-15:00', {
+      'МЕТ-11': { subject: 'Фізика і астрономія', teacher: 'Плешивцева І.А.', classroom: 'ауд.16' },
+      'МТ-11': { subject: 'Математика', teacher: 'Тараненко О.С.', classroom: 'ауд.20' },
+      'ЕкДл-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+      'А-11': { subject: 'Українська література', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' }
+    }),
+    createDataRow('15:10-16:30', {
+      'МТ-11': { subject: 'Фізична культура', teacher: 'Тарнавський А.М.', classroom: 'спортзал' }
+    }),
+    createDayRow('СЕРЕДА'),
+    createDataRow('9:00-10:20', {
+      'МТ-11': { subject: 'Географія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+      'А-11': { subject: 'Фізична культура', teacher: 'Тарнавський А.М.', classroom: 'спортзал' }
+    }),
+    createDataRow('10:30-11:50', {
+      'МЕТ-11': { subject: 'Українська мова', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
+      'МТ-11': { subject: 'Математика', teacher: 'Тараненко О.С.', classroom: 'ауд.20' },
+      'ЕкДл-11': { subject: 'Географія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+      'А-11': { subject: 'Громадянська освіта', teacher: 'Фуртат С.О.', classroom: 'ауд.14' }
+    }),
+    createDataRow('12:10-13:30', {
+      'МЕТ-11': { subject: 'Географія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+      'МТ-11': { subject: 'Фізика і астрономія', teacher: 'Плешивцева І.А.', classroom: 'ауд.16' },
+      'ЕкДл-11': { subject: 'Інформатика', teacher: 'Ленченко О.А.', classroom: 'комп.клас' },
+      'А-11': { subject: 'Математика', teacher: 'Одинець А.М.', classroom: 'ауд.18' }
+    }),
+    createDayRow('ЧЕТВЕР'),
+    createDayRow('П\'ЯТНИЦЯ'),
     [''],
-    ['ИНСТРУКЦИЯ ПО ЗАПОЛНЕНИЮ:'],
-    ['1. Заполняйте отдельно каждый столбец для каждой группы'],
-    ['2. Предмет - в первый столбец группы'],
-    ['3. Преподаватель - во второй столбец группы'],
-    ['4. Аудитория - в третий столбец группы'],
-    ['5. Если занятия нет - оставьте все три ячейки пустыми'],
-    ['6. Можете удалить ненужные группы или добавить новые']
+    ['ІНСТРУКЦІЯ ПО ЗАПОВНЕННЮ:'],
+    ['1. Заповнюйте окремо кожен стовпець для кожної групи'],
+    ['2. Предмет - в перший стовпець групи'],
+    ['3. Викладач - в другий стовпець групи'],
+    ['4. Аудиторія - в третій стовпець групи'],
+    ['5. Якщо заняття немає - залишайте всі три клітинки порожніми'],
+    ['6. Реальні дані з розкладу Таврического коледжу 2024-2025 н.р.']
   ];
 
   return {
-    name: 'Отдельные столбцы (20 групп)',
+    name: 'Відокремлені стовпці (20 груп)',
     filename: 'template_separate_columns.xlsx',
-    description: 'Формат с отдельными столбцами для 20 групп. Каждая группа имеет 3 столбца: предмет, преподаватель, аудитория.',
+    description: 'Горизонтальний формат з відокремленими стовпцями для 20 груп з реальними даними.',
     data
   };
 }
@@ -307,91 +359,211 @@ export function createDemoTemplate(): TemplateVariant {
   };
 }
 
-// Вариант 6: Вертикальный шаблон (группы по 4 в ряду, вертикальная прокрутка)
+// Вариант 6: Вертикальный шаблон с реальными данными (группы по 4 в ряду)
 export function createVerticalTemplate(): TemplateVariant {
-  // Создаем группы по 4 в ряду
+  // Создаем группы по 4 в ряду из реального расписания
   const allGroups = [
-    'ИТ-21', 'ИТ-22', 'ИТ-23', 'ИТ-24',
-    'ИТ-25', 'ЭК-21', 'ЭК-22', 'ЭК-23', 
-    'ЭК-24', 'ЭК-25', 'А-21', 'А-22',
-    'А-23', 'А-24', 'А-25', 'М-21',
-    'М-22', 'М-23', 'М-24', 'М-25'
+    'МЕТ-11', 'МТ-11', 'ЕкДл-11', 'А-11',
+    'МЕТ-21', 'МТ-21', 'ЕкДл-21', 'А-21',
+    'МЕТ-31', 'МТ-31', 'ЕкДл-31', 'А-31',
+    'ІТ-11', 'ІТ-21', 'ІТ-31', 'КН-11',
+    'КН-21', 'КН-31', 'ФК-11', 'ФК-21'
   ];
 
   const data = [];
   
   // Заголовок
-  data.push(['РАСПИСАНИЕ ЗАНЯТИЙ - ВЕРТИКАЛЬНЫЙ ФОРМАТ (ГРУППЫ ПО 4 В РЯДУ)']);
+  data.push(['РОЗКЛАД ЗАНЯТЬ - ВЕРТИКАЛЬНИЙ ФОРМАТ (ГРУПИ ПО 4 В РЯДУ)']);
   data.push(['']);
+
+  // Функция для создания строки с данными
+  const createDataRow = (timeSlot: string, schedule: any) => {
+    const row = [timeSlot];
+    for (let i = 0; i < 4; i++) {
+      const group = schedule.groups[i];
+      const lesson = schedule.lessons[group];
+      if (lesson) {
+        row.push(lesson.subject, lesson.teacher, lesson.classroom);
+      } else {
+        row.push('', '', '');
+      }
+    }
+    return row;
+  };
 
   // Обрабатываем группы по 4 штуки
   for (let groupIndex = 0; groupIndex < allGroups.length; groupIndex += 4) {
     const currentGroups = allGroups.slice(groupIndex, groupIndex + 4);
     
     // Заголовок групп
-    const groupHeaderRow = ['Время'];
+    const groupHeaderRow = ['Час'];
     currentGroups.forEach(group => {
       groupHeaderRow.push(group, '', '');
     });
     data.push(groupHeaderRow);
     
-    // Подзаголовки (Предмет, Преподаватель, Аудитория)
+    // Подзаголовки (Предмет, Викладач, Аудиторія)
     const subHeaderRow = [''];
     currentGroups.forEach(() => {
-      subHeaderRow.push('Предмет', 'Преподаватель', 'Аудитория');
+      subHeaderRow.push('Предмет', 'Викладач', 'Аудиторія');
     });
     data.push(subHeaderRow);
     
-    // Дни недели и временные слоты
-    const days = ['ПОНЕДЕЛЬНИК', 'ВТОРНИК', 'СРЕДА', 'ЧЕТВЕРГ', 'ПЯТНИЦА'];
-    const timeSlots = ['9:00-10:20', '10:30-11:50', '12:10-13:30', '13:40-15:00', '15:10-16:30'];
-    
-    days.forEach(day => {
-      // День недели
-      const dayRow = [day];
-      currentGroups.forEach(() => {
-        dayRow.push('', '', '');
-      });
-      data.push(dayRow);
+    // Реальные данные для первого блока групп (МЕТ-11, МТ-11, ЕкДл-11, А-11)
+    if (groupIndex === 0) {
+      // ПОНЕДІЛЬОК
+      data.push(['ПОНЕДІЛЬОК', '', '', '', '', '', '', '', '', '', '', '', '']);
+      data.push(createDataRow('9:00-10:20', {
+        groups: currentGroups,
+        lessons: {
+          'МТ-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+          'ЕкДл-11': { subject: 'Фізична культура', teacher: 'Тарнавський А.М.', classroom: 'спортзал' }
+        }
+      }));
+      data.push(createDataRow('10:30-11:50', {
+        groups: currentGroups,
+        lessons: {
+          'МЕТ-11': { subject: 'Інформатика', teacher: 'Ленченко О.А.', classroom: 'комп.клас' },
+          'МТ-11': { subject: 'Українська мова', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
+          'ЕкДл-11': { subject: 'Іноземна мова', teacher: 'Носуля Н.І.', classroom: 'ауд.12' },
+          'А-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' }
+        }
+      }));
+      data.push(createDataRow('12:10-13:30', {
+        groups: currentGroups,
+        lessons: {
+          'МЕТ-11': { subject: 'Іноземна мова', teacher: 'Носуля Н.І.', classroom: 'ауд.12' },
+          'МТ-11': { subject: 'Інформатика', teacher: 'Глушко Л.М.', classroom: 'комп.клас' },
+          'ЕкДл-11': { subject: 'Математика', teacher: 'Тимкіна Л.Л.', classroom: 'ауд.20' },
+          'А-11': { subject: 'Математика', teacher: 'Одинець А.М.', classroom: 'ауд.18' }
+        }
+      }));
+      data.push(createDataRow('13:40-15:00', {
+        groups: currentGroups,
+        lessons: {
+          'МЕТ-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+          'ЕкДл-11': { subject: 'Українська мова', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
+          'А-11': { subject: 'Іноземна мова', teacher: 'Підручна А.В.', classroom: 'ауд.12' }
+        }
+      }));
+      data.push(['']);
+
+      // ВІВТОРОК
+      data.push(['ВІВТОРОК', '', '', '', '', '', '', '', '', '', '', '', '']);
+      data.push(createDataRow('9:00-10:20', {
+        groups: currentGroups,
+        lessons: {
+          'МЕТ-11': { subject: 'Історія України', teacher: 'Любченко Л.В.', classroom: 'ауд.10' },
+          'МТ-11': { subject: 'Громадянська освіта', teacher: 'Фуртат С.О.', classroom: 'ауд.14' },
+          'ЕкДл-11': { subject: 'Фізика і астрономія', teacher: 'Плешивцева І.А.', classroom: 'ауд.16' }
+        }
+      }));
+      data.push(createDataRow('10:30-11:50', {
+        groups: currentGroups,
+        lessons: {
+          'МЕТ-11': { subject: 'Громадянська освіта', teacher: 'Фуртат С.О.', classroom: 'ауд.14' },
+          'МТ-11': { subject: 'Історія України', teacher: 'Любченко Л.В.', classroom: 'ауд.10' },
+          'ЕкДл-11': { subject: 'Всесвітня історія', teacher: 'Пустовойт Л.А.', classroom: 'ауд.11' },
+          'А-11': { subject: 'Історія України', teacher: 'Самотгуга О.А.', classroom: 'ауд.10' }
+        }
+      }));
+      data.push(createDataRow('12:10-13:30', {
+        groups: currentGroups,
+        lessons: {
+          'МЕТ-11': { subject: 'Математика', teacher: 'Тараненко О.С.', classroom: 'ауд.20' },
+          'МТ-11': { subject: 'Українська література', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
+          'ЕкДл-11': { subject: 'Громадянська освіта', teacher: 'Фуртат С.О.', classroom: 'ауд.14' },
+          'А-11': { subject: 'Всесвітня історія', teacher: 'Пустовойт Л.А.', classroom: 'ауд.11' }
+        }
+      }));
+      data.push(createDataRow('13:40-15:00', {
+        groups: currentGroups,
+        lessons: {
+          'МЕТ-11': { subject: 'Фізика і астрономія', teacher: 'Плешивцева І.А.', classroom: 'ауд.16' },
+          'МТ-11': { subject: 'Математика', teacher: 'Тараненко О.С.', classroom: 'ауд.20' },
+          'ЕкДл-11': { subject: 'Біологія і екологія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+          'А-11': { subject: 'Українська література', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' }
+        }
+      }));
+      data.push(createDataRow('15:10-16:30', {
+        groups: currentGroups,
+        lessons: {
+          'МТ-11': { subject: 'Фізична культура', teacher: 'Тарнавський А.М.', classroom: 'спортзал' }
+        }
+      }));
+      data.push(['']);
+
+      // СЕРЕДА
+      data.push(['СЕРЕДА', '', '', '', '', '', '', '', '', '', '', '', '']);
+      data.push(createDataRow('9:00-10:20', {
+        groups: currentGroups,
+        lessons: {
+          'МТ-11': { subject: 'Географія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+          'А-11': { subject: 'Фізична культура', teacher: 'Тарнавський А.М.', classroom: 'спортзал' }
+        }
+      }));
+      data.push(createDataRow('10:30-11:50', {
+        groups: currentGroups,
+        lessons: {
+          'МЕТ-11': { subject: 'Українська мова', teacher: 'Дехтярчук В.В.', classroom: 'ауд.15' },
+          'МТ-11': { subject: 'Математика', teacher: 'Тараненко О.С.', classroom: 'ауд.20' },
+          'ЕкДл-11': { subject: 'Географія', teacher: 'Алєксахіна О.Г.', classroom: 'ауд.8' },
+          'А-11': { subject: 'Громадянська освіта', teacher: 'Фуртат С.О.', classroom: 'ауд.14' }
+        }
+      }));
+      data.push(['']);
+    } else {
+      // Для остальных блоков создаем пустые строки
+      const days = ['ПОНЕДІЛЬОК', 'ВІВТОРОК', 'СЕРЕДА', 'ЧЕТВЕР', 'П\'ЯТНИЦЯ'];
+      const timeSlots = ['9:00-10:20', '10:30-11:50', '12:10-13:30', '13:40-15:00', '15:10-16:30'];
       
-      // Временные слоты
-      timeSlots.forEach(timeSlot => {
-        const timeRow = [timeSlot];
+      days.forEach(day => {
+        // День недели
+        const dayRow = [day];
         currentGroups.forEach(() => {
-          timeRow.push('', '', '');
+          dayRow.push('', '', '');
         });
-        data.push(timeRow);
+        data.push(dayRow);
+        
+        // Временные слоты
+        timeSlots.forEach(timeSlot => {
+          const timeRow = [timeSlot];
+          currentGroups.forEach(() => {
+            timeRow.push('', '', '');
+          });
+          data.push(timeRow);
+        });
+        
+        // Пустая строка между днями
+        const emptyRow = [''];
+        currentGroups.forEach(() => {
+          emptyRow.push('', '', '');
+        });
+        data.push(emptyRow);
       });
-      
-      // Пустая строка между днями
-      const emptyRow = [''];
-      currentGroups.forEach(() => {
-        emptyRow.push('', '', '');
-      });
-      data.push(emptyRow);
-    });
+    }
     
     // Разделитель между блоками групп
     if (groupIndex + 4 < allGroups.length) {
       data.push(['', '', '', '', '', '', '', '', '', '', '', '', '']);
-      data.push(['='.repeat(50)]);
+      data.push(['='.repeat(60)]);
       data.push(['']);
     }
   }
   
   // Инструкция
   data.push(['']);
-  data.push(['ИНСТРУКЦИЯ ПО ЗАПОЛНЕНИЮ:']);
-  data.push(['1. Группы расположены блоками по 4 штуки']);
-  data.push(['2. Каждая группа имеет 3 столбца: Предмет | Преподаватель | Аудитория']);
-  data.push(['3. Прокручивайте вниз чтобы увидеть следующие блоки групп']);
-  data.push(['4. Заполняйте только нужные ячейки, пустые оставляйте незаполненными']);
-  data.push(['5. Можете удалить ненужные группы или изменить их названия']);
+  data.push(['ІНСТРУКЦІЯ ПО ЗАПОВНЕННЮ:']);
+  data.push(['1. Групи розташовані блоками по 4 штуки']);
+  data.push(['2. Кожна група має 3 стовпці: Предмет | Викладач | Аудиторія']);
+  data.push(['3. Прокручуйте вниз щоб побачити наступні блоки груп']);
+  data.push(['4. Заповнюйте тільки потрібні клітинки, порожні залишайте незаповненими']);
+  data.push(['5. Реальні дані з розкладу Таврического коледжу 2024-2025 н.р.']);
 
   return {
-    name: 'Вертикальный (группы по 4)',
+    name: 'Вертикальний (групи по 4)',
     filename: 'template_vertical_4groups.xlsx',
-    description: 'Вертикальный формат с группами по 4 в ряду. Удобно для вертикальной прокрутки большого количества групп.',
+    description: 'Вертикальний формат з групами по 4 в ряду з реальними даними колледжу.',
     data
   };
 }
