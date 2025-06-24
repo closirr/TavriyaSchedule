@@ -123,6 +123,13 @@ The system uses a single `lessons` table with the following structure:
 - **Migrations**: Drizzle migrations in `/migrations` directory
 - **Schema**: Centralized schema definition for consistency
 
+## Recent Changes
+
+✓ Migration from Replit Agent to standard Replit environment completed (June 24, 2025)
+  - Fixed PDF export functionality by resolving jsPDF ES module import issues
+  - Verified all core features working: upload, filtering, PDF generation
+  - Application running cleanly on port 5000 with proper security practices
+
 ## Changelog
 
 ```

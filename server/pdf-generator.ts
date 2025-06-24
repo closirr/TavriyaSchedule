@@ -1,13 +1,10 @@
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import { Lesson } from '@shared/schema';
 
-// Extend jsPDF type to include autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
+// Use createRequire to handle jsPDF in ES modules
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const jsPDFLib = require('jspdf');
+const jsPDF = jsPDFLib.jsPDF || jsPDFLib.default || jsPDFLib;
 
 interface ScheduleDay {
   day: string;
@@ -36,9 +33,6 @@ export function generateSchedulePDF(lessons: Lesson[], title: string = "Розк
   // Get all unique groups and sort them
   const groups = [...new Set(lessons.map(l => l.group))].sort();
   
-  // Get all unique time slots and sort them
-  const timeSlots = [...new Set(lessons.map(l => `${l.startTime}-${l.endTime}`))].sort();
-  
   // Days in Ukrainian with proper order
   const dayOrder = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
   const dayTranslations: Record<string, string> = {
@@ -50,25 +44,16 @@ export function generateSchedulePDF(lessons: Lesson[], title: string = "Розк
     'Суббота': 'СУБОТА'
   };
   
-  // Organize lessons by day and time
-  const scheduleByDay: Record<string, Record<string, Record<string, Lesson>>> = {};
+  let currentY = titleY + 20;
+  const pageWidth = doc.internal.pageSize.width;
+  const margin = 20;
+  const cellHeight = 12;
+  const headerHeight = 10;
   
-  lessons.forEach(lesson => {
-    const timeSlot = `${lesson.startTime}-${lesson.endTime}`;
-    if (!scheduleByDay[lesson.dayOfWeek]) {
-      scheduleByDay[lesson.dayOfWeek] = {};
-    }
-    if (!scheduleByDay[lesson.dayOfWeek][timeSlot]) {
-      scheduleByDay[lesson.dayOfWeek][timeSlot] = {};
-    }
-    scheduleByDay[lesson.dayOfWeek][timeSlot][lesson.group] = lesson;
-  });
-  
-  let currentY = titleY + 15;
-  
-  // Generate table for each day that has lessons
-  dayOrder.forEach(day => {
-    if (!scheduleByDay[day]) return;
+  // Generate schedule by days
+  dayOrder.forEach((day) => {
+    const dayLessons = lessons.filter(l => l.dayOfWeek === day);
+    if (dayLessons.length === 0) return;
     
     // Check if we need a new page
     if (currentY > 180) {
@@ -76,110 +61,74 @@ export function generateSchedulePDF(lessons: Lesson[], title: string = "Розк
       currentY = 20;
     }
     
-    // Day header
-    doc.setFontSize(14);
+    // Add day title
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(dayTranslations[day], 14, currentY);
-    currentY += 10;
-    
-    // Create table data
-    const tableData: any[][] = [];
+    doc.text(dayTranslations[day] || day.toUpperCase(), margin, currentY);
+    currentY += 15;
     
     // Get time slots for this day
-    const dayTimeSlots = Object.keys(scheduleByDay[day]).sort();
+    const dayTimeSlots = [...new Set(dayLessons.map(l => `${l.startTime}-${l.endTime}`))].sort();
     
-    dayTimeSlots.forEach((timeSlot, index) => {
-      const row = [
-        index === 0 ? dayTranslations[day] : '', // Day column only for first row
-        (index + 1).toString(), // Lesson number
-        timeSlot // Time
-      ];
+    // Calculate column widths
+    const timeColWidth = 35;
+    const groupColWidth = (pageWidth - margin * 2 - timeColWidth) / groups.length;
+    
+    // Draw table headers
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    
+    // Time header
+    doc.rect(margin, currentY, timeColWidth, headerHeight);
+    doc.text('Час', margin + timeColWidth/2, currentY + 7, { align: 'center' });
+    
+    // Group headers
+    groups.forEach((group, index) => {
+      const x = margin + timeColWidth + index * groupColWidth;
+      doc.rect(x, currentY, groupColWidth, headerHeight);
+      doc.text(group, x + groupColWidth/2, currentY + 7, { align: 'center' });
+    });
+    
+    currentY += headerHeight;
+    
+    // Draw rows
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    dayTimeSlots.forEach((timeSlot) => {
+      const timeLessons = dayLessons.filter(l => `${l.startTime}-${l.endTime}` === timeSlot);
       
-      // Add lesson data for each group
-      groups.forEach(group => {
-        const lesson = scheduleByDay[day][timeSlot][group];
+      // Time column
+      doc.rect(margin, currentY, timeColWidth, cellHeight);
+      doc.text(timeSlot, margin + timeColWidth/2, currentY + 7, { align: 'center' });
+      
+      // Group columns
+      groups.forEach((group, index) => {
+        const x = margin + timeColWidth + index * groupColWidth;
+        doc.rect(x, currentY, groupColWidth, cellHeight);
+        
+        const lesson = timeLessons.find(l => l.group === group);
         if (lesson) {
-          const cellContent = `${lesson.subject}\n${lesson.teacher}\n${lesson.classroom}`;
-          row.push(cellContent);
-        } else {
-          row.push('');
+          const maxWidth = groupColWidth - 4;
+          doc.text(lesson.subject, x + 2, currentY + 3, { maxWidth });
+          doc.text(lesson.teacher, x + 2, currentY + 6, { maxWidth });
+          doc.text(lesson.classroom, x + 2, currentY + 9, { maxWidth });
         }
       });
       
-      tableData.push(row);
+      currentY += cellHeight;
     });
     
-    // Table headers
-    const headers = ['Дні', '№', 'Час', ...groups];
-    
-    // Generate table
-    doc.autoTable({
-      startY: currentY,
-      head: [headers],
-      body: tableData,
-      theme: 'grid',
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-        lineColor: [0, 0, 0],
-        lineWidth: 0.1,
-      },
-      headStyles: {
-        fillColor: [240, 240, 240],
-        textColor: [0, 0, 0],
-        fontStyle: 'bold',
-        halign: 'center',
-      },
-      columnStyles: {
-        0: { cellWidth: 20, halign: 'center' }, // Day
-        1: { cellWidth: 8, halign: 'center' },  // Number
-        2: { cellWidth: 25, halign: 'center' }, // Time
-      },
-      didParseCell: function(data: any) {
-        // Make group header cells bold
-        if (data.row.index === -1 && data.column.index >= 3) {
-          data.cell.styles.fontStyle = 'bold';
-          data.cell.styles.halign = 'center';
-        }
-        // Center align day and number columns
-        if (data.column.index <= 2) {
-          data.cell.styles.halign = 'center';
-          data.cell.styles.valign = 'middle';
-        }
-        // For lesson cells, use smaller font and top alignment
-        if (data.column.index >= 3 && data.row.index >= 0) {
-          data.cell.styles.fontSize = 7;
-          data.cell.styles.valign = 'top';
-          data.cell.styles.cellPadding = 1;
-        }
-      }
-    });
-    
-    currentY = (doc as any).lastAutoTable.finalY + 10;
+    currentY += 10;
   });
-  
-  // Add footer with generation date
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text(
-      `Згенеровано: ${new Date().toLocaleDateString('uk-UA')} | Сторінка ${i} з ${pageCount}`,
-      doc.internal.pageSize.width / 2,
-      doc.internal.pageSize.height - 10,
-      { align: 'center' }
-    );
-  }
   
   return Buffer.from(doc.output('arraybuffer'));
 }
 
 export function generateWeeklySchedulePDF(lessons: Lesson[]): Buffer {
-  return generateSchedulePDF(lessons, "Розклад занять на тиждень");
+  return generateSchedulePDF(lessons, "Тижневий розклад занять");
 }
 
-export function generateGroupSchedulePDF(lessons: Lesson[], groupName: string): Buffer {
-  const groupLessons = lessons.filter(l => l.group === groupName);
-  return generateSchedulePDF(groupLessons, `Розклад занять для групи ${groupName}`);
+export function generateGroupSchedulePDF(lessons: Lesson[], group: string): Buffer {
+  return generateSchedulePDF(lessons, `Розклад занять для групи ${group}`);
 }
