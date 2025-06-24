@@ -13,6 +13,10 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
   });
 
   const daysOfWeek = [
+    'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'
+  ];
+  
+  const dayDisplayNames = [
     'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота', 'Неділя'
   ];
 
@@ -71,7 +75,7 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
     return (
       <div className="mb-8">
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-          {daysOfWeek.map((day) => (
+          {dayDisplayNames.map((day) => (
             <Card key={day} className="animate-pulse">
               <div className="bg-gray-300 h-16 rounded-t-xl"></div>
               <CardContent className="p-4 space-y-3">
@@ -94,13 +98,14 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
           const dayLessons = groupedLessons[day] || [];
           const isToday = isCurrentDay(day);
           const hasLessons = dayLessons.length > 0;
+          const displayDay = dayDisplayNames[index];
 
           return (
             <Card key={day} className="overflow-hidden border border-gray-200">
               <div className={`px-4 py-3 ${
                 isToday ? 'bg-navy-700' : hasLessons ? 'bg-navy-600' : 'bg-gray-400'
               }`}>
-                <h3 className="font-semibold text-white text-center">{day}</h3>
+                <h3 className="font-semibold text-white text-center">{displayDay}</h3>
                 <p className={`text-sm text-center ${
                   isToday ? 'text-navy-100' : hasLessons ? 'text-navy-100' : 'text-gray-100'
                 }`}>
