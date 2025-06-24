@@ -228,6 +228,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
+      } else if (headers.length > 7 && 
+                 (headers.includes('Предмет') || headers.includes('Преподаватель') || headers.includes('Аудитория'))) {
+        
+        // Separate columns format parsing
+        let currentDay = '';
+        const groupsInfo: Array<{name: string, startCol: number}> = [];
+        
+        // Find groups and their column positions
+        for (let i = 1; i < headers.length; i++) {
+          const header = headers[i];
+          if (header && header.includes('ИТ') || header.includes('ЭК') || header.includes('А-')) {
+            groupsInfo.push({name: header, startCol: i});
+          }
+        }
+        
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex];
+          const dayCell = String(row[0] || '').trim();
+          
+          // Update current day
+          if (dayCell && (dayCell.includes('ПОНЕДЕЛЬНИК') || dayCell.includes('ПОНЕДІЛЬОК') ||
+                         dayCell.includes('ВТОРНИК') || dayCell.includes('ВІВТОРОК') || 
+                         dayCell.includes('СРЕДА') || dayCell.includes('СЕРЕДА') || 
+                         dayCell.includes('ЧЕТВЕРГ') || dayCell.includes('ЧЕТВЕР') || 
+                         dayCell.includes('ПЯТНИЦА') || dayCell.includes('П\'ЯТНИЦЯ') || 
+                         dayCell.includes('СУББОТА'))) {
+            currentDay = dayCell
+              .replace('ПОНЕДІЛЬОК', 'Понедельник')
+              .replace('ВІВТОРОК', 'Вторник')
+              .replace('СЕРЕДА', 'Среда')
+              .replace('ЧЕТВЕР', 'Четверг')
+              .replace('П\'ЯТНИЦЯ', 'Пятница')
+              .replace('ПОНЕДЕЛЬНИК', 'Понедельник')
+              .replace('ЧЕТВЕРГ', 'Четверг')
+              .replace('ПЯТНИЦА', 'Пятница')
+              .replace('СУББОТА', 'Суббота')
+              .replace(/[^\u0400-\u04FF\s\']/g, '').trim();
+            continue;
+          }
+          
+          // Parse time slots
+          const timeCell = String(row[0] || '').trim();
+          if (timeCell && timeCell.includes('-') && currentDay) {
+            const normalizedTime = timeCell.replace(/\./g, ':');
+            const timeMatch = normalizedTime.match(/(\d{1,2}):?(\d{2})-(\d{1,2}):?(\d{2})/);
+            if (!timeMatch) continue;
+            
+            const startTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
+            const endTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
+            
+            // Process each group
+            for (const group of groupsInfo) {
+              const subject = String(row[group.startCol] || '').trim();
+              const teacher = String(row[group.startCol + 1] || '').trim();
+              const classroom = String(row[group.startCol + 2] || '').trim();
+              
+              if (subject && teacher && classroom) {
+                jsonData.push({
+                  'День недели': currentDay,
+                  'Время начала': startTime,
+                  'Время окончания': endTime,
+                  'Предмет': subject,
+                  'Преподаватель': teacher,
+                  'Группа': group.name,
+                  'Аудитория': classroom
+                });
+              }
+            }
+          }
+        }
       } else {
         // Standard table format
         jsonData = rows.map(row => {
@@ -415,10 +485,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const worksheet = XLSX.utils.aoa_to_sheet(template.data);
       
       // Set column widths for better readability
-      worksheet['!cols'] = [
-        { wch: 15 }, { wch: 20 }, { wch: 25 }, { wch: 25 },
-        { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
-      ];
+      if (template.filename === 'template_separate_columns.xlsx') {
+        worksheet['!cols'] = [
+          { wch: 12 }, // Время
+          { wch: 15 }, { wch: 20 }, { wch: 12 }, // ИТ-21
+          { wch: 15 }, { wch: 20 }, { wch: 12 }, // ИТ-22
+          { wch: 15 }, { wch: 20 }, { wch: 12 }, // ЭК-21
+          { wch: 15 } // А-21
+        ];
+        
+        // Объединение ячеек для заголовков групп
+        worksheet['!merges'] = [
+          { s: { c: 1, r: 2 }, e: { c: 3, r: 2 } }, // ИТ-21
+          { s: { c: 4, r: 2 }, e: { c: 6, r: 2 } }, // ИТ-22
+          { s: { c: 7, r: 2 }, e: { c: 9, r: 2 } }, // ЭК-21
+        ];
+      } else {
+        worksheet['!cols'] = [
+          { wch: 15 }, { wch: 20 }, { wch: 25 }, { wch: 25 },
+          { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+        ];
+      }
 
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Расписание');
 
