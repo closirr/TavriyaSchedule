@@ -5,7 +5,7 @@ import { scheduleFiltersSchema, insertLessonSchema } from "@shared/schema";
 import * as XLSX from 'xlsx';
 import multer from 'multer';
 import { generateAllTemplates, type TemplateVariant } from './template-generator';
-import { generateWeeklySchedulePDF, generateGroupSchedulePDF } from './pdf-generator';
+import { generateWeeklySchedulePDFKit, generateGroupSchedulePDFKit } from './pdfkit-generator';
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -623,7 +623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/export/pdf", async (req, res) => {
     try {
       const lessons = await storage.getAllLessons();
-      const pdfBuffer = generateWeeklySchedulePDF(lessons);
+      const pdfBuffer = await generateWeeklySchedulePDFKit(lessons);
       
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="rozklad-${new Date().toISOString().split('T')[0]}.pdf"`);
@@ -639,7 +639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const group = req.params.group;
       const lessons = await storage.getAllLessons();
-      const pdfBuffer = generateGroupSchedulePDF(lessons, group);
+      const pdfBuffer = await generateGroupSchedulePDFKit(lessons, group);
       
       res.setHeader('Content-Type', 'application/pdf');
       const safeGroup = encodeURIComponent(group);

@@ -127,7 +127,7 @@ The system uses a single `lessons` table with the following structure:
 
 ✓ Migration from Replit Agent to standard Replit environment completed (June 24, 2025)
   - Fixed PDF export functionality by resolving jsPDF ES module import issues
-  - Implemented Ukrainian-to-Latin transliteration to resolve Cyrillic encoding issues in PDF
+  - Replaced jsPDF with PDFKit for proper Ukrainian text support in PDF
   - All core features verified working: file upload, schedule filtering, PDF generation
   - Application running cleanly on port 5000 with proper security practices
 
