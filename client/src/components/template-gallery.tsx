@@ -19,7 +19,7 @@ export default function TemplateGallery() {
     queryKey: ['/api/templates'],
     queryFn: async () => {
       const res = await fetch('/api/templates');
-      if (!res.ok) throw new Error('Ошибка загрузки шаблонов');
+      if (!res.ok) throw new Error('Помилка завантаження шаблонів');
       return res.json();
     }
   });
@@ -29,7 +29,7 @@ export default function TemplateGallery() {
     try {
       const response = await fetch(`/api/templates/${filename}`);
       if (!response.ok) {
-        throw new Error('Ошибка скачивания шаблона');
+        throw new Error('Помилка завантаження шаблону');
       }
 
       const blob = await response.blob();
@@ -43,13 +43,13 @@ export default function TemplateGallery() {
       window.URL.revokeObjectURL(url);
 
       toast({
-        title: "Шаблон скачан",
-        description: `${templateName} успешно скачан`
+        title: "Шаблон завантажено",
+        description: `${templateName} успішно завантажено`
       });
     } catch (error) {
       toast({
-        title: "Ошибка",
-        description: "Не удалось скачать шаблон",
+        title: "Помилка",
+        description: "Не вдалося завантажити шаблон",
         variant: "destructive"
       });
     } finally {
@@ -61,7 +61,7 @@ export default function TemplateGallery() {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Загрузка шаблонов...</span>
+        <span className="ml-2">Завантаження шаблонів...</span>
       </div>
     );
   }
@@ -69,9 +69,9 @@ export default function TemplateGallery() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Выберите шаблон расписания</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Оберіть шаблон розкладу</h2>
         <p className="text-gray-600">
-          Скачайте и заполните удобный для вас формат Excel файла
+          Завантажте та заповніть зручний для вас формат Excel файлу
         </p>
       </div>
 
@@ -97,12 +97,12 @@ export default function TemplateGallery() {
                 {downloadingTemplate === template.filename ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Скачивание...
+                    Завантаження...
                   </>
                 ) : (
                   <>
                     <Download className="h-4 w-4 mr-2" />
-                    Скачать шаблон
+                    Завантажити шаблон
                   </>
                 )}
               </Button>
@@ -112,12 +112,12 @@ export default function TemplateGallery() {
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">Инструкция по заполнению:</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">Інструкція з заповнення:</h3>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Скачайте один из шаблонов выше</li>
-          <li>• Заполните данные согласно примерам в файле</li>
-          <li>• Сохраните файл в формате .xlsx</li>
-          <li>• Загрузите готовый файл через форму загрузки</li>
+          <li>• Завантажте один із шаблонів вище</li>
+          <li>• Заповніть дані згідно з прикладами у файлі</li>
+          <li>• Збережіть файл у форматі .xlsx</li>
+          <li>• Завантажте готовий файл через форму завантаження</li>
         </ul>
       </div>
     </div>

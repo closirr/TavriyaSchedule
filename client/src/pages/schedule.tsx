@@ -22,8 +22,8 @@ export default function Schedule() {
                 </div>
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-navy-700">Таврический Колледж</h1>
-                <p className="text-sm text-gray-500">Система управления расписанием</p>
+                <h1 className="text-xl font-semibold text-navy-700">Таврійський Коледж</h1>
+                <p className="text-sm text-gray-500">Система управління розкладом</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -64,32 +64,32 @@ export default function Schedule() {
                 <div className="w-8 h-8 bg-navy-600 rounded-lg flex items-center justify-center">
                   <GraduationCap className="text-white text-sm" />
                 </div>
-                <span className="font-semibold text-navy-700">Таврический Колледж</span>
+                <span className="font-semibold text-navy-700">Таврійський Коледж</span>
               </div>
-              <p className="text-sm text-gray-600 mb-4">Современная система управления расписанием для образовательных учреждений</p>
+              <p className="text-sm text-gray-600 mb-4">Сучасна система управління розкладом для освітніх закладів</p>
             </div>
             <div>
-              <h4 className="font-semibold text-navy-700 mb-4">Функции</h4>
+              <h4 className="font-semibold text-navy-700 mb-4">Функції</h4>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li>Загрузка расписания</li>
-                <li>Поиск и фильтрация</li>
-                <li>Мобильная версия</li>
-                <li>Уведомления</li>
+                <li>Завантаження розкладу</li>
+                <li>Пошук та фільтрація</li>
+                <li>Мобільна версія</li>
+                <li>Сповіщення</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-navy-700 mb-4">Поддержка</h4>
+              <h4 className="font-semibold text-navy-700 mb-4">Підтримка</h4>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li>Инструкция по использованию</li>
-                <li>Техническая поддержка</li>
-                <li>Сообщить об ошибке</li>
-                <li>Обратная связь</li>
+                <li>Інструкція з використання</li>
+                <li>Технічна підтримка</li>
+                <li>Повідомити про помилку</li>
+                <li>Зворотний зв'язок</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-200 mt-8 pt-8 flex items-center justify-between">
-            <p className="text-sm text-gray-500">© 2024 Таврический Колледж. Все права защищены.</p>
-            <p className="text-sm text-gray-500">Версия 1.0.2 • Обновлено 20.03.2024</p>
+            <p className="text-sm text-gray-500">© 2024 Таврійський Коледж. Усі права захищені.</p>
+            <p className="text-sm text-gray-500">Версія 1.0.2 • Оновлено 20.03.2024</p>
           </div>
         </div>
       </footer>

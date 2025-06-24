@@ -40,11 +40,11 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
         <CardContent className="p-6">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2">Поиск</Label>
+              <Label className="text-sm font-medium text-gray-700 mb-2">Пошук</Label>
               <div className="relative">
                 <Input 
                   type="text" 
-                  placeholder="Поиск по предмету, преподавателю..." 
+                  placeholder="Пошук за предметом, викладачем..." 
                   value={filters.search}
                   onChange={(e) => handleFilterChange('search', e.target.value)}
                   className="pl-10 focus:ring-2 focus:ring-navy-500 focus:border-navy-500"
@@ -54,13 +54,13 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
             </div>
             
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2">Группа</Label>
+              <Label className="text-sm font-medium text-gray-700 mb-2">Група</Label>
               <Select value={filters.group || "__all__"} onValueChange={(value) => handleFilterChange('group', value)}>
                 <SelectTrigger className="focus:ring-2 focus:ring-navy-500 focus:border-navy-500">
-                  <SelectValue placeholder="Все группы" />
+                  <SelectValue placeholder="Всі групи" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">Все группы</SelectItem>
+                  <SelectItem value="__all__">Всі групи</SelectItem>
                   {filterOptions?.groups?.map((group: string) => (
                     <SelectItem key={group} value={group}>{group}</SelectItem>
                   ))}
@@ -69,13 +69,13 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
             </div>
             
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2">Преподаватель</Label>
+              <Label className="text-sm font-medium text-gray-700 mb-2">Викладач</Label>
               <Select value={filters.teacher || "__all__"} onValueChange={(value) => handleFilterChange('teacher', value)}>
                 <SelectTrigger className="focus:ring-2 focus:ring-navy-500 focus:border-navy-500">
-                  <SelectValue placeholder="Все преподаватели" />
+                  <SelectValue placeholder="Всі викладачі" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">Все преподаватели</SelectItem>
+                  <SelectItem value="__all__">Всі викладачі</SelectItem>
                   {filterOptions?.teachers?.map((teacher: string) => (
                     <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
                   ))}
@@ -84,13 +84,13 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
             </div>
             
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2">Аудитория</Label>
+              <Label className="text-sm font-medium text-gray-700 mb-2">Аудиторія</Label>
               <Select value={filters.classroom || "__all__"} onValueChange={(value) => handleFilterChange('classroom', value)}>
                 <SelectTrigger className="focus:ring-2 focus:ring-navy-500 focus:border-navy-500">
-                  <SelectValue placeholder="Все аудитории" />
+                  <SelectValue placeholder="Всі аудиторії" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">Все аудитории</SelectItem>
+                  <SelectItem value="__all__">Всі аудиторії</SelectItem>
                   {filterOptions?.classrooms?.map((classroom: string) => (
                     <SelectItem key={classroom} value={classroom}>{classroom}</SelectItem>
                   ))}

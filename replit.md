@@ -127,6 +127,11 @@ The system uses a single `lessons` table with the following structure:
 
 ```
 Changelog:
+- January 25, 2025. Complete Ukrainian translation implemented
+  - All frontend components translated from Russian to Ukrainian
+  - Backend error messages translated to Ukrainian
+  - Date formatting changed to Ukrainian locale
+  - Database day name mapping added for Ukrainian display
 - June 23, 2025. Initial setup
 ```
 
@@ -134,4 +139,5 @@ Changelog:
 
 ```
 Preferred communication style: Simple, everyday language.
+Language: Ukrainian - complete website translation to Ukrainian completed.
 ```

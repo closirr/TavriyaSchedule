@@ -14,7 +14,7 @@ const upload = multer({
         file.mimetype === 'application/vnd.ms-excel') {
       cb(null, true);
     } else {
-      cb(new Error('Только Excel файлы разрешены (.xlsx, .xls)'));
+      cb(new Error('Тільки Excel файли дозволені (.xlsx, .xls)'));
     }
   }
 });
@@ -27,7 +27,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lessons = await storage.getLessonsFiltered(filters);
       res.json(lessons);
     } catch (error) {
-      res.status(400).json({ message: "Неверные параметры фильтрации" });
+      res.status(400).json({ message: "Невірні параметри фільтрації" });
     }
   });
 
@@ -37,7 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stats = await storage.getStatistics();
       res.json(stats);
     } catch (error) {
-      res.status(500).json({ message: "Ошибка получения статистики" });
+      res.status(500).json({ message: "Помилка отримання статистики" });
     }
   });
 
@@ -52,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ groups, teachers, classrooms });
     } catch (error) {
-      res.status(500).json({ message: "Ошибка получения опций фильтрации" });
+      res.status(500).json({ message: "Помилка отримання опцій фільтрації" });
     }
   });
 
@@ -60,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/upload-schedule", upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ message: "Файл не был загружен" });
+        return res.status(400).json({ message: "Файл не було завантажено" });
       }
 
       // Parse Excel file with error handling
@@ -83,21 +83,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (secondError) {
           console.error('Second Excel parse error:', secondError);
           return res.status(400).json({ 
-            message: "Ошибка чтения Excel файла. Убедитесь, что файл имеет правильный формат .xlsx и не поврежден",
-            details: `Ошибка: ${parseError instanceof Error ? parseError.message : 'Неизвестная ошибка'}`
+            message: "Помилка читання Excel файлу. Переконайтеся, що файл має правильний формат .xlsx та не пошкоджений",
+            details: `Помилка: ${parseError instanceof Error ? parseError.message : 'Невідома помилка'}`
           });
         }
       }
 
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-        return res.status(400).json({ message: "Excel файл не содержит листов с данными" });
+        return res.status(400).json({ message: "Excel файл не містить аркушів з даними" });
       }
 
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       
       if (!worksheet) {
-        return res.status(400).json({ message: "Не удалось прочитать данные из первого листа Excel файла" });
+        return res.status(400).json({ message: "Не вдалося прочитати дані з першого аркуша Excel файлу" });
       }
 
       const data = XLSX.utils.sheet_to_json(worksheet, { 
@@ -107,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (data.length < 3) {
-        return res.status(400).json({ message: "Excel файл должен содержать заголовки и данные" });
+        return res.status(400).json({ message: "Excel файл повинен містити заголовки та дані" });
       }
 
       // Find header row (usually row 2 or 3)
@@ -124,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (headerRowIndex === -1) {
-        return res.status(400).json({ message: "Не найден заголовок таблицы. Проверьте формат файла." });
+        return res.status(400).json({ message: "Не знайдено заголовок таблиці. Перевірте формат файлу." });
       }
 
       const rows = data.slice(headerRowIndex + 1) as any[][];

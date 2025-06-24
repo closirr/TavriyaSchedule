@@ -29,28 +29,28 @@ export default function StatisticsDashboard() {
 
   const stats = [
     {
-      title: "Всего занятий",
+      title: "Всього занять",
       value: statistics?.totalLessons || 0,
       icon: Calendar,
       bgColor: "bg-navy-100",
       iconColor: "text-navy-600"
     },
     {
-      title: "Активных групп",
+      title: "Активних груп",
       value: statistics?.activeGroups || 0,
       icon: Users,
       bgColor: "bg-navy-100",
       iconColor: "text-navy-600"
     },
     {
-      title: "Преподавателей",
+      title: "Викладачів",
       value: statistics?.teachers || 0,
       icon: UserCheck,
       bgColor: "bg-navy-100",
       iconColor: "text-navy-600"
     },
     {
-      title: "Аудиторий",
+      title: "Аудиторій",
       value: statistics?.classrooms || 0,
       icon: DoorOpen,
       bgColor: "bg-navy-100",

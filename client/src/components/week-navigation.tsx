@@ -16,7 +16,7 @@ export default function WeekNavigation() {
     sunday.setDate(monday.getDate() + 6);
     
     const formatDate = (date: Date) => {
-      return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+      return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
     };
     
     return {
@@ -33,9 +33,9 @@ export default function WeekNavigation() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h2 className="text-xl font-semibold text-navy-700">Расписание занятий</h2>
+              <h2 className="text-xl font-semibold text-navy-700">Розклад занять</h2>
               <span className="px-3 py-1 bg-navy-100 text-navy-700 rounded-full text-sm font-medium">
-                Неделя {weekInfo.weekNumber} • {weekInfo.dateRange}
+                Тиждень {weekInfo.weekNumber} • {weekInfo.dateRange}
               </span>
             </div>
             <div className="flex items-center space-x-2">
@@ -43,7 +43,7 @@ export default function WeekNavigation() {
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <Button variant="outline" size="sm" className="text-navy-600 bg-navy-50 hover:bg-navy-100 border-navy-200">
-                Сегодня
+                Сьогодні
               </Button>
               <Button variant="ghost" size="sm" className="p-2 text-gray-500 hover:text-navy-600 hover:bg-gray-100">
                 <ChevronRight className="w-4 h-4" />

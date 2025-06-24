@@ -13,7 +13,7 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
   });
 
   const daysOfWeek = [
-    'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'
+    'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота', 'Неділя'
   ];
 
   const getDayDate = (dayIndex: number) => {
@@ -24,7 +24,7 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
     const targetDay = new Date(monday);
     targetDay.setDate(monday.getDate() + dayIndex);
     
-    return targetDay.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    return targetDay.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
   };
 
   const groupLessonsByDay = (lessons: Lesson[]) => {
@@ -40,8 +40,20 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
   };
 
   const isCurrentDay = (dayName: string) => {
-    const today = new Date().toLocaleDateString('ru-RU', { weekday: 'long' });
-    return today.toLowerCase() === dayName.toLowerCase();
+    const today = new Date().toLocaleDateString('uk-UA', { weekday: 'long' });
+    const dayMapping: Record<string, string> = {
+      'понедельник': 'понеділок',
+      'вторник': 'вівторок', 
+      'среда': 'середа',
+      'четверг': 'четвер',
+      'пятница': 'п\'ятниця',
+      'суббота': 'субота',
+      'воскресенье': 'неділя'
+    };
+    
+    // Convert database day name (Russian) to Ukrainian
+    const ukrainianDay = dayMapping[dayName.toLowerCase()] || dayName;
+    return today.toLowerCase() === ukrainianDay.toLowerCase();
   };
 
   const isCurrentLesson = (lesson: Lesson) => {
@@ -93,14 +105,14 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
                   isToday ? 'text-navy-100' : hasLessons ? 'text-navy-100' : 'text-gray-100'
                 }`}>
                   {getDayDate(index)}
-                  {isToday && ' • Сегодня'}
+                  {isToday && ' • Сьогодні'}
                 </p>
               </div>
               
               <CardContent className="p-4">
                 {dayLessons.length === 0 ? (
                   <div className="flex items-center justify-center min-h-[120px]">
-                    <p className="text-gray-400 text-sm text-center">Занятий нет</p>
+                    <p className="text-gray-400 text-sm text-center">Занять немає</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -141,7 +153,7 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
                             </span>
                             {isCurrent && (
                               <span className="text-xs font-medium text-navy-700">
-                                Текущая
+                                Поточна
                               </span>
                             )}
                           </div>
