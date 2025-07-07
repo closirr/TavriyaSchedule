@@ -73,6 +73,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Upload Excel file
   app.post("/api/upload-schedule", upload.single('file'), async (req, res) => {
+    let groupInfo: Array<{name: string, startCol: number}> = []; // Declare groupInfo at a higher scope
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Файл не було завантажено" });
@@ -203,8 +204,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // console.log('Processing grid format...');
         
         // Special handling for vertical format with groups in columns
-        const groupInfo: Array<{name: string, startCol: number}> = [];
-        
         // Dynamic group detection for vertical format
         // Look through headers for group names
         for (let i = 0; i < headers.length; i++) {
@@ -219,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Based on console output: МЕТ-11 at pos 1, МТ-11 at pos 4, ЕкДл-11 at pos 7
           groupInfo.push(
             {name: 'МЕТ-11', startCol: 1},
-            {name: 'МТ-11', startCol: 4}, 
+            {name: 'МТ-11', startCol: 4},
             {name: 'ЕкДл-11', startCol: 7}
           );
         }
@@ -455,8 +454,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Header row index:', headerRowIndex);
         console.log('Data rows count:', rows.length);
         console.log('jsonData length:', jsonData.length);
-        console.log('Groups found:', groupInfo.length);
-        return res.status(400).json({ 
+        console.log('Groups found:', groupInfo.length); // groupInfo is now in scope
+        return res.status(400).json({
           message: "Excel файл не містить даних для парсингу. Перевірте формат файлу.",
           debug: {
             headersFound: headers.length,
@@ -608,14 +607,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get list of available templates
   app.get("/api/templates", (req, res) => {
+    console.log("Received request for /api/templates");
+    console.log("Received request for /api/templates");
     try {
       const templates = generateAllTemplates();
+      console.log(`Generated ${templates.length} templates.`);
+      console.log(`Generated ${templates.length} templates.`);
       const templateList = templates.map(t => ({
         name: t.name,
         filename: t.filename,
         description: t.description
       }));
       res.json(templateList);
+      console.log("Successfully sent template list.");
+      console.log("Successfully sent template list.");
     } catch (error) {
       console.error('Template list error:', error);
       res.status(500).json({ message: "Ошибка получения списка шаблонов" });
@@ -765,6 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { filename } = req.params;
       const templates = generateAllTemplates();
+      console.log(`Generated ${templates.length} templates.`);
       const template = templates.find(t => t.filename === filename);
       
       if (!template) {
