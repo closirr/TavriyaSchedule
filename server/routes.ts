@@ -106,6 +106,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Расписание');
 
       // Generate buffer with compatibility settings
+      const buffer = XLSX.write(workbook, { 
+        type: 'buffer', 
+        bookType: 'xlsx',
+        compression: false,
+        bookSST: false
+      });
+
+      // Set headers to force download and prevent caching
+      res.setHeader('Content-Disposition', `attachment; filename="${template.filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Content-Length', buffer.length.toString());
+      
+      res.send(buffer);
+    } catch (error) {
+      console.error('Template download error:', error);
+      res.status(500).json({ message: "Помилка завантаження шаблону" });
+    }
+  });
+
+  
+
+  // Download specific template by filename
+  app.get("/api/templates/:filename", (req, res) => {
+    try {
+      const { filename } = req.params;
+      const templates = generateAllTemplates();
+      const template = templates.find(t => t.filename === filename);
+
+      if (!template) {
+        return res.status(404).json({ message: "Шаблон не знайдено" });
+      }
+
+      // Create workbook from array
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(template.data);
+      
+      // Set column widths for matrix structure
+      worksheet['!cols'] = [
+        { wch: 12 }, // День недели
+        { wch: 15 }, // Время
+        { wch: 35 }, // ИТ-21
+        { wch: 35 }, // ИТ-22
+        { wch: 35 }  // ЭК-21
+      ];
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Расписание');
+
+      // Generate buffer with compatibility settings
       const buffer = XLSX.write(workbook, {
         type: 'buffer',
         bookType: 'xlsx',
