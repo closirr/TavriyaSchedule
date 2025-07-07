@@ -65,6 +65,7 @@ app.use((req, res, next) => {
     port: Number(port),
     host,
   }, () => {
+    log(`Server attempting to listen on ${host}:${port} in ${app.get("env")} mode.`);
     log(`serving on ${host}:${port}`);
   });
 })();
