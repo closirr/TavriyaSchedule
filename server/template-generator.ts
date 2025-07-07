@@ -771,6 +771,7 @@ export function createVertical3GroupsTemplate(): TemplateVariant {
 }
 
 export function generateAllTemplates(): TemplateVariant[] {
+  console.log("Generating all templates...");
   return [
     createTeacherTimeMatrix(),
     createVerticalTemplate(),
