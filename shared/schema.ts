@@ -24,10 +24,7 @@ export type Lesson = typeof lessons.$inferSelect;
 
 // Filter types
 export const scheduleFiltersSchema = z.object({
-  search: z.string().optional(),
-  group: z.string().optional(),
-  teacher: z.string().optional(),
-  classroom: z.string().optional()
+  search: z.string().optional()
 });
 
 export type ScheduleFilters = z.infer<typeof scheduleFiltersSchema>;

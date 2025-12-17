@@ -10,7 +10,7 @@ import { generateWeeklyScheduleHTML, generateGroupScheduleHTML } from './html-pd
 import { generateWeeklyScheduleRTF, generateGroupScheduleRTF } from './docx-generator';
 import { generateWeeklySchedulePuppeteerPDF, generateGroupSchedulePuppeteerPDF } from './puppeteer-pdf-generator';
 
-const upload = multer({
+const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
@@ -24,7 +24,7 @@ const upload = multer({
     const allowedExtensions = ['.xlsx', '.xls'];
     const hasValidMime = allowedMimes.includes(file.mimetype);
     const hasValidExtension = allowedExtensions.some(ext => file.originalname?.toLowerCase().endsWith(ext));
-
+    
     if (hasValidMime || hasValidExtension) {
       cb(null, true);
     } else {
@@ -65,7 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getAllTeachers(),
         storage.getAllClassrooms()
       ]);
-
+      
       res.json({ groups, teachers, classrooms });
     } catch (error) {
       res.status(500).json({ message: "Помилка отримання опцій фільтрації" });
@@ -73,7 +73,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get list of available templates
-
+  app.get("/api/templates", (req, res) => {
+    console.log("Received request for /api/templates (static test)");
+    res.json([{ name: "Test Template", filename: "test.xlsx", description: "A test template" }]);
+    console.log("Successfully sent static template list.");
+  });
 
   // Download specific template by filename
   app.get("/api/templates/:filename", (req, res) => {
@@ -89,7 +93,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create workbook from array
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.aoa_to_sheet(template.data);
+      
+      // Set column widths for matrix structure
+      worksheet['!cols'] = [
+        { wch: 12 }, // День недели
+        { wch: 15 }, // Время
+        { wch: 35 }, // ИТ-21
+        { wch: 35 }, // ИТ-22
+        { wch: 35 }  // ЭК-21
+      ];
 
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Расписание');
+
+      // Generate buffer with compatibility settings
+      const buffer = XLSX.write(workbook, { 
+        type: 'buffer', 
+        bookType: 'xlsx',
+        compression: false,
+        bookSST: false
+      });
+
+      // Set headers to force download and prevent caching
+      res.setHeader('Content-Disposition', `attachment; filename="${template.filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Content-Length', buffer.length.toString());
+      
+      res.send(buffer);
+    } catch (error) {
+      console.error('Template download error:', error);
+      res.status(500).json({ message: "Помилка завантаження шаблону" });
+    }
+  });
+
+  
+
+  // Download specific template by filename
+  app.get("/api/templates/:filename", (req, res) => {
+    try {
+      const { filename } = req.params;
+      const templates = generateAllTemplates();
+      const template = templates.find(t => t.filename === filename);
+
+      if (!template) {
+        return res.status(404).json({ message: "Шаблон не знайдено" });
+      }
+
+      // Create workbook from array
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(template.data);
+      
       // Set column widths for matrix structure
       worksheet['!cols'] = [
         { wch: 12 }, // День недели
@@ -116,7 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Content-Length', buffer.length.toString());
-
+      
       res.send(buffer);
     } catch (error) {
       console.error('Template download error:', error);
@@ -124,14 +179,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-
-  // Download specific template by filename
-
-
   // Upload Excel file
   app.post("/api/upload-schedule", upload.single('file'), async (req, res) => {
-    let groupInfo: Array<{ name: string, startCol: number }> = []; // Declare groupInfo at a higher scope
+    let groupInfo: Array<{name: string, startCol: number}> = []; // Declare groupInfo at a higher scope
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Файл не було завантажено" });
@@ -141,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let workbook;
       try {
         // Try different parsing approaches for better compatibility
-        workbook = XLSX.read(req.file.buffer, {
+        workbook = XLSX.read(req.file.buffer, { 
           type: 'buffer',
           cellDates: false,
           cellNF: false,
@@ -156,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           workbook = XLSX.read(req.file.buffer, { type: 'array' });
         } catch (secondError) {
           console.error('Second Excel parse error:', secondError);
-          return res.status(400).json({
+          return res.status(400).json({ 
             message: "Помилка читання Excel файлу. Переконайтеся, що файл має правильний формат .xlsx та не пошкоджений",
             details: `Помилка: ${parseError instanceof Error ? parseError.message : 'Невідома помилка'}`
           });
@@ -169,18 +219,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-
+      
       if (!worksheet) {
         return res.status(400).json({ message: "Не вдалося прочитати дані з першого аркуша Excel файлу" });
       }
 
-      const data = XLSX.utils.sheet_to_json(worksheet, {
+      const data = XLSX.utils.sheet_to_json(worksheet, { 
         header: 1,
         defval: "",
         blankrows: true,
         raw: false
       });
-
+      
       // console.log('Excel data structure:');
       // console.log('Total rows:', data.length);
       // console.log('First 10 rows:', data.slice(0, 10));
@@ -196,18 +246,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const row = data[i] as string[];
         if (row && row.length > 0) {
           const rowStr = row.join(' ').toLowerCase();
-          const hasTimeColumn = row.includes('Дні') || row.includes('Дни') ||
-            row.includes('День недели') || row.includes('Час') ||
-            row.includes('Время') || rowStr.includes('час');
+          const hasTimeColumn = row.includes('Дні') || row.includes('Дни') || 
+                               row.includes('День недели') || row.includes('Час') || 
+                               row.includes('Время') || rowStr.includes('час');
           const hasGroupPattern = row.some(cell => {
             const cellStr = String(cell || '').trim();
-            return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) ||
-              cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
-              cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
-              cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
-              cellStr.includes('А-');
+            return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) || 
+                   cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
+                   cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
+                   cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
+                   cellStr.includes('А-');
           });
-
+          
           if (hasTimeColumn || hasGroupPattern) {
             headerRowIndex = i;
             headers = row;
@@ -222,82 +272,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const rows = data.slice(headerRowIndex + 1) as any[][];
       let jsonData: any[] = [];
-
+      
       // console.log('Processing Excel with headers:', headers);
       // console.log('Headers length:', headers.length);
-
+      
       // Improved detection for both horizontal and vertical formats
       const hasTimeColumns = headers.some(h => {
         const header = String(h || '').toLowerCase();
-        return header.includes('час') || header.includes('время') ||
-          header.includes('дні') || header.includes('дни');
+        return header.includes('час') || header.includes('время') || 
+               header.includes('дні') || header.includes('дни');
       });
-
+      
       const hasGroupPattern = headers.some(h => {
         const cellStr = String(h || '').trim();
-        return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) ||
-          cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
-          cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
-          cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
-          cellStr.includes('А-');
+        return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) || 
+               cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
+               cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
+               cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
+               cellStr.includes('А-');
       });
-
+      
       // Also check in data rows for vertical format
-      const hasGroupsInData = rows.some(row =>
+      const hasGroupsInData = rows.some(row => 
         row && row.some((cell: any) => {
           const cellStr = String(cell || '').trim();
-          return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) ||
-            cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
-            cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
-            cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
-            cellStr.includes('А-');
+          return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) || 
+                 cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
+                 cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
+                 cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
+                 cellStr.includes('А-');
         })
       );
-
+      
       const hasGridFormat = hasTimeColumns || hasGroupPattern || hasGroupsInData;
-
+      
       // console.log('Has grid format:', hasGridFormat);
-
+      
       if (hasGridFormat) {
         // console.log('Processing grid format...');
-
+        
         // Special handling for vertical format with groups in columns
         // Dynamic group detection for vertical format
         // Look through headers for group names
         for (let i = 0; i < headers.length; i++) {
           const header = String(headers[i] || '').trim();
           if (/^[А-ЯІЄЇ]+-\d+$/.test(header)) {
-            groupInfo.push({ name: header, startCol: i });
+            groupInfo.push({name: header, startCol: i});
           }
         }
-
+        
         // If not found in headers, use known structure from logs
         if (groupInfo.length === 0) {
           // Based on console output: МЕТ-11 at pos 1, МТ-11 at pos 4, ЕкДл-11 at pos 7
           groupInfo.push(
-            { name: 'МЕТ-11', startCol: 1 },
-            { name: 'МТ-11', startCol: 4 },
-            { name: 'ЕкДл-11', startCol: 7 }
+            {name: 'МЕТ-11', startCol: 1},
+            {name: 'МТ-11', startCol: 4},
+            {name: 'ЕкДл-11', startCol: 7}
           );
         }
-
+        
         // console.log('Found groups:', groupInfo);
-
+        
         let currentDay = '';
-
+        
         for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
           const row = rows[rowIndex];
           if (!row || row.length === 0) continue;
-
+          
           const firstCell = String(row[0] || '').trim();
-
+          
           // Check for day names
           if (firstCell && (firstCell.includes('ПОНЕДІЛЬОК') || firstCell.includes('ПОНЕДЕЛЬНИК') ||
-            firstCell.includes('ВІВТОРОК') || firstCell.includes('ВТОРНИК') ||
-            firstCell.includes('СЕРЕДА') || firstCell.includes('СРЕДА') ||
-            firstCell.includes('ЧЕТВЕР') || firstCell.includes('ЧЕТВЕРГ') ||
-            firstCell.includes('П\'ЯТНИЦЯ') || firstCell.includes('ПЯТНИЦА') ||
-            firstCell.includes('СУББОТА'))) {
+                           firstCell.includes('ВІВТОРОК') || firstCell.includes('ВТОРНИК') || 
+                           firstCell.includes('СЕРЕДА') || firstCell.includes('СРЕДА') || 
+                           firstCell.includes('ЧЕТВЕР') || firstCell.includes('ЧЕТВЕРГ') || 
+                           firstCell.includes('П\'ЯТНИЦЯ') || firstCell.includes('ПЯТНИЦА') || 
+                           firstCell.includes('СУББОТА'))) {
             // Convert Ukrainian to Russian day names for database consistency
             currentDay = firstCell
               .replace('ПОНЕДІЛЬОК', 'Понедельник')
@@ -313,28 +363,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // console.log('Found day:', currentDay);
             continue;
           }
-
+          
           // Check for time slots
           if (firstCell && firstCell.includes('-') && currentDay) {
             const normalizedTime = firstCell.replace(/\./g, ':');
             const timeMatch = normalizedTime.match(/(\d{1,2}):?(\d{2})-(\d{1,2}):?(\d{2})/);
             if (!timeMatch) continue;
-
+            
             const startTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
             const endTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
-
+            
             // console.log(`Processing time slot: ${startTime}-${endTime}`);
-
+            
             // Process each group - for vertical format, each group has 3 columns: subject, teacher, classroom
             for (const group of groupInfo) {
               const subjectCol = group.startCol;
               const teacherCol = group.startCol + 1;
               const classroomCol = group.startCol + 2;
-
+              
               const subject = String(row[subjectCol] || '').trim();
               const teacher = String(row[teacherCol] || '').trim();
               const classroom = String(row[classroomCol] || '').trim();
-
+              
               if (subject && teacher) {
                 // console.log(`Adding lesson: ${group.name} - ${subject} - ${teacher}`);
                 jsonData.push({
@@ -350,74 +400,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
-      } else if (headers.length > 7 &&
-        (headers.includes('Предмет') || headers.includes('Преподаватель') || headers.includes('Аудитория'))) {
-
+      } else if (headers.length > 7 && 
+                 (headers.includes('Предмет') || headers.includes('Преподаватель') || headers.includes('Аудитория'))) {
+        
         // Separate columns format parsing (both horizontal and vertical)
         let currentDay = '';
-        const groupsInfo: Array<{ name: string, startCol: number }> = [];
-
+        const groupsInfo: Array<{name: string, startCol: number}> = [];
+        
         // Find groups and their column positions in first row
         for (let i = 1; i < headers.length; i++) {
           const header = headers[i];
-          if (header && (header.includes('ИТ-') || header.includes('ЭК-') ||
-            header.includes('А-') || header.includes('М-') ||
-            /^[А-Я]+-\d+$/.test(header))) {
-            groupsInfo.push({ name: header, startCol: i });
+          if (header && (header.includes('ИТ-') || header.includes('ЭК-') || 
+                        header.includes('А-') || header.includes('М-') ||
+                        /^[А-Я]+-\d+$/.test(header))) {
+            groupsInfo.push({name: header, startCol: i});
           }
         }
-
+        
         // If no groups found in headers, look in data rows (vertical format)
         if (groupsInfo.length === 0) {
           for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
             const row = rows[rowIndex];
             for (let colIndex = 1; colIndex < row.length; colIndex++) {
               const cell = String(row[colIndex] || '').trim();
-              if (cell && (cell.includes('ИТ-') || cell.includes('ЭК-') ||
-                cell.includes('А-') || cell.includes('М-') ||
-                /^[А-Я]+-\d+$/.test(cell))) {
+              if (cell && (cell.includes('ИТ-') || cell.includes('ЭК-') || 
+                          cell.includes('А-') || cell.includes('М-') ||
+                          /^[А-Я]+-\d+$/.test(cell))) {
                 if (!groupsInfo.find(g => g.name === cell)) {
-                  groupsInfo.push({ name: cell, startCol: colIndex });
+                  groupsInfo.push({name: cell, startCol: colIndex});
                 }
               }
             }
           }
         }
-
+        
         // Enhanced parsing for vertical format with improved group detection
         for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
           const row = rows[rowIndex];
           const dayCell = String(row[0] || '').trim();
-
+          
           // Check if this row contains group headers - look for patterns like ИТ-21, МЕТ-11, etc.
-          const currentRowGroups: Array<{ name: string, startCol: number }> = [];
+          const currentRowGroups: Array<{name: string, startCol: number}> = [];
           for (let colIndex = 1; colIndex < row.length; colIndex++) {
             const cell = String(row[colIndex] || '').trim();
             // Enhanced group pattern matching
-            if (cell && (/^[А-ЯІЄЇ]+-\d+$/.test(cell) ||
-              cell.includes('ИТ-') || cell.includes('ЭК-') ||
-              cell.includes('МЕТ-') || cell.includes('МТ-') ||
-              cell.includes('ЕкДп-') || cell.includes('ЕкДл-') ||
-              cell.includes('А-') || cell.includes('М-') ||
-              cell.includes('КН-') || cell.includes('ФК-'))) {
-              currentRowGroups.push({ name: cell, startCol: colIndex });
+            if (cell && (/^[А-ЯІЄЇ]+-\d+$/.test(cell) || 
+                        cell.includes('ИТ-') || cell.includes('ЭК-') || 
+                        cell.includes('МЕТ-') || cell.includes('МТ-') ||
+                        cell.includes('ЕкДп-') || cell.includes('ЕкДл-') ||
+                        cell.includes('А-') || cell.includes('М-') ||
+                        cell.includes('КН-') || cell.includes('ФК-'))) {
+              currentRowGroups.push({name: cell, startCol: colIndex});
             }
           }
-
+          
           // If we found groups in this row, use them for subsequent rows
           if (currentRowGroups.length > 0) {
             groupsInfo.length = 0; // Clear existing
             groupsInfo.push(...currentRowGroups);
             continue;
           }
-
+          
           // Update current day
           if (dayCell && (dayCell.includes('ПОНЕДЕЛЬНИК') || dayCell.includes('ПОНЕДІЛЬОК') ||
-            dayCell.includes('ВТОРНИК') || dayCell.includes('ВІВТОРОК') ||
-            dayCell.includes('СРЕДА') || dayCell.includes('СЕРЕДА') ||
-            dayCell.includes('ЧЕТВЕРГ') || dayCell.includes('ЧЕТВЕР') ||
-            dayCell.includes('ПЯТНИЦА') || dayCell.includes('П\'ЯТНИЦЯ') ||
-            dayCell.includes('СУББОТА'))) {
+                         dayCell.includes('ВТОРНИК') || dayCell.includes('ВІВТОРОК') || 
+                         dayCell.includes('СРЕДА') || dayCell.includes('СЕРЕДА') || 
+                         dayCell.includes('ЧЕТВЕРГ') || dayCell.includes('ЧЕТВЕР') || 
+                         dayCell.includes('ПЯТНИЦА') || dayCell.includes('П\'ЯТНИЦЯ') || 
+                         dayCell.includes('СУББОТА'))) {
             currentDay = dayCell
               .replace('ПОНЕДІЛЬОК', 'Понедельник')
               .replace('ВІВТОРОК', 'Вторник')
@@ -431,37 +481,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .replace(/[^\u0400-\u04FF\s\']/g, '').trim();
             continue;
           }
-
+          
           // Parse time slots - check both first column and time-specific columns
           const timeCell = String(row[0] || '').trim();
           const timeCell2 = String(row[1] || '').trim(); // Sometimes time is in second column
-
+          
           let timeToProcess = '';
           if (timeCell && timeCell.includes('-')) {
             timeToProcess = timeCell;
           } else if (timeCell2 && timeCell2.includes('-')) {
             timeToProcess = timeCell2;
           }
-
+          
           if (timeToProcess && currentDay && groupsInfo.length > 0) {
             const normalizedTime = timeToProcess.replace(/\./g, ':');
             const timeMatch = normalizedTime.match(/(\d{1,2}):?(\d{2})-(\d{1,2}):?(\d{2})/);
             if (!timeMatch) continue;
-
+            
             const startTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
             const endTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
-
+            
             // Process each group - handle different column layouts
             for (const group of groupsInfo) {
               let subject = '', teacher = '', classroom = '';
-
+              
               // Try different column arrangements for vertical format
               const cellContent = String(row[group.startCol] || '').trim();
-
+              
               if (cellContent) {
                 // Check if it's a multi-line cell (separated by newlines)
                 const lines = cellContent.split('\n').map(l => l.trim()).filter(l => l);
-
+                
                 if (lines.length >= 3) {
                   // Multi-line format: subject, teacher, classroom
                   subject = lines[0];
@@ -478,7 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   teacher = String(row[group.startCol + 1] || '').trim();
                   classroom = String(row[group.startCol + 2] || '').trim();
                 }
-
+                
                 // Validate and add lesson if we have required fields
                 if (subject && teacher) {
                   jsonData.push({
@@ -544,9 +594,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
 
           // Validate required fields (removed lessonType)
-          if (!lesson.dayOfWeek || !lesson.startTime || !lesson.endTime ||
-            !lesson.subject || !lesson.teacher || !lesson.group ||
-            !lesson.classroom) {
+          if (!lesson.dayOfWeek || !lesson.startTime || !lesson.endTime || 
+              !lesson.subject || !lesson.teacher || !lesson.group || 
+              !lesson.classroom) {
             errors.push(`Рядок ${rowNumber}: відсутні обов'язкові поля`);
             continue;
           }
@@ -573,7 +623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (errors.length > 0) {
-        return res.status(400).json({
+        return res.status(400).json({ 
           message: "Обнаружены ошибки в данных",
           errors: errors.slice(0, 10) // Limit to first 10 errors
         });
@@ -587,9 +637,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.clearAllLessons();
       await storage.createManyLessons(lessons);
 
-      res.json({
+      res.json({ 
         message: "Розклад успішно завантажено",
-        lessonsCount: lessons.length
+        lessonsCount: lessons.length 
       });
     } catch (error) {
       console.error('Excel upload error:', error);
@@ -628,7 +678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create workbook from array
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.aoa_to_sheet(templateData);
-
+      
       // Set column widths for matrix structure
       worksheet['!cols'] = [
         { wch: 12 }, // День недели
@@ -641,8 +691,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Расписание');
 
       // Generate buffer with compatibility settings
-      const buffer = XLSX.write(workbook, {
-        type: 'buffer',
+      const buffer = XLSX.write(workbook, { 
+        type: 'buffer', 
         bookType: 'xlsx',
         compression: false,
         bookSST: false
@@ -655,7 +705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Content-Length', buffer.length.toString());
-
+      
       res.send(buffer);
     } catch (error) {
       console.error('Template generation error:', error);
@@ -690,7 +740,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const lessons = await storage.getAllLessons();
       const pdfBuffer = await generateWeeklySchedulePDFKit(lessons);
-
+      
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="rozklad-${new Date().toISOString().split('T')[0]}.pdf"`);
       res.send(pdfBuffer);
@@ -705,7 +755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const lessons = await storage.getAllLessons();
       const pdfBuffer = await generateWeeklySchedulePuppeteerPDF(lessons);
-
+      
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="rozklad-cyrillic-${new Date().toISOString().split('T')[0]}.pdf"`);
       res.send(pdfBuffer);
@@ -720,7 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const lessons = await storage.getAllLessons();
       const htmlContent = generateWeeklyScheduleHTML(lessons);
-
+      
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="rozklad-${new Date().toISOString().split('T')[0]}.html"`);
       res.send(htmlContent);
@@ -735,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const lessons = await storage.getAllLessons();
       const rtfBuffer = generateWeeklyScheduleRTF(lessons);
-
+      
       res.setHeader('Content-Type', 'application/rtf');
       res.setHeader('Content-Disposition', `attachment; filename="rozklad-${new Date().toISOString().split('T')[0]}.rtf"`);
       res.send(rtfBuffer);
@@ -751,7 +801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const group = req.params.group;
       const lessons = await storage.getAllLessons();
       const pdfBuffer = await generateGroupSchedulePDFKit(lessons, group);
-
+      
       res.setHeader('Content-Type', 'application/pdf');
       const safeGroup = encodeURIComponent(group);
       res.setHeader('Content-Disposition', `attachment; filename="rozklad-${safeGroup}-${new Date().toISOString().split('T')[0]}.pdf"`);
@@ -768,7 +818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const group = req.params.group;
       const lessons = await storage.getAllLessons();
       const pdfBuffer = await generateGroupSchedulePuppeteerPDF(lessons, group);
-
+      
       res.setHeader('Content-Type', 'application/pdf');
       const safeGroup = encodeURIComponent(group);
       res.setHeader('Content-Disposition', `attachment; filename="rozklad-cyrillic-${safeGroup}-${new Date().toISOString().split('T')[0]}.pdf"`);
@@ -785,7 +835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const group = req.params.group;
       const lessons = await storage.getAllLessons();
       const htmlContent = generateGroupScheduleHTML(lessons, group);
-
+      
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       const safeGroup = encodeURIComponent(group);
       res.setHeader('Content-Disposition', `attachment; filename="rozklad-${safeGroup}-${new Date().toISOString().split('T')[0]}.html"`);
@@ -802,7 +852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const group = req.params.group;
       const lessons = await storage.getAllLessons();
       const rtfBuffer = generateGroupScheduleRTF(lessons, group);
-
+      
       res.setHeader('Content-Type', 'application/rtf');
       const safeGroup = encodeURIComponent(group);
       res.setHeader('Content-Disposition', `attachment; filename="rozklad-${safeGroup}-${new Date().toISOString().split('T')[0]}.rtf"`);
@@ -830,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const templates = generateAllTemplates();
       console.log(`Generated ${templates.length} templates.`);
       const template = templates.find(t => t.filename === filename);
-
+      
       if (!template) {
         return res.status(404).json({ message: "Шаблон не найден" });
       }
@@ -838,7 +888,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create workbook from template data
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.aoa_to_sheet(template.data);
-
+      
       // Set column widths for better readability
       if (template.filename === 'template_separate_columns.xlsx') {
         const cols = [{ wch: 12 }]; // Время
@@ -848,7 +898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cols.push({ wch: 12 }); // Аудитория
         }
         worksheet['!cols'] = cols;
-
+        
         // Объединение ячеек для заголовков групп (20 групп)
         const merges = [];
         for (let i = 0; i < 20; i++) {
@@ -865,7 +915,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cols.push({ wch: 12 }); // Аудитория
         }
         worksheet['!cols'] = cols;
-
+        
 
       } else if (template.filename === 'template_vertical_4groups.xlsx') {
         worksheet['!cols'] = [
@@ -875,14 +925,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { wch: 15 }, { wch: 20 }, { wch: 12 }, // Группа 3
           { wch: 15 }, { wch: 20 }, { wch: 12 }  // Группа 4
         ];
-
+        
         // Находим все строки с заголовками групп и создаем объединения
         const merges = [];
         const rows = template.data;
         for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
           const row = rows[rowIndex];
-          if (row && row.length > 1 && typeof row[1] === 'string' &&
-            (row[1].includes('ИТ-') || row[1].includes('ЭК-') || row[1].includes('А-') || row[1].includes('М-'))) {
+          if (row && row.length > 1 && typeof row[1] === 'string' && 
+              (row[1].includes('ИТ-') || row[1].includes('ЭК-') || row[1].includes('А-') || row[1].includes('М-'))) {
             // Это строка с заголовками групп, создаем объединения
             for (let groupIndex = 0; groupIndex < 4; groupIndex++) {
               const startCol = 1 + (groupIndex * 3);
@@ -901,16 +951,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { wch: 15 }, { wch: 20 }, { wch: 12 }, // Группа 2
           { wch: 15 }, { wch: 20 }, { wch: 12 }  // Группа 3
         ];
-
+        
         // Находим все строки с заголовками групп и создаем объединения
         const merges = [];
         const rows = template.data;
         for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
           const row = rows[rowIndex];
-          if (row && row.length > 1 && typeof row[1] === 'string' &&
-            (row[1].includes('МЕТ-') || row[1].includes('МТ-') || row[1].includes('ЕкДл-') ||
-              row[1].includes('А-') || row[1].includes('ІТ-') || row[1].includes('КН-') ||
-              row[1].includes('ФК-') || row[1].includes('СП-'))) {
+          if (row && row.length > 1 && typeof row[1] === 'string' && 
+              (row[1].includes('МЕТ-') || row[1].includes('МТ-') || row[1].includes('ЕкДл-') || 
+               row[1].includes('А-') || row[1].includes('ІТ-') || row[1].includes('КН-') || 
+               row[1].includes('ФК-') || row[1].includes('СП-'))) {
             // Это строка с заголовками групп, создаем объединения
             for (let groupIndex = 0; groupIndex < 3; groupIndex++) {
               const startCol = 1 + (groupIndex * 3);
@@ -932,8 +982,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Расписание');
 
       // Generate buffer
-      const buffer = XLSX.write(workbook, {
-        type: 'buffer',
+      const buffer = XLSX.write(workbook, { 
+        type: 'buffer', 
         bookType: 'xlsx',
         compression: false,
         bookSST: false
@@ -946,7 +996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Content-Length', buffer.length.toString());
-
+      
       res.send(buffer);
     } catch (error) {
       console.error('Template download error:', error);

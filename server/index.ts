@@ -9,7 +9,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Enable CORS for the frontend domain
 app.use(cors({
-  origin: ["https://tavriyaschedule.onrender.com", "http://localhost:5000", "http://localhost:5173"],
+  origin: "https://tavriyaschedule.onrender.com",
   credentials: true,
 }));
 

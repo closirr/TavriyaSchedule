@@ -12,7 +12,7 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const API_BASE_URL = "";
+  const API_BASE_URL = "https://tavriyascheduleapi.onrender.com";
   const fullUrl = `${API_BASE_URL}${url}`;
   const res = await fetch(fullUrl, {
     method,
@@ -31,7 +31,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
     async ({ queryKey }) => {
-      const API_BASE_URL = "";
+      const API_BASE_URL = "https://tavriyascheduleapi.onrender.com";
       let fullUrl = `${API_BASE_URL}${queryKey[0] as string}`;
       
       // Add query parameters if they exist in queryKey[1]

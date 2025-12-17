@@ -59,6 +59,57 @@ export function createWeeklyTemplate(): TemplateVariant {
   };
 }
 
+// Вариант 2: Русский формат (аналогичный украинскому)
+export function createSimpleListTemplate(): TemplateVariant {
+  const data = [
+    ['РАСПИСАНИЕ ЗАНЯТИЙ ТАВРИЧЕСКОГО КОЛЛЕДЖА', '', '', '', '', ''],
+    ['', '', '', '', '', ''],
+    ['Дни', '№', 'Время', 'ИТ-21', 'ИТ-22', 'ЭК-21', 'А-21'],
+    ['ПОНЕДЕЛЬНИК', '1', '9.00-10.20', '', '', '', ''],
+    ['', '2', '10.30-11.50', '', '', '', ''],
+    ['', '3', '12.10-13.30', '', '', '', ''],
+    ['', '4', '13.40-15.00', '', '', '', ''],
+    ['ВТОРНИК', '1', '9.00-10.20', '', '', '', ''],
+    ['', '2', '10.30-11.50', '', '', '', ''],
+    ['', '3', '12.10-13.30', '', '', '', ''],
+    ['', '4', '13.40-15.00', '', '', '', ''],
+    ['', '5', '15.10-16.30', '', '', '', ''],
+    ['СРЕДА', '1', '9.00-10.20', '', '', '', ''],
+    ['', '2', '10.30-11.50', '', '', '', ''],
+    ['', '3', '12.10-13.30', '', '', '', ''],
+    ['', '4', '13.40-15.00', '', '', '', ''],
+    ['ЧЕТВЕРГ', '1', '9.00-10.20', '', '', '', ''],
+    ['', '2', '10.30-11.50', '', '', '', ''],
+    ['', '3', '12.10-13.30', '', '', '', ''],
+    ['', '4', '13.40-15.00', '', '', '', ''],
+    ['ПЯТНИЦА', '1', '9.00-10.20', '', '', '', ''],
+    ['', '2', '10.30-11.50', '', '', '', ''],
+    ['', '3', '12.10-13.30', '', '', '', ''],
+    ['', '4', '13.40-15.00', '', '', '', ''],
+    ['', '', '', '', '', '', ''],
+    ['ИНСТРУКЦИЯ ПО ЗАПОЛНЕНИЮ:'],
+    ['1. В каждую ячейку группы вписывайте:'],
+    ['   Название предмета'],
+    ['   Фамилия преподавателя'],
+    ['   Аудитория'],
+    [''],
+    ['ПРИМЕР:'],
+    ['   Математика'],
+    ['   Иванов А.И.'],
+    ['   каб. 101'],
+    [''],
+    ['2. Если занятия нет - оставьте ячейку пустой'],
+    ['3. Группы можно изменять в заголовке столбцов']
+  ];
+
+  return {
+    name: 'Русский формат',
+    filename: 'template_russian_format.xlsx', 
+    description: 'Формат на русском языке, аналогичный текущему украинскому.',
+    data
+  };
+}
+
 // Вариант 3: Простая таблица (каждое занятие отдельно)
 export function createGroupBasedTemplate(): TemplateVariant {
   const data = [
@@ -250,7 +301,7 @@ export function createVerticalTemplate(): TemplateVariant {
   ];
 
   const data = [];
-
+  
   // Заголовок
   data.push(['РОЗКЛАД ЗАНЯТЬ - ВЕРТИКАЛЬНИЙ ФОРМАТ (ГРУПИ ПО 4 В РЯДУ)']);
   data.push(['']);
@@ -273,21 +324,21 @@ export function createVerticalTemplate(): TemplateVariant {
   // Обрабатываем группы по 4 штуки
   for (let groupIndex = 0; groupIndex < allGroups.length; groupIndex += 4) {
     const currentGroups = allGroups.slice(groupIndex, groupIndex + 4);
-
+    
     // Заголовок групп
     const groupHeaderRow = ['Час'];
     currentGroups.forEach(group => {
       groupHeaderRow.push(group, '', '');
     });
     data.push(groupHeaderRow);
-
+    
     // Подзаголовки (Предмет, Викладач, Аудиторія)
     const subHeaderRow = [''];
     currentGroups.forEach(() => {
       subHeaderRow.push('Предмет', 'Викладач', 'Аудиторія');
     });
     data.push(subHeaderRow);
-
+    
     // Реальные данные для первого блока групп (МЕТ-11, МТ-11, ЕкДл-11, А-11)
     if (groupIndex === 0) {
       // ПОНЕДІЛЬОК
@@ -395,7 +446,7 @@ export function createVerticalTemplate(): TemplateVariant {
       // Для остальных блоков создаем пустые строки
       const days = ['ПОНЕДІЛЬОК', 'ВІВТОРОК', 'СЕРЕДА', 'ЧЕТВЕР', 'П\'ЯТНИЦЯ'];
       const timeSlots = ['9:00-10:20', '10:30-11:50', '12:10-13:30', '13:40-15:00', '15:10-16:30'];
-
+      
       days.forEach(day => {
         // День недели
         const dayRow = [day];
@@ -403,7 +454,7 @@ export function createVerticalTemplate(): TemplateVariant {
           dayRow.push('', '', '');
         });
         data.push(dayRow);
-
+        
         // Временные слоты
         timeSlots.forEach(timeSlot => {
           const timeRow = [timeSlot];
@@ -412,7 +463,7 @@ export function createVerticalTemplate(): TemplateVariant {
           });
           data.push(timeRow);
         });
-
+        
         // Пустая строка между днями
         const emptyRow = [''];
         currentGroups.forEach(() => {
@@ -421,7 +472,7 @@ export function createVerticalTemplate(): TemplateVariant {
         data.push(emptyRow);
       });
     }
-
+    
     // Разделитель между блоками групп
     if (groupIndex + 4 < allGroups.length) {
       data.push(['', '', '', '', '', '', '', '', '', '', '', '', '']);
@@ -429,7 +480,7 @@ export function createVerticalTemplate(): TemplateVariant {
       data.push(['']);
     }
   }
-
+  
   // Инструкция
   data.push(['']);
   data.push(['ІНСТРУКЦІЯ ПО ЗАПОВНЕННЮ:']);
@@ -461,7 +512,7 @@ export function createVertical3GroupsTemplate(): TemplateVariant {
   ];
 
   const data = [];
-
+  
   // Заголовок
   data.push(['РОЗКЛАД ЗАНЯТЬ - ВЕРТИКАЛЬНИЙ ФОРМАТ (ГРУПИ ПО 3 В РЯДУ)']);
   data.push(['']);
@@ -484,21 +535,21 @@ export function createVertical3GroupsTemplate(): TemplateVariant {
   // Обрабатываем группы по 3 штуки
   for (let groupIndex = 0; groupIndex < allGroups.length; groupIndex += 3) {
     const currentGroups = allGroups.slice(groupIndex, groupIndex + 3);
-
+    
     // Заголовок групп
     const groupHeaderRow = ['Час'];
     currentGroups.forEach(group => {
       groupHeaderRow.push(group, '', '');
     });
     data.push(groupHeaderRow);
-
+    
     // Подзаголовки (Предмет, Викладач, Аудиторія)
     const subHeaderRow = [''];
     currentGroups.forEach(() => {
       subHeaderRow.push('Предмет', 'Викладач', 'Аудиторія');
     });
     data.push(subHeaderRow);
-
+    
     // Реальные данные для первого блока групп (МЕТ-11, МТ-11, ЕкДл-11)
     if (groupIndex === 0) {
       // ПОНЕДІЛЬОК
@@ -667,7 +718,7 @@ export function createVertical3GroupsTemplate(): TemplateVariant {
       // Для остальных блоков создаем пустые строки
       const days = ['ПОНЕДІЛЬОК', 'ВІВТОРОК', 'СЕРЕДА', 'ЧЕТВЕР', 'П\'ЯТНИЦЯ'];
       const timeSlots = ['9:00-10:20', '10:30-11:50', '12:10-13:30', '13:40-15:00', '15:10-16:30'];
-
+      
       days.forEach(day => {
         // День недели
         const dayRow = [day];
@@ -675,7 +726,7 @@ export function createVertical3GroupsTemplate(): TemplateVariant {
           dayRow.push('', '', '');
         });
         data.push(dayRow);
-
+        
         // Временные слоты
         timeSlots.forEach(timeSlot => {
           const timeRow = [timeSlot];
@@ -684,7 +735,7 @@ export function createVertical3GroupsTemplate(): TemplateVariant {
           });
           data.push(timeRow);
         });
-
+        
         // Пустая строка между днями
         const emptyRow = [''];
         currentGroups.forEach(() => {
@@ -693,7 +744,7 @@ export function createVertical3GroupsTemplate(): TemplateVariant {
         data.push(emptyRow);
       });
     }
-
+    
     // Разделитель между блоками групп
     if (groupIndex + 3 < allGroups.length) {
       data.push(['', '', '', '', '', '', '', '', '', '']);
@@ -701,7 +752,7 @@ export function createVertical3GroupsTemplate(): TemplateVariant {
       data.push(['']);
     }
   }
-
+  
   // Инструкция
   data.push(['']);
   data.push(['ІНСТРУКЦІЯ ПО ЗАПОВНЕННЮ:']);
@@ -722,8 +773,6 @@ export function createVertical3GroupsTemplate(): TemplateVariant {
 export function generateAllTemplates(): TemplateVariant[] {
   console.log("Generating all templates...");
   return [
-    createWeeklyTemplate(),
-    createGroupBasedTemplate(),
     createTeacherTimeMatrix(),
     createVerticalTemplate(),
     createVertical3GroupsTemplate()
@@ -744,7 +793,7 @@ export function saveTemplateToFile(template: TemplateVariant, outputDir: string 
       cols.push({ width: 12 }); // Аудитория
     }
     ws['!cols'] = cols;
-
+    
     // Объединение ячеек для заголовков групп (20 групп)
     const merges = [];
     for (let i = 0; i < 20; i++) {
@@ -764,14 +813,14 @@ export function saveTemplateToFile(template: TemplateVariant, outputDir: string 
       { width: 15 }, { width: 20 }, { width: 12 }, // Группа 3
       { width: 15 }, { width: 20 }, { width: 12 }  // Группа 4
     ];
-
+    
     // Находим все строки с заголовками групп и создаем объединения
     const merges = [];
     const rows = template.data;
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
       const row = rows[rowIndex];
-      if (row && row.length > 1 && typeof row[1] === 'string' &&
-        (row[1].includes('ИТ-') || row[1].includes('ЭК-') || row[1].includes('А-') || row[1].includes('М-'))) {
+      if (row && row.length > 1 && typeof row[1] === 'string' && 
+          (row[1].includes('ИТ-') || row[1].includes('ЭК-') || row[1].includes('А-') || row[1].includes('М-'))) {
         // Это строка с заголовками групп, создаем объединения
         for (let groupIndex = 0; groupIndex < 4; groupIndex++) {
           const startCol = 1 + (groupIndex * 3);
@@ -791,16 +840,16 @@ export function saveTemplateToFile(template: TemplateVariant, outputDir: string 
       { width: 15 }, { width: 20 }, { width: 12 }, // Группа 2
       { width: 15 }, { width: 20 }, { width: 12 }  // Группа 3
     ];
-
+    
     // Находим все строки с заголовками групп и создаем объединения
     const merges = [];
     const rows = template.data;
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
       const row = rows[rowIndex];
-      if (row && row.length > 1 && typeof row[1] === 'string' &&
-        (row[1].includes('МЕТ-') || row[1].includes('МТ-') || row[1].includes('ЕкДл-') ||
-          row[1].includes('А-') || row[1].includes('ІТ-') || row[1].includes('КН-') ||
-          row[1].includes('ФК-') || row[1].includes('СП-'))) {
+      if (row && row.length > 1 && typeof row[1] === 'string' && 
+          (row[1].includes('МЕТ-') || row[1].includes('МТ-') || row[1].includes('ЕкДл-') || 
+           row[1].includes('А-') || row[1].includes('ІТ-') || row[1].includes('КН-') || 
+           row[1].includes('ФК-') || row[1].includes('СП-'))) {
         // Это строка с заголовками групп, создаем объединения
         for (let groupIndex = 0; groupIndex < 3; groupIndex++) {
           const startCol = 1 + (groupIndex * 3);
@@ -824,6 +873,6 @@ export function saveTemplateToFile(template: TemplateVariant, outputDir: string 
 
   const filePath = join(outputDir, template.filename);
   XLSX.writeFile(wb, filePath);
-
+  
   return filePath;
 }
