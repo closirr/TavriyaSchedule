@@ -166,16 +166,19 @@ export function useScheduleData(): UseScheduleDataReturn {
     [lessons, filters]
   );
   
-  // Memoized setFilters callback - saves group to localStorage
+  // Memoized setFilters callback - saves only group to localStorage
   const setFilters = useCallback((newFilters: ScheduleFilters) => {
     setFiltersState(newFilters);
-    // Save selected group to localStorage
+    // Save selected group to localStorage (only when group is explicitly selected)
     try {
       if (newFilters.group) {
+        // Save group when selected
         localStorage.setItem(STORAGE_KEY, newFilters.group);
-      } else {
+      } else if (!newFilters.teacher && !newFilters.classroom && !newFilters.search) {
+        // Clear localStorage only when all filters are cleared (not when switching to teacher/classroom)
         localStorage.removeItem(STORAGE_KEY);
       }
+      // When teacher or classroom is selected, keep the saved group in localStorage unchanged
     } catch {
       // Ignore localStorage errors
     }
