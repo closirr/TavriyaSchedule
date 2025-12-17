@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { type ScheduleFilters } from '@shared/schema';
+import { devLog } from '@/lib/config';
 
 interface ScheduleFiltersProps {
   onFiltersChange: (filters: ScheduleFilters) => void;
@@ -86,7 +87,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
       teacher: type === 'teacher' ? searchTerm : undefined,
       classroom: type === 'classroom' ? searchTerm : undefined
     };
-    console.log('Updating filters:', filters);
+    devLog('Updating filters:', filters);
     onFiltersChange(filters);
   };
 

@@ -35,8 +35,8 @@
 
 ```bash
 # Development
-npm run dev          # Start development server with hot reload (Linux/Mac)
-npx tsx server/index.ts  # Start development server (Windows alternative)
+npm run dev          # Start development server (Linux/Mac)
+npm run dev:win      # Start development server (Windows)
 
 # Building
 npm run build        # Build both client and server for production
@@ -49,10 +49,16 @@ npm run db:push      # Push schema changes to database
 npm run start        # Start production server
 ```
 
+## Environment Configuration
+- **Automatic Environment Detection**: The app automatically detects if running locally or in production
+- **Local Development**: API calls go to `http://localhost:5000`, detailed logging enabled
+- **Production**: API calls go to `https://tavriyascheduleapi.onrender.com`, minimal logging
+- **CORS**: Automatically configured for appropriate origins based on environment
+
 ## Windows Development Notes
-- Use `npx tsx server/index.ts` instead of `npm run dev` on Windows
-- The `NODE_ENV=development` syntax in package.json doesn't work on Windows CMD
+- Use `npm run dev:win` for Windows development
 - Server runs on `http://localhost:5000` by default
+- Frontend dev server runs on `http://localhost:5173`
 
 ## Environment Setup
 - Requires `DATABASE_URL` environment variable

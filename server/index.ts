@@ -2,16 +2,19 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import cors from "cors";
+import { serverConfig, devLog, prodLog } from "./config";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Enable CORS for the frontend domain
+// Enable CORS with environment-specific origins
 app.use(cors({
-  origin: "https://tavriyaschedule.onrender.com",
+  origin: serverConfig.corsOrigin,
   credentials: true,
 }));
+
+devLog('CORS enabled for origins:', serverConfig.corsOrigin);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -63,16 +66,18 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = process.env.PORT || 5000;
-  const host = process.env.HOST || "0.0.0.0";
+  // Use configuration-based port and host
   server.listen({
-    port: Number(port),
-    host,
+    port: Number(serverConfig.port),
+    host: serverConfig.host,
   }, () => {
-    log(`Server attempting to listen on ${host}:${port} in ${app.get("env")} mode.`);
-    log(`serving on ${host}:${port}`);
+    const mode = serverConfig.isDevelopment ? 'development' : 'production';
+    prodLog(`Server attempting to listen on ${serverConfig.host}:${serverConfig.port} in ${mode} mode.`);
+    prodLog(`serving on ${serverConfig.host}:${serverConfig.port}`);
+    
+    if (serverConfig.isDevelopment) {
+      devLog('Development mode enabled - detailed logging active');
+      devLog('Frontend should be available at: http://localhost:5173');
+    }
   });
 })();

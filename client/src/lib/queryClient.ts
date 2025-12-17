@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { config, devLog } from "./config";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -12,8 +13,9 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const API_BASE_URL = "https://tavriyascheduleapi.onrender.com";
-  const fullUrl = `${API_BASE_URL}${url}`;
+  const fullUrl = `${config.apiBaseUrl}${url}`;
+  devLog(`API Request: ${method} ${fullUrl}`);
+  
   const res = await fetch(fullUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
@@ -31,8 +33,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
     async ({ queryKey }) => {
-      const API_BASE_URL = "https://tavriyascheduleapi.onrender.com";
-      let fullUrl = `${API_BASE_URL}${queryKey[0] as string}`;
+      let fullUrl = `${config.apiBaseUrl}${queryKey[0] as string}`;
       
       // Add query parameters if they exist in queryKey[1]
       if (queryKey[1] && typeof queryKey[1] === 'object') {
@@ -48,7 +49,7 @@ export const getQueryFn: <T>(options: {
         }
       }
       
-      console.log('Fetching:', fullUrl);
+      devLog('Fetching:', fullUrl);
       
       const res = await fetch(fullUrl, {
         credentials: "include",

@@ -1,4 +1,5 @@
 import { lessons, type Lesson, type InsertLesson, type ScheduleFilters, type ScheduleStatistics } from "@shared/schema";
+import { devLog } from "./config";
 
 export interface IStorage {
   // Lessons
@@ -179,26 +180,26 @@ export class MemStorage implements IStorage {
   async getLessonsFiltered(filters: ScheduleFilters): Promise<Lesson[]> {
     let lessons = Array.from(this.lessons.values());
     
-    console.log('Filtering lessons with filters:', filters);
-    console.log('Total lessons before filtering:', lessons.length);
+    devLog('Filtering lessons with filters:', filters);
+    devLog('Total lessons before filtering:', lessons.length);
 
     // Apply filters independently (not as else-if chain)
     if (filters.group) {
       const beforeCount = lessons.length;
       lessons = lessons.filter(lesson => lesson.group.toLowerCase() === filters.group!.toLowerCase());
-      console.log(`Group filter "${filters.group}": ${beforeCount} -> ${lessons.length} lessons`);
+      devLog(`Group filter "${filters.group}": ${beforeCount} -> ${lessons.length} lessons`);
     }
     
     if (filters.teacher) {
       const beforeCount = lessons.length;
       lessons = lessons.filter(lesson => lesson.teacher.toLowerCase() === filters.teacher!.toLowerCase());
-      console.log(`Teacher filter "${filters.teacher}": ${beforeCount} -> ${lessons.length} lessons`);
+      devLog(`Teacher filter "${filters.teacher}": ${beforeCount} -> ${lessons.length} lessons`);
     }
     
     if (filters.classroom) {
       const beforeCount = lessons.length;
       lessons = lessons.filter(lesson => lesson.classroom.toLowerCase() === filters.classroom!.toLowerCase());
-      console.log(`Classroom filter "${filters.classroom}": ${beforeCount} -> ${lessons.length} lessons`);
+      devLog(`Classroom filter "${filters.classroom}": ${beforeCount} -> ${lessons.length} lessons`);
     }
     
     if (filters.search) {
@@ -210,11 +211,11 @@ export class MemStorage implements IStorage {
         lesson.group.toLowerCase().includes(searchLower) ||
         lesson.classroom.toLowerCase().includes(searchLower)
       );
-      console.log(`Search filter "${filters.search}": ${beforeCount} -> ${lessons.length} lessons`);
+      devLog(`Search filter "${filters.search}": ${beforeCount} -> ${lessons.length} lessons`);
     }
 
-    console.log('Final filtered lessons count:', lessons.length);
-    console.log('Groups in filtered results:', [...new Set(lessons.map(l => l.group))]);
+    devLog('Final filtered lessons count:', lessons.length);
+    devLog('Groups in filtered results:', [...new Set(lessons.map(l => l.group))]);
 
     // Sort by day and time
     return lessons.sort((a, b) => {
