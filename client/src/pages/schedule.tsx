@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { GraduationCap, Bell, User } from "lucide-react";
-import FileUpload from "@/components/file-upload";
+import LoadingMetricsDisplay from "@/components/loading-metrics";
 import ScheduleFilters from "@/components/schedule-filters";
 import WeekNavigation from "@/components/week-navigation";
 import ScheduleGrid from "@/components/schedule-grid";
@@ -40,8 +40,8 @@ export default function Schedule() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* File Upload */}
-        <FileUpload />
+        {/* Auto-load from Google Sheets + Metrics */}
+        <LoadingMetricsDisplay />
 
         {/* Export Buttons */}
         <ExportButtons />

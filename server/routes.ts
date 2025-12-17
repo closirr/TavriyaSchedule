@@ -1008,6 +1008,323 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Load schedule from public Google Sheets
+  app.post("/api/load-google-sheets", async (req, res) => {
+    try {
+      const { sheetUrl } = req.body;
+      
+      if (!sheetUrl) {
+        return res.status(400).json({ message: "URL Google Sheets не вказано" });
+      }
+
+      // Extract spreadsheet ID from URL
+      const spreadsheetIdMatch = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (!spreadsheetIdMatch) {
+        return res.status(400).json({ message: "Невірний формат URL Google Sheets" });
+      }
+      
+      const spreadsheetId = spreadsheetIdMatch[1];
+      
+      // Extract gid (sheet ID) if present, default to 0
+      const gidMatch = sheetUrl.match(/gid=(\d+)/);
+      const gid = gidMatch ? gidMatch[1] : '0';
+      
+      // Use the public CSV export URL format that works without auth
+      // This requires the sheet to be published to web (File -> Share -> Publish to web)
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+      
+      console.log('Fetching Google Sheets CSV from:', csvUrl);
+      
+      // Fetch the spreadsheet as CSV
+      const response = await fetch(csvUrl, {
+        headers: {
+          'Accept': 'text/csv',
+        }
+      });
+      
+      if (!response.ok) {
+        console.error('Google Sheets fetch error:', response.status, response.statusText);
+        return res.status(400).json({ 
+          message: "Не вдалося завантажити таблицю. Переконайтеся, що вона опублікована публічно (Файл → Поділитися → Опублікувати в інтернеті)." 
+        });
+      }
+      
+      const csvText = await response.text();
+      console.log('CSV response length:', csvText.length);
+      console.log('CSV first 500 chars:', csvText.substring(0, 500));
+      
+      // Check if we got HTML instead of CSV (error page)
+      if (csvText.trim().startsWith('<!DOCTYPE') || csvText.trim().startsWith('<html')) {
+        return res.status(400).json({ 
+          message: "Таблиця не опублікована. Відкрийте Google Sheets → Файл → Поділитися → Опублікувати в інтернеті" 
+        });
+      }
+      
+      // Parse CSV manually
+      const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              current += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      };
+      
+      const lines = csvText.split('\n').filter(line => line.trim());
+      const data: string[][] = lines.map(line => parseCSVLine(line));
+      
+      console.log('Parsed rows:', data.length);
+      console.log('First row:', data[0]);
+
+      if (data.length < 2) {
+        return res.status(400).json({ message: "Таблиця повинна містити заголовки та дані" });
+      }
+
+      // Find header row
+      let headerRowIndex = -1;
+      let headers: string[] = [];
+      for (let i = 0; i < Math.min(10, data.length); i++) {
+        const row = data[i] as string[];
+        if (row && row.length > 0) {
+          const rowStr = row.join(' ').toLowerCase();
+          const hasTimeColumn = row.includes('Дні') || row.includes('Дни') || 
+                               row.includes('День недели') || row.includes('Час') || 
+                               row.includes('Время') || rowStr.includes('час');
+          const hasGroupPattern = row.some(cell => {
+            const cellStr = String(cell || '').trim();
+            return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) || 
+                   cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
+                   cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
+                   cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
+                   cellStr.includes('А-');
+          });
+          
+          if (hasTimeColumn || hasGroupPattern) {
+            headerRowIndex = i;
+            headers = row;
+            break;
+          }
+        }
+      }
+
+      if (headerRowIndex === -1) {
+        return res.status(400).json({ message: "Не знайдено заголовок таблиці. Перевірте формат." });
+      }
+
+      const rows = data.slice(headerRowIndex + 1) as any[][];
+      let jsonData: any[] = [];
+      let groupInfo: Array<{name: string, startCol: number}> = [];
+      
+      // Detect format and parse
+      const hasTimeColumns = headers.some(h => {
+        const header = String(h || '').toLowerCase();
+        return header.includes('час') || header.includes('время') || 
+               header.includes('дні') || header.includes('дни');
+      });
+      
+      const hasGroupPattern = headers.some(h => {
+        const cellStr = String(h || '').trim();
+        return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) || 
+               cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
+               cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
+               cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
+               cellStr.includes('А-');
+      });
+      
+      const hasGroupsInData = rows.some(row => 
+        row && row.some((cell: any) => {
+          const cellStr = String(cell || '').trim();
+          return /^[А-ЯІЄЇ]+-\d+$/.test(cellStr) || 
+                 cellStr.includes('МЕТ-') || cellStr.includes('МТ-') ||
+                 cellStr.includes('ИТ-') || cellStr.includes('ЭК-') ||
+                 cellStr.includes('ЕкДп-') || cellStr.includes('ЕкДл-') ||
+                 cellStr.includes('А-');
+        })
+      );
+      
+      const hasGridFormat = hasTimeColumns || hasGroupPattern || hasGroupsInData;
+      
+      if (hasGridFormat) {
+        // Dynamic group detection
+        for (let i = 0; i < headers.length; i++) {
+          const header = String(headers[i] || '').trim();
+          if (/^[А-ЯІЄЇ]+-\d+$/.test(header)) {
+            groupInfo.push({name: header, startCol: i});
+          }
+        }
+        
+        if (groupInfo.length === 0) {
+          groupInfo.push(
+            {name: 'МЕТ-11', startCol: 1},
+            {name: 'МТ-11', startCol: 4},
+            {name: 'ЕкДл-11', startCol: 7}
+          );
+        }
+        
+        let currentDay = '';
+        
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex];
+          if (!row || row.length === 0) continue;
+          
+          const firstCell = String(row[0] || '').trim();
+          
+          // Check for day names
+          if (firstCell && (firstCell.includes('ПОНЕДІЛЬОК') || firstCell.includes('ПОНЕДЕЛЬНИК') ||
+                           firstCell.includes('ВІВТОРОК') || firstCell.includes('ВТОРНИК') || 
+                           firstCell.includes('СЕРЕДА') || firstCell.includes('СРЕДА') || 
+                           firstCell.includes('ЧЕТВЕР') || firstCell.includes('ЧЕТВЕРГ') || 
+                           firstCell.includes('П\'ЯТНИЦЯ') || firstCell.includes('ПЯТНИЦА') || 
+                           firstCell.includes('СУББОТА'))) {
+            currentDay = firstCell
+              .replace('ПОНЕДІЛЬОК', 'Понедельник')
+              .replace('ВІВТОРОК', 'Вторник')
+              .replace('СЕРЕДА', 'Среда')
+              .replace('ЧЕТВЕР', 'Четверг')
+              .replace('П\'ЯТНИЦЯ', 'Пятница')
+              .replace('ПОНЕДЕЛЬНИК', 'Понедельник')
+              .replace('ЧЕТВЕРГ', 'Четверг')
+              .replace('ПЯТНИЦА', 'Пятница')
+              .replace('СУББОТА', 'Суббота')
+              .replace(/[^\u0400-\u04FF\s\']/g, '').trim();
+            continue;
+          }
+          
+          // Check for time slots
+          if (firstCell && firstCell.includes('-') && currentDay) {
+            const normalizedTime = firstCell.replace(/\./g, ':');
+            const timeMatch = normalizedTime.match(/(\d{1,2}):?(\d{2})-(\d{1,2}):?(\d{2})/);
+            if (!timeMatch) continue;
+            
+            const startTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
+            const endTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
+            
+            for (const group of groupInfo) {
+              const subjectCol = group.startCol;
+              const teacherCol = group.startCol + 1;
+              const classroomCol = group.startCol + 2;
+              
+              const subject = String(row[subjectCol] || '').trim();
+              const teacher = String(row[teacherCol] || '').trim();
+              const classroom = String(row[classroomCol] || '').trim();
+              
+              if (subject && teacher) {
+                jsonData.push({
+                  'День недели': currentDay,
+                  'Время начала': startTime,
+                  'Время окончания': endTime,
+                  'Предмет': subject,
+                  'Преподаватель': teacher,
+                  'Группа': group.name,
+                  'Аудитория': classroom || 'Не вказана'
+                });
+              }
+            }
+          }
+        }
+      } else {
+        // Standard table format
+        jsonData = rows.map(row => {
+          const obj: any = {};
+          headers.forEach((header, index) => {
+            obj[header] = row[index] || "";
+          });
+          return obj;
+        });
+      }
+
+      if (jsonData.length === 0) {
+        return res.status(400).json({
+          message: "Таблиця не містить даних для парсингу. Перевірте формат."
+        });
+      }
+
+      // Validate and transform data
+      const lessons = [];
+      const errors = [];
+
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i] as any;
+        const rowNumber = i + 2;
+
+        try {
+          const lesson = {
+            dayOfWeek: String(row['День недели'] || row['Day'] || '').trim(),
+            startTime: String(row['Время начала'] || row['Start Time'] || '').trim(),
+            endTime: String(row['Время окончания'] || row['End Time'] || '').trim(),
+            subject: String(row['Предмет'] || row['Subject'] || '').trim(),
+            teacher: String(row['Преподаватель'] || row['Teacher'] || '').trim(),
+            group: String(row['Группа'] || row['Group'] || '').trim(),
+            classroom: String(row['Аудитория'] || row['Classroom'] || '').trim()
+          };
+
+          if (!lesson.dayOfWeek || !lesson.startTime || !lesson.endTime || 
+              !lesson.subject || !lesson.teacher || !lesson.group || 
+              !lesson.classroom) {
+            errors.push(`Рядок ${rowNumber}: відсутні обов'язкові поля`);
+            continue;
+          }
+
+          const validDays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+          if (!validDays.includes(lesson.dayOfWeek)) {
+            errors.push(`Рядок ${rowNumber}: невірний день тижня "${lesson.dayOfWeek}"`);
+            continue;
+          }
+
+          const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+          if (!timeRegex.test(lesson.startTime) || !timeRegex.test(lesson.endTime)) {
+            errors.push(`Рядок ${rowNumber}: невірний формат часу`);
+            continue;
+          }
+
+          const validatedLesson = insertLessonSchema.parse(lesson);
+          lessons.push(validatedLesson);
+        } catch (error) {
+          errors.push(`Рядок ${rowNumber}: помилка валідації даних`);
+        }
+      }
+
+      if (errors.length > 0) {
+        return res.status(400).json({ 
+          message: "Виявлено помилки в даних",
+          errors: errors.slice(0, 10)
+        });
+      }
+
+      if (lessons.length === 0) {
+        return res.status(400).json({ message: "Не знайдено коректних записів" });
+      }
+
+      // Clear existing lessons and add new ones
+      await storage.clearAllLessons();
+      await storage.createManyLessons(lessons);
+
+      res.json({ 
+        message: "Розклад успішно завантажено з Google Sheets",
+        lessonsCount: lessons.length 
+      });
+    } catch (error) {
+      console.error('Google Sheets load error:', error);
+      res.status(500).json({ message: "Помилка завантаження з Google Sheets" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
