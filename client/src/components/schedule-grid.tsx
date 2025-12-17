@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Clock, MapPin, User, Users } from "lucide-react";
+import { Clock, MapPin, User, Users } from "lucide-react";
 import type { Lesson } from "@/types/schedule";
 
 interface ScheduleGridProps {
@@ -132,52 +132,45 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
         })}
       </div>
 
-      {/* Day Selector - Mobile */}
-      <div className="md:hidden mb-6">
-        <div className="flex items-center justify-between bg-white rounded-2xl p-4 border border-gray-200">
-          <button 
-            onClick={() => navigateDay(-1)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ChevronLeft className="w-6 h-6 text-gray-600" />
-          </button>
-          
-          <div className="text-center">
-            <div className="font-semibold text-navy-700 text-lg">{daysOfWeek[selectedDay]}</div>
-            <div className="text-sm text-gray-500">{getDayDate(selectedDay)}</div>
-            {isCurrentDay(selectedDay) && (
-              <span className="inline-block mt-1 px-2 py-0.5 bg-navy-100 text-navy-700 text-xs rounded-full">
-                Сьогодні
-              </span>
-            )}
-          </div>
-          
-          <button 
-            onClick={() => navigateDay(1)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ChevronRight className="w-6 h-6 text-gray-600" />
-          </button>
-        </div>
+      {/* Day Selector - Mobile (scrollable buttons) */}
+      <div className="md:hidden mb-6 -mx-4 px-4">
+        <div className="overflow-x-auto pb-2">
+          <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
+            {daysOfWeek.map((day, index) => {
+              const dayLessons = groupedLessons[day] || [];
+              const isToday = isCurrentDay(index);
+              const isSelected = selectedDay === index;
+              const hasLessons = dayLessons.length > 0;
 
-        {/* Mobile day dots */}
-        <div className="flex justify-center gap-2 mt-3">
-          {daysOfWeek.map((day, index) => {
-            const hasLessons = (groupedLessons[day] || []).length > 0;
-            return (
-              <button
-                key={day}
-                onClick={() => setSelectedDay(index)}
-                className={`w-2.5 h-2.5 rounded-full transition-all ${
-                  selectedDay === index 
-                    ? 'bg-navy-600 w-6' 
-                    : hasLessons 
-                      ? 'bg-navy-300' 
-                      : 'bg-gray-300'
-                }`}
-              />
-            );
-          })}
+              return (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(index)}
+                  className={`
+                    px-4 py-3 rounded-xl font-medium transition-all min-w-[100px] flex-shrink-0
+                    ${isSelected 
+                      ? 'bg-navy-600 text-white shadow-lg' 
+                      : isToday
+                        ? 'bg-navy-100 text-navy-700'
+                        : hasLessons
+                          ? 'bg-white text-gray-700 border border-gray-200'
+                          : 'bg-gray-100 text-gray-400'
+                    }
+                  `}
+                >
+                  <div className="text-sm">{day}</div>
+                  <div className={`text-xs mt-0.5 ${isSelected ? 'text-navy-200' : 'text-gray-400'}`}>
+                    {getDayDate(index)}
+                  </div>
+                  {hasLessons && (
+                    <div className={`text-xs mt-0.5 ${isSelected ? 'text-navy-200' : 'text-gray-500'}`}>
+                      {dayLessons.length} {dayLessons.length === 1 ? 'пара' : dayLessons.length < 5 ? 'пари' : 'пар'}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
