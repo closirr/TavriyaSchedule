@@ -72,13 +72,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get list of available templates
-  app.get("/api/templates", (req, res) => {
-    console.log("Received request for /api/templates (static test)");
-    res.json([{ name: "Test Template", filename: "test.xlsx", description: "A test template" }]);
-    console.log("Successfully sent static template list.");
-  });
-
   // Download specific template by filename
   app.get("/api/templates/:filename", (req, res) => {
     try {
