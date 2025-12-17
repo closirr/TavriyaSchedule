@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { GraduationCap, Bell, User } from "lucide-react";
 import LoadingMetricsDisplay from "@/components/loading-metrics";
 import ScheduleFilters from "@/components/schedule-filters";
@@ -6,10 +5,22 @@ import WeekNavigation from "@/components/week-navigation";
 import ScheduleGrid from "@/components/schedule-grid";
 import StatisticsDashboard from "@/components/statistics-dashboard";
 import ExportButtons from "@/components/export-buttons";
-import { type ScheduleFilters as ScheduleFiltersType } from "@shared/schema";
+import { useScheduleData } from "@/hooks/useScheduleData";
 
 export default function Schedule() {
-  const [filters, setFilters] = useState<ScheduleFiltersType>({});
+  const {
+    filteredLessons,
+    filters,
+    setFilters,
+    filterOptions,
+    statistics,
+    isLoading,
+    error,
+    lastUpdated,
+    refresh,
+    isRefreshing,
+  } = useScheduleData();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -40,23 +51,34 @@ export default function Schedule() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Auto-load from Google Sheets + Metrics */}
-        <LoadingMetricsDisplay />
+        {/* Loading Metrics + Refresh */}
+        <LoadingMetricsDisplay
+          isLoading={isLoading}
+          isRefreshing={isRefreshing}
+          lastUpdated={lastUpdated}
+          onRefresh={refresh}
+          lessonsCount={filteredLessons.length}
+          error={error}
+        />
 
         {/* Export Buttons */}
-        <ExportButtons />
+        <ExportButtons lessons={filteredLessons} />
 
         {/* Filters */}
-        <ScheduleFilters onFiltersChange={setFilters} />
+        <ScheduleFilters
+          filters={filters}
+          filterOptions={filterOptions}
+          onFiltersChange={setFilters}
+        />
 
-        {/* Week Navigation */}
-        <WeekNavigation />
+        {/* Week Navigation - only show when group is selected */}
+        {filters.group && <WeekNavigation />}
 
         {/* Schedule Grid */}
-        <ScheduleGrid filters={filters} />
+        <ScheduleGrid lessons={filteredLessons} isLoading={isLoading} selectedGroup={filters.group} />
 
         {/* Statistics */}
-        <StatisticsDashboard />
+        <StatisticsDashboard statistics={statistics} isLoading={isLoading} />
       </div>
 
       {/* Footer */}

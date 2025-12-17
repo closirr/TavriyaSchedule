@@ -1,41 +1,31 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+/**
+ * Shared Schema Module
+ * 
+ * Re-exports types from the client types module for backward compatibility.
+ * This file exists to maintain the @shared path alias functionality.
+ */
+
 import { z } from "zod";
 
-export const lessons = pgTable("lessons", {
-  id: serial("id").primaryKey(),
-  dayOfWeek: text("day_of_week").notNull(), // "Понедельник", "Вторник", etc.
-  startTime: text("start_time").notNull(), // "09:00"
-  endTime: text("end_time").notNull(), // "10:30"
-  subject: text("subject").notNull(),
-  teacher: text("teacher").notNull(),
-  group: text("group").notNull(),
-  classroom: text("classroom").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+// Re-export types from client types (these are the canonical definitions)
+export type {
+  Lesson,
+  DayOfWeek,
+  ScheduleFilters,
+  FilterOptions,
+  ScheduleStatistics,
+  ScheduleState,
+  ParseResult,
+  ParseError,
+  FetchResult,
+} from "../client/src/types/schedule";
 
-export const insertLessonSchema = createInsertSchema(lessons).omit({
-  id: true,
-  createdAt: true,
-});
+export { DAYS_OF_WEEK } from "../client/src/types/schedule";
 
-export type InsertLesson = z.infer<typeof insertLessonSchema>;
-export type Lesson = typeof lessons.$inferSelect;
-
-// Filter types
+// Zod schemas for validation (kept for backward compatibility)
 export const scheduleFiltersSchema = z.object({
   search: z.string().optional(),
   group: z.string().optional(),
   teacher: z.string().optional(),
   classroom: z.string().optional()
 });
-
-export type ScheduleFilters = z.infer<typeof scheduleFiltersSchema>;
-
-// Statistics type
-export type ScheduleStatistics = {
-  totalLessons: number;
-  activeGroups: number;
-  teachers: number;
-  classrooms: number;
-};

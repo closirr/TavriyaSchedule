@@ -1,24 +1,26 @@
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
-import { type Lesson, type ScheduleFilters } from "@shared/schema";
+import type { Lesson } from "@/types/schedule";
 
 interface ScheduleGridProps {
-  filters: ScheduleFilters;
+  lessons: Lesson[];
+  isLoading: boolean;
+  selectedGroup?: string;
 }
 
-export default function ScheduleGrid({ filters }: ScheduleGridProps) {
-  const { data: lessons = [], isLoading } = useQuery({
-    queryKey: ['/api/lessons', filters],
-  });
-
+export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: ScheduleGridProps) {
+  // Ukrainian day names matching the parser output
   const daysOfWeek = [
-    'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'
+    'Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота', 'Неділя'
   ];
-  
-  const dayDisplayNames = [
-    'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота', 'Неділя'
-  ];
+
+  // Don't show anything if no group is selected
+  if (!selectedGroup && !isLoading) {
+    return (
+      <div className="mb-8 p-8 bg-white rounded-lg border border-gray-200 text-center">
+        <p className="text-gray-500 text-lg">Оберіть групу для перегляду розкладу</p>
+      </div>
+    );
+  }
 
   const getDayDate = (dayIndex: number) => {
     const now = new Date();
@@ -45,19 +47,9 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
 
   const isCurrentDay = (dayName: string) => {
     const today = new Date().toLocaleDateString('uk-UA', { weekday: 'long' });
-    const dayMapping: Record<string, string> = {
-      'понедельник': 'понеділок',
-      'вторник': 'вівторок', 
-      'среда': 'середа',
-      'четверг': 'четвер',
-      'пятница': 'п\'ятниця',
-      'суббота': 'субота',
-      'воскресенье': 'неділя'
-    };
-    
-    // Convert database day name (Russian) to Ukrainian
-    const ukrainianDay = dayMapping[dayName.toLowerCase()] || dayName;
-    return today.toLowerCase() === ukrainianDay.toLowerCase();
+    // Normalize apostrophe variants for comparison
+    const normalize = (s: string) => s.toLowerCase().replace(/['`']/g, "'");
+    return normalize(today) === normalize(dayName);
   };
 
   const isCurrentLesson = (lesson: Lesson) => {
@@ -69,13 +61,11 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
     return currentTime >= lesson.startTime && currentTime <= lesson.endTime;
   };
 
-  // Removed getLessonTypeColor function since lessonType field is no longer used
-
   if (isLoading) {
     return (
       <div className="mb-8">
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-          {dayDisplayNames.map((day) => (
+          {daysOfWeek.map((day) => (
             <Card key={day} className="animate-pulse">
               <div className="bg-gray-300 h-16 rounded-t-xl"></div>
               <CardContent className="p-4 space-y-3">
@@ -98,7 +88,7 @@ export default function ScheduleGrid({ filters }: ScheduleGridProps) {
           const dayLessons = groupedLessons[day] || [];
           const isToday = isCurrentDay(day);
           const hasLessons = dayLessons.length > 0;
-          const displayDay = dayDisplayNames[index];
+          const displayDay = day; // Already in Ukrainian
 
           return (
             <Card key={day} className="overflow-hidden border border-gray-200">

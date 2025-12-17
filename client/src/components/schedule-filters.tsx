@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { type ScheduleFilters } from '@shared/schema';
-import { devLog } from '@/lib/config';
+import type { ScheduleFilters, FilterOptions } from '@/types/schedule';
 
 interface ScheduleFiltersProps {
+  filters: ScheduleFilters;
+  filterOptions: FilterOptions;
   onFiltersChange: (filters: ScheduleFilters) => void;
 }
 
@@ -16,22 +16,25 @@ interface SearchSuggestion {
   label: string;
 }
 
-export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProps) {
-  const [search, setSearch] = useState('');
+export default function ScheduleFilters({ filters, filterOptions, onFiltersChange }: ScheduleFiltersProps) {
+  const [search, setSearch] = useState(filters.search || '');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  const { data: filterOptions } = useQuery<{ groups: string[], teachers: string[], classrooms: string[] }>({
-    queryKey: ['/api/filter-options'],
-    staleTime: Infinity
-  });
+  // Sync search state with external filters
+  useEffect(() => {
+    const currentSearch = filters.search || filters.group || filters.teacher || filters.classroom || '';
+    if (currentSearch !== search) {
+      setSearch(currentSearch);
+    }
+  }, [filters]);
 
   // Generate suggestions based on input
   useEffect(() => {
-    if (!search.trim() || search.length < 2 || !filterOptions) {
+    if (!search.trim() || search.length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -41,7 +44,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
     const newSuggestions: SearchSuggestion[] = [];
 
     // Add group suggestions (from 2 characters)
-    filterOptions?.groups?.forEach((group: string) => {
+    filterOptions.groups.forEach((group: string) => {
       if (group.toLowerCase().includes(searchLower)) {
         newSuggestions.push({
           value: group,
@@ -52,7 +55,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
     });
 
     // Add classroom suggestions (from 2 characters)
-    filterOptions?.classrooms?.forEach((classroom: string) => {
+    filterOptions.classrooms.forEach((classroom: string) => {
       if (classroom.toLowerCase().includes(searchLower)) {
         newSuggestions.push({
           value: classroom,
@@ -64,7 +67,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
 
     // Add teacher suggestions only from 3 characters
     if (search.length >= 3) {
-      filterOptions?.teachers?.forEach((teacher: string) => {
+      filterOptions.teachers.forEach((teacher: string) => {
         if (teacher.toLowerCase().includes(searchLower)) {
           newSuggestions.push({
             value: teacher,
@@ -81,19 +84,17 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
   }, [search, filterOptions]);
 
   const updateFilters = (searchTerm: string, type?: 'group' | 'teacher' | 'classroom') => {
-    const filters: ScheduleFilters = {
+    const newFilters: ScheduleFilters = {
       search: !type ? searchTerm.trim() || undefined : undefined,
       group: type === 'group' ? searchTerm : undefined,
       teacher: type === 'teacher' ? searchTerm : undefined,
       classroom: type === 'classroom' ? searchTerm : undefined
     };
-    devLog('Updating filters:', filters);
-    onFiltersChange(filters);
+    onFiltersChange(newFilters);
   };
 
   const handleInputChange = (value: string) => {
     setSearch(value);
-    // Don't update filters on input change - only when selecting from suggestions
   };
 
   const handleSuggestionSelect = (suggestion: SearchSuggestion) => {
@@ -124,13 +125,10 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
       case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-          // Select from suggestions
           handleSuggestionSelect(suggestions[selectedIndex]);
         } else if (suggestions.length === 1) {
-          // Auto-select if only one suggestion
           handleSuggestionSelect(suggestions[0]);
         } else if (search.trim()) {
-          // Apply search filter if no suggestion selected
           setShowSuggestions(false);
           updateFilters(search.trim());
         }
@@ -145,14 +143,7 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
   const clearSearch = () => {
     setSearch('');
     setShowSuggestions(false);
-    // Clear all filters
-    const filters: ScheduleFilters = {
-      search: undefined,
-      group: undefined,
-      teacher: undefined,
-      classroom: undefined
-    };
-    onFiltersChange(filters);
+    onFiltersChange({});
     inputRef.current?.focus();
   };
 
@@ -175,7 +166,6 @@ export default function ScheduleFilters({ onFiltersChange }: ScheduleFiltersProp
                 }
               }}
               onBlur={() => {
-                // Delay hiding suggestions to allow clicks
                 setTimeout(() => setShowSuggestions(false), 200);
               }}
               className="w-full pl-10 pr-10 focus:ring-2 focus:ring-navy-500 focus:border-navy-500"

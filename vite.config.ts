@@ -1,21 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
+// Static site configuration for Tavriya Schedule
+// Google Sheets URL is configured via VITE_GOOGLE_SHEETS_URL environment variable
 export default defineConfig({
-  plugins: [
-    react(),
-    runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -26,13 +16,30 @@ export default defineConfig({
   root: path.resolve(import.meta.dirname, "client"),
   base: '/',
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
+    sourcemap: true,
+    // Optimize for static hosting
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'ui-vendor': ['@radix-ui/react-select', '@radix-ui/react-dialog', '@radix-ui/react-tabs'],
+        },
+      },
+    },
   },
   server: {
+    port: 5173,
     fs: {
       strict: true,
       deny: ["**/.*"],
     },
   },
+  preview: {
+    port: 4173,
+  },
+  // Environment variables - VITE_GOOGLE_SHEETS_URL is automatically available
+  // via import.meta.env.VITE_GOOGLE_SHEETS_URL in client code
+  envPrefix: 'VITE_',
 });

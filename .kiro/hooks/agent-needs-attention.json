@@ -1,0 +1,9 @@
+{
+  "id": "agent-needs-attention",
+  "name": "Уведомление о запросе агента",
+  "description": "Воспроизводит громкий звуковой сигнал и показывает Windows-уведомление когда агент останавливается и требует взаимодействия с пользователем",
+  "why": "Пользователь хочет получать звуковое и визуальное уведомление когда агент останавливается и ждёт взаимодействия с пользователем",
+  "eventType": "agentStop",
+  "hookAction": "runCommand",
+  "command": "powershell -Command \"[console]::beep(1000,500); [console]::beep(1500,500); [console]::beep(2000,500); Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Агент требует вашего внимания!', 'Уведомление агента', 'OK', 'Information')\""
+}

@@ -1,12 +1,13 @@
 import { Calendar, Users, UserCheck, DoorOpen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import type { ScheduleStatistics } from "@/types/schedule";
 
-export default function StatisticsDashboard() {
-  const { data: statistics, isLoading } = useQuery({
-    queryKey: ['/api/statistics'],
-  });
+interface StatisticsDashboardProps {
+  statistics: ScheduleStatistics;
+  isLoading: boolean;
+}
 
+export default function StatisticsDashboard({ statistics, isLoading }: StatisticsDashboardProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -30,28 +31,28 @@ export default function StatisticsDashboard() {
   const stats = [
     {
       title: "Всього занять",
-      value: statistics?.totalLessons || 0,
+      value: statistics.totalLessons,
       icon: Calendar,
       bgColor: "bg-navy-100",
       iconColor: "text-navy-600"
     },
     {
       title: "Активних груп",
-      value: statistics?.activeGroups || 0,
+      value: statistics.activeGroups,
       icon: Users,
       bgColor: "bg-navy-100",
       iconColor: "text-navy-600"
     },
     {
       title: "Викладачів",
-      value: statistics?.teachers || 0,
+      value: statistics.teachers,
       icon: UserCheck,
       bgColor: "bg-navy-100",
       iconColor: "text-navy-600"
     },
     {
       title: "Аудиторій",
-      value: statistics?.classrooms || 0,
+      value: statistics.classrooms,
       icon: DoorOpen,
       bgColor: "bg-navy-100",
       iconColor: "text-navy-600"
