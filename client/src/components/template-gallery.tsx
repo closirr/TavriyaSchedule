@@ -30,22 +30,22 @@ export default function TemplateGallery() {
   const downloadTemplate = async (filename: string, templateName: string) => {
     setDownloadingTemplate(filename);
     try {
-      const url = `${config.apiBaseUrl}/api/templates/${filename}`;
-      devLog('Downloading template from:', url);
-      const response = await fetch(url);
+      const apiUrl = `${config.apiBaseUrl}/api/templates/${filename}`;
+      devLog('Downloading template from:', apiUrl);
+      const response = await fetch(apiUrl);
       if (!response.ok) {
         throw new Error('Помилка завантаження шаблону');
       }
 
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
+      link.href = blobUrl;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(blobUrl);
 
       toast({
         title: "Шаблон завантажено",
