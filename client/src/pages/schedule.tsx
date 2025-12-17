@@ -1,10 +1,7 @@
-import { GraduationCap, Bell, User } from "lucide-react";
-import LoadingMetricsDisplay from "@/components/loading-metrics";
+import { GraduationCap } from "lucide-react";
 import ScheduleFilters from "@/components/schedule-filters";
-import WeekNavigation from "@/components/week-navigation";
 import ScheduleGrid from "@/components/schedule-grid";
 import StatisticsDashboard from "@/components/statistics-dashboard";
-import ExportButtons from "@/components/export-buttons";
 import { useScheduleData } from "@/hooks/useScheduleData";
 
 export default function Schedule() {
@@ -15,10 +12,6 @@ export default function Schedule() {
     filterOptions,
     statistics,
     isLoading,
-    error,
-    lastUpdated,
-    refresh,
-    isRefreshing,
   } = useScheduleData();
 
   return (
@@ -26,53 +19,27 @@ export default function Schedule() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-navy-600 rounded-lg flex items-center justify-center">
-                  <GraduationCap className="text-white text-lg" />
-                </div>
+          <div className="flex justify-center items-center h-16">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-navy-600 rounded-lg flex items-center justify-center">
+                <GraduationCap className="text-white text-lg" />
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-navy-700">Таврійський Коледж</h1>
-                <p className="text-sm text-gray-500">Система управління розкладом</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button className="text-gray-500 hover:text-navy-600 transition-colors">
-                <Bell className="text-lg" />
-              </button>
-              <div className="w-8 h-8 bg-navy-100 rounded-full flex items-center justify-center">
-                <User className="text-navy-600 text-sm" />
+                <p className="text-sm text-gray-500">Розклад занять</p>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Loading Metrics + Refresh */}
-        <LoadingMetricsDisplay
-          isLoading={isLoading}
-          isRefreshing={isRefreshing}
-          lastUpdated={lastUpdated}
-          onRefresh={refresh}
-          lessonsCount={filteredLessons.length}
-          error={error}
-        />
-
-        {/* Export Buttons */}
-        <ExportButtons lessons={filteredLessons} />
-
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Filters */}
         <ScheduleFilters
           filters={filters}
           filterOptions={filterOptions}
           onFiltersChange={setFilters}
         />
-
-        {/* Week Navigation - only show when group is selected */}
-        {filters.group && <WeekNavigation />}
 
         {/* Schedule Grid */}
         <ScheduleGrid lessons={filteredLessons} isLoading={isLoading} selectedGroup={filters.group} />

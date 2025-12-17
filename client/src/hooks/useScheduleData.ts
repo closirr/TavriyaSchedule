@@ -7,8 +7,10 @@
  * Requirements: 1.1, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 6.1, 6.2, 6.3, 7.1, 7.2, 7.3, 8.1
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+
+const STORAGE_KEY = 'tavriya-schedule-group';
 import type {
   Lesson,
   ScheduleFilters,
@@ -115,8 +117,15 @@ export function useScheduleData(): UseScheduleDataReturn {
   const configResult = getConfig();
   const configError = configResult.success ? null : configResult.error.message;
   
-  // Local state for filters
-  const [filters, setFiltersState] = useState<ScheduleFilters>({});
+  // Local state for filters - initialize with saved group from localStorage
+  const [filters, setFiltersState] = useState<ScheduleFilters>(() => {
+    try {
+      const savedGroup = localStorage.getItem(STORAGE_KEY);
+      return savedGroup ? { group: savedGroup } : {};
+    } catch {
+      return {};
+    }
+  });
   
   // Fetch schedule data using React Query
   const {
@@ -157,9 +166,19 @@ export function useScheduleData(): UseScheduleDataReturn {
     [lessons, filters]
   );
   
-  // Memoized setFilters callback
+  // Memoized setFilters callback - saves group to localStorage
   const setFilters = useCallback((newFilters: ScheduleFilters) => {
     setFiltersState(newFilters);
+    // Save selected group to localStorage
+    try {
+      if (newFilters.group) {
+        localStorage.setItem(STORAGE_KEY, newFilters.group);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
   }, []);
   
   // Refresh function (Requirements 6.3, 7.2)
