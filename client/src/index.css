@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(216, 16%, 15%);
+  --muted: hsl(210, 40%, 98%);
+  --muted-foreground: hsl(215, 16%, 47%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(216, 16%, 15%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(216, 16%, 15%);
+  --border: hsl(220, 13%, 91%);
+  --input: hsl(220, 13%, 91%);
+  --primary: hsl(210, 100%, 50%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(210, 40%, 98%);
+  --secondary-foreground: hsl(216, 16%, 15%);
+  --accent: hsl(210, 40%, 98%);
+  --accent-foreground: hsl(216, 16%, 15%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(210, 100%, 50%);
+  --radius: 0.5rem;
+  
+  /* Corporate navy theme */
+  --navy-50: hsl(210, 40%, 98%);
+  --navy-100: hsl(210, 40%, 96%);
+  --navy-200: hsl(214, 32%, 91%);
+  --navy-300: hsl(213, 27%, 84%);
+  --navy-400: hsl(215, 20%, 65%);
+  --navy-500: hsl(215, 16%, 47%);
+  --navy-600: hsl(215, 19%, 35%);
+  --navy-700: hsl(215, 25%, 27%);
+  --navy-800: hsl(217, 33%, 17%);
+  --navy-900: hsl(222, 47%, 11%);
+}
+
+.dark {
+  --background: hsl(222, 84%, 4%);
+  --foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217, 32%, 17%);
+  --muted-foreground: hsl(215, 20%, 65%);
+  --popover: hsl(222, 84%, 4%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 84%, 4%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 32%, 17%);
+  --input: hsl(217, 32%, 17%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(217, 32%, 17%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --accent: hsl(151, 55%, 42%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 62%, 30%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(212, 59%, 18%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-gray-50 font-sans antialiased text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer utilities {
+  .navy-50 { color: var(--navy-50); }
+  .navy-100 { color: var(--navy-100); }
+  .navy-500 { color: var(--navy-500); }
+  .navy-600 { color: var(--navy-600); }
+  .navy-700 { color: var(--navy-700); }
+  .navy-900 { color: var(--navy-900); }
+  
+  .bg-navy-50 { background-color: var(--navy-50); }
+  .bg-navy-100 { background-color: var(--navy-100); }
+  .bg-navy-500 { background-color: var(--navy-500); }
+  .bg-navy-600 { background-color: var(--navy-600); }
+  .bg-navy-700 { background-color: var(--navy-700); }
+  .bg-navy-900 { background-color: var(--navy-900); }
+  
+  .text-navy-50 { color: var(--navy-50); }
+  .text-navy-100 { color: var(--navy-100); }
+  .text-navy-500 { color: var(--navy-500); }
+  .text-navy-600 { color: var(--navy-600); }
+  .text-navy-700 { color: var(--navy-700); }
+  .text-navy-900 { color: var(--navy-900); }
+  
+  .border-navy-200 { border-color: hsl(205, 47%, 92%); }
+  .border-navy-600 { border-color: var(--navy-600); }
+}
