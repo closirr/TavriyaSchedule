@@ -21,20 +21,22 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isUserTyping, setIsUserTyping] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Sync search state with external filters
+  // Sync search state with external filters (but don't show suggestions)
   useEffect(() => {
     const currentSearch = filters.search || filters.group || filters.teacher || filters.classroom || '';
     if (currentSearch !== search) {
       setSearch(currentSearch);
+      setIsUserTyping(false); // Don't show suggestions on external filter change
     }
   }, [filters]);
 
-  // Generate suggestions based on input
+  // Generate suggestions based on input (only when user is typing)
   useEffect(() => {
-    if (!search.trim() || search.length < 2) {
+    if (!search.trim() || search.length < 2 || !isUserTyping) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -95,11 +97,13 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
 
   const handleInputChange = (value: string) => {
     setSearch(value);
+    setIsUserTyping(true);
   };
 
   const handleSuggestionSelect = (suggestion: SearchSuggestion) => {
     setSearch(suggestion.value);
     setShowSuggestions(false);
+    setIsUserTyping(false);
     updateFilters(suggestion.value, suggestion.type);
     inputRef.current?.focus();
   };
