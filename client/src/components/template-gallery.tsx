@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { config, devLog } from '@/lib/config';
 
 interface Template {
   name: string;
@@ -18,7 +19,9 @@ export default function TemplateGallery() {
   const { data: templates, isLoading } = useQuery<Template[]>({
     queryKey: ['/api/templates'],
     queryFn: async () => {
-      const res = await fetch('/api/templates');
+      const url = `${config.apiBaseUrl}/api/templates`;
+      devLog('Fetching templates from:', url);
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Помилка завантаження шаблонів');
       return res.json();
     }
@@ -27,7 +30,9 @@ export default function TemplateGallery() {
   const downloadTemplate = async (filename: string, templateName: string) => {
     setDownloadingTemplate(filename);
     try {
-      const response = await fetch(`/api/templates/${filename}`);
+      const url = `${config.apiBaseUrl}/api/templates/${filename}`;
+      devLog('Downloading template from:', url);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Помилка завантаження шаблону');
       }

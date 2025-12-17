@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Download, FileText, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { config, devLog } from '@/lib/config';
 
 export default function ExportButtons() {
   const [isExporting, setIsExporting] = useState(false);
@@ -18,7 +19,10 @@ export default function ExportButtons() {
   const handleExport = async (format: 'pdf' | 'pdf-cyrillic' | 'html' | 'rtf', group?: string) => {
     setIsExporting(true);
     try {
-      const baseUrl = group ? `/api/export/${format}/${encodeURIComponent(group)}` : `/api/export/${format}`;
+      const baseUrl = group 
+        ? `${config.apiBaseUrl}/api/export/${format}/${encodeURIComponent(group)}` 
+        : `${config.apiBaseUrl}/api/export/${format}`;
+      devLog('Exporting from:', baseUrl);
       const response = await fetch(baseUrl);
       
       if (!response.ok) {

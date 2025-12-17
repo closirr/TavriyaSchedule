@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { config, devLog } from "@/lib/config";
 import TemplateGallery from "./template-gallery";
 
 export default function FileUpload() {
@@ -20,7 +21,10 @@ export default function FileUpload() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('/api/upload-schedule', {
+      const url = `${config.apiBaseUrl}/api/upload-schedule`;
+      devLog('Uploading file to:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         body: formData,
       });
@@ -53,7 +57,9 @@ export default function FileUpload() {
 
   const downloadTemplate = async () => {
     try {
-      const response = await fetch('/api/template');
+      const url = `${config.apiBaseUrl}/api/template`;
+      devLog('Downloading template from:', url);
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Помилка завантаження шаблону');
       
       const blob = await response.blob();
