@@ -63,17 +63,19 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
 
   if (isLoading) {
     return (
-      <div className="mb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-          {daysOfWeek.map((day) => (
-            <Card key={day} className="animate-pulse">
-              <div className="bg-gray-300 h-16 rounded-t-xl"></div>
-              <CardContent className="p-4 space-y-3">
-                <div className="bg-gray-200 h-20 rounded"></div>
-                <div className="bg-gray-200 h-20 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
+      <div className="mb-8 -mx-4 sm:-mx-6 lg:-mx-8">
+        <div className="overflow-x-auto px-4 sm:px-6 lg:px-8 pb-4">
+          <div className="grid grid-cols-7 gap-3" style={{ minWidth: '1200px' }}>
+            {daysOfWeek.map((day) => (
+              <Card key={day} className="animate-pulse">
+                <div className="bg-gray-300 h-16 rounded-t-xl"></div>
+                <CardContent className="p-4 space-y-3">
+                  <div className="bg-gray-200 h-20 rounded"></div>
+                  <div className="bg-gray-200 h-20 rounded"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -82,9 +84,10 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
   const groupedLessons = groupLessonsByDay(lessons);
 
   return (
-    <div className="mb-8">
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-        {daysOfWeek.map((day, index) => {
+    <div className="mb-8 -mx-4 sm:-mx-6 lg:-mx-8">
+      <div className="overflow-x-auto px-4 sm:px-6 lg:px-8 pb-4">
+        <div className="grid grid-cols-7 gap-3" style={{ minWidth: '1200px' }}>
+          {daysOfWeek.map((day, index) => {
           const dayLessons = groupedLessons[day] || [];
           const isToday = isCurrentDay(day);
           const hasLessons = dayLessons.length > 0;
@@ -161,6 +164,7 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
             </Card>
           );
         })}
+        </div>
       </div>
     </div>
   );
