@@ -36,7 +36,7 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
 
   // Generate suggestions based on input (only when user is typing)
   useEffect(() => {
-    if (!search.trim() || search.length < 2 || !isUserTyping) {
+    if (!search.trim() || !isUserTyping) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -45,7 +45,7 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
     const searchLower = search.toLowerCase();
     const newSuggestions: SearchSuggestion[] = [];
 
-    // Add group suggestions (from 2 characters)
+    // Add group suggestions (from 1 character)
     filterOptions.groups.forEach((group: string) => {
       if (group.toLowerCase().includes(searchLower)) {
         newSuggestions.push({
@@ -56,7 +56,7 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
       }
     });
 
-    // Add classroom suggestions (from 2 characters)
+    // Add classroom suggestions (from 1 character)
     filterOptions.classrooms.forEach((classroom: string) => {
       if (classroom.toLowerCase().includes(searchLower)) {
         newSuggestions.push({
@@ -67,23 +67,21 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
       }
     });
 
-    // Add teacher suggestions only from 3 characters
-    if (search.length >= 3) {
-      filterOptions.teachers.forEach((teacher: string) => {
-        if (teacher.toLowerCase().includes(searchLower)) {
-          newSuggestions.push({
-            value: teacher,
-            type: 'teacher',
-            label: `${teacher} (викладач)`
-          });
-        }
-      });
-    }
+    // Add teacher suggestions (from 1 character)
+    filterOptions.teachers.forEach((teacher: string) => {
+      if (teacher.toLowerCase().includes(searchLower)) {
+        newSuggestions.push({
+          value: teacher,
+          type: 'teacher',
+          label: `${teacher} (викладач)`
+        });
+      }
+    });
 
     setSuggestions(newSuggestions.slice(0, 8)); // Limit to 8 suggestions
     setShowSuggestions(newSuggestions.length > 0);
     setSelectedIndex(-1);
-  }, [search, filterOptions]);
+  }, [search, filterOptions, isUserTyping]);
 
   const updateFilters = (searchTerm: string, type?: 'group' | 'teacher' | 'classroom') => {
     const newFilters: ScheduleFilters = {
@@ -160,7 +158,7 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
             <Input
               ref={inputRef}
               type="text"
-              placeholder="Введіть мінімум 2 символи для пошуку..."
+              placeholder="Група, викладач або аудиторія..."
               value={search}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
