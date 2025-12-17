@@ -57,19 +57,19 @@ export default function FileUpload() {
 
   const downloadTemplate = async () => {
     try {
-      const url = `${config.apiBaseUrl}/api/template`;
-      devLog('Downloading template from:', url);
-      const response = await fetch(url);
+      const apiUrl = `${config.apiBaseUrl}/api/template`;
+      devLog('Downloading template from:', apiUrl);
+      const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Помилка завантаження шаблону');
       
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = blobUrl;
       a.download = 'template_schedule.xlsx';
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(blobUrl);
       document.body.removeChild(a);
     } catch (error) {
       toast({
