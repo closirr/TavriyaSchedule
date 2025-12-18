@@ -103,7 +103,8 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
     setShowSuggestions(false);
     setIsUserTyping(false);
     updateFilters(suggestion.value, suggestion.type);
-    inputRef.current?.focus();
+    // Blur input to hide mobile keyboard
+    inputRef.current?.blur();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
