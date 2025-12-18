@@ -7,7 +7,7 @@
  * Requirements: 1.1, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 6.1, 6.2, 6.3, 7.1, 7.2, 7.3, 8.1
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 const STORAGE_KEY = 'tavriya-schedule-group';
@@ -169,16 +169,13 @@ export function useScheduleData(): UseScheduleDataReturn {
   // Memoized setFilters callback - saves only group to localStorage
   const setFilters = useCallback((newFilters: ScheduleFilters) => {
     setFiltersState(newFilters);
-    // Save selected group to localStorage (only when group is explicitly selected)
+    // Only save/overwrite when a GROUP is selected
+    // Teacher, classroom, search, or clearing filters should NOT affect saved group
     try {
       if (newFilters.group) {
-        // Save group when selected
         localStorage.setItem(STORAGE_KEY, newFilters.group);
-      } else if (!newFilters.teacher && !newFilters.classroom && !newFilters.search) {
-        // Clear localStorage only when all filters are cleared (not when switching to teacher/classroom)
-        localStorage.removeItem(STORAGE_KEY);
       }
-      // When teacher or classroom is selected, keep the saved group in localStorage unchanged
+      // Never clear localStorage - only group selection can overwrite it
     } catch {
       // Ignore localStorage errors
     }
