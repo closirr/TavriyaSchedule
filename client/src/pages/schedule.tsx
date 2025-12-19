@@ -18,10 +18,8 @@ export default function Schedule() {
   const { toast } = useToast();
 
   const handlePrint = () => {
-    // Використовуємо відфільтровані уроки якщо є фільтр, інакше всі
-    const lessonsToExport = filteredLessons.length > 0 ? filteredLessons : lessons;
-    
-    if (lessonsToExport.length === 0) {
+    // Завжди друкуємо ВСІ уроки (всі групи по 4 в рядку)
+    if (lessons.length === 0) {
       toast({
         title: "Помилка",
         description: "Немає даних для друку",
@@ -31,7 +29,7 @@ export default function Schedule() {
     }
 
     const printerData = convertLessonsToPrinterFormat(
-      lessonsToExport,
+      lessons,
       "2 семестр 2024–2025 н.р."
     );
     

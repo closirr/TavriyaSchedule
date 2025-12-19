@@ -65,15 +65,15 @@ const DAY_MAP: Record<string, string> = {
 };
 
 /**
- * Стандартні часові слоти для пар
+ * Стандартні часові слоти для пар (відповідно до розкладу коледжу)
  */
 const TIME_SLOTS = [
-  { number: 1, time: '8.30–9.50' },
-  { number: 2, time: '10.00–11.20' },
-  { number: 3, time: '12.00–13.20' },
-  { number: 4, time: '13.30–14.50' },
-  { number: 5, time: '15.00–16.20' },
-  { number: 6, time: '16.30–17.50' },
+  { number: 1, time: '9:00–10:20' },
+  { number: 2, time: '10:30–11:50' },
+  { number: 3, time: '12:10–13:30' },
+  { number: 4, time: '13:40–15:00' },
+  { number: 5, time: '15:10–16:30' },
+  { number: 6, time: '16:40–18:00' },
 ];
 
 /**
@@ -81,12 +81,12 @@ const TIME_SLOTS = [
  */
 function getLessonNumber(startTime: string): number {
   const timeMap: Record<string, number> = {
-    '08:30': 1, '8:30': 1,
-    '10:00': 2,
-    '12:00': 3,
-    '13:30': 4,
-    '15:00': 5,
-    '16:30': 6,
+    '09:00': 1, '9:00': 1,
+    '10:30': 2,
+    '12:10': 3,
+    '13:40': 4,
+    '15:10': 5,
+    '16:40': 6,
   };
   return timeMap[startTime] || 0;
 }
@@ -99,8 +99,11 @@ export function convertLessonsToPrinterFormat(
   semester?: string,
   directorName?: string
 ): PrinterScheduleData {
+  console.log('[PRINTER] Converting lessons:', lessons.length);
+  
   // Отримуємо унікальні групи
   const groups = Array.from(new Set(lessons.map(l => l.group))).sort();
+  console.log('[PRINTER] Groups found:', groups);
   
   // Ініціалізуємо розклад
   const schedule: Record<string, PrinterTimeSlot[]> = {};
@@ -114,13 +117,35 @@ export function convertLessonsToPrinterFormat(
     }));
   }
   
+  // Збираємо унікальні часи для debug
+  const uniqueTimes = new Set(lessons.map(l => l.startTime));
+  console.log('[PRINTER] Unique start times in lessons:', Array.from(uniqueTimes));
+  
+  // Збираємо унікальні дні для debug
+  const uniqueDays = new Set(lessons.map(l => l.dayOfWeek));
+  console.log('[PRINTER] Unique days in lessons:', Array.from(uniqueDays));
+  
+  let matchedLessons = 0;
+  let unmatchedDays = 0;
+  let unmatchedTimes = 0;
+  
   // Заповнюємо розклад уроками
   for (const lesson of lessons) {
     const printerDay = DAY_MAP[lesson.dayOfWeek];
-    if (!printerDay) continue;
+    if (!printerDay) {
+      unmatchedDays++;
+      console.log('[PRINTER] Day not found in DAY_MAP:', lesson.dayOfWeek);
+      continue;
+    }
     
     const lessonNumber = getLessonNumber(lesson.startTime);
-    if (lessonNumber === 0) continue;
+    if (lessonNumber === 0) {
+      unmatchedTimes++;
+      if (unmatchedTimes <= 5) {
+        console.log('[PRINTER] Time not found in timeMap:', lesson.startTime);
+      }
+      continue;
+    }
     
     const daySchedule = schedule[printerDay];
     const slot = daySchedule.find(s => s.number === lessonNumber);
@@ -130,8 +155,13 @@ export function convertLessonsToPrinterFormat(
         subject: lesson.subject,
         teacher: lesson.teacher,
       };
+      matchedLessons++;
     }
   }
+  
+  console.log('[PRINTER] Matched lessons:', matchedLessons);
+  console.log('[PRINTER] Unmatched days:', unmatchedDays);
+  console.log('[PRINTER] Unmatched times:', unmatchedTimes);
   
   // Видаляємо порожні слоти (де немає жодного уроку)
   for (const day of Object.keys(schedule)) {

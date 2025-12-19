@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Уведомление о завершении",
+  "description": "Воспроизводит звук и показывает нативное Windows уведомление когда агент завершил работу",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "powershell -Command \"[System.Media.SystemSounds]::Asterisk.Play(); Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Агент завершил работу!', 'Kiro Agent', 'OK', 'Information')\""
+  }
+}
