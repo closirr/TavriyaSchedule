@@ -83,19 +83,10 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
   const groupedLessons = groupLessonsByDay(lessons);
   const currentDayLessons = groupedLessons[daysOfWeek[selectedDay]] || [];
 
-  const navigateDay = (direction: number) => {
-    setSelectedDay(prev => {
-      const next = prev + direction;
-      if (next < 0) return 6;
-      if (next > 6) return 0;
-      return next;
-    });
-  };
-
   return (
     <div className="mb-8">
       {/* Day Selector - Desktop */}
-      <div className="hidden md:flex gap-2 mb-6 justify-center flex-wrap">
+      <div className="hidden md:flex gap-1.5 mb-6 justify-center flex-wrap">
         {daysOfWeek.map((day, index) => {
           const dayLessons = groupedLessons[day] || [];
           const isToday = isCurrentDay(index);
@@ -107,23 +98,25 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
               key={day}
               onClick={() => setSelectedDay(index)}
               className={`
-                px-4 py-3 rounded-xl font-medium transition-all min-w-[120px]
-                ${isSelected 
-                  ? 'bg-navy-600 text-white shadow-lg scale-105' 
-                  : isToday
-                    ? 'bg-navy-100 text-navy-700 hover:bg-navy-200'
+                px-3 py-2.5 rounded-lg font-medium transition-all min-w-[90px] relative text-center
+                ${isToday
+                  ? isSelected
+                    ? 'bg-blue-50 text-navy-700 border-[3px] border-navy-600'
+                    : 'bg-blue-50 text-navy-700 border-2 border-blue-300 hover:bg-blue-100'
+                  : isSelected
+                    ? 'bg-white text-navy-700 border-[3px] border-navy-600 hover:border-navy-700'
                     : hasLessons
                       ? 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
                       : 'bg-gray-100 text-gray-400'
                 }
               `}
             >
-              <div className="text-sm">{day}</div>
-              <div className={`text-xs mt-1 ${isSelected ? 'text-navy-200' : 'text-gray-400'}`}>
+              <div className="text-sm font-semibold">{day}</div>
+              <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                 {getDayDate(index)}
               </div>
               {hasLessons && (
-                <div className={`text-xs mt-1 ${isSelected ? 'text-navy-200' : 'text-gray-500'}`}>
+                <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500'}`}>
                   {dayLessons.length} {dayLessons.length === 1 ? 'пара' : dayLessons.length < 5 ? 'пари' : 'пар'}
                 </div>
               )}
@@ -147,11 +140,13 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
                   key={day}
                   onClick={() => setSelectedDay(index)}
                   className={`
-                    px-4 py-3 rounded-xl font-medium transition-all min-w-[100px] flex-shrink-0
-                    ${isSelected 
-                      ? 'bg-navy-600 text-white shadow-lg' 
-                      : isToday
-                        ? 'bg-navy-100 text-navy-700'
+                    px-4 py-3 rounded-xl font-medium transition-all min-w-[100px] flex-shrink-0 relative
+                    ${isToday
+                      ? isSelected
+                        ? 'bg-blue-50 text-navy-700 border-[3px] border-navy-600'
+                        : 'bg-blue-50 text-navy-700 border-2 border-blue-300'
+                      : isSelected
+                        ? 'bg-white text-navy-700 border-[3px] border-navy-600'
                         : hasLessons
                           ? 'bg-white text-gray-700 border border-gray-200'
                           : 'bg-gray-100 text-gray-400'
@@ -159,11 +154,11 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
                   `}
                 >
                   <div className="text-sm">{day}</div>
-                  <div className={`text-xs mt-0.5 ${isSelected ? 'text-navy-200' : 'text-gray-400'}`}>
+                  <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                     {getDayDate(index)}
                   </div>
                   {hasLessons && (
-                    <div className={`text-xs mt-0.5 ${isSelected ? 'text-navy-200' : 'text-gray-500'}`}>
+                    <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500'}`}>
                       {dayLessons.length} {dayLessons.length === 1 ? 'пара' : dayLessons.length < 5 ? 'пари' : 'пар'}
                     </div>
                   )}
@@ -175,7 +170,7 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
       </div>
 
       {/* Lessons List */}
-      <div className="space-y-4">
+      <div className="max-w-4xl mx-auto space-y-4">
         {currentDayLessons.length === 0 ? (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-8 text-center">
@@ -201,14 +196,14 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
                 <div className="flex">
                   {/* Time Column */}
                   <div className={`
-                    w-24 md:w-32 flex-shrink-0 p-4 flex flex-col items-center justify-center
+                    w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center
                     ${isCurrent ? 'bg-navy-600' : 'bg-navy-50'}
                   `}>
-                    <div className={`text-lg md:text-xl font-bold ${isCurrent ? 'text-white' : 'text-navy-700'}`}>
+                    <div className={`text-base md:text-lg font-bold ${isCurrent ? 'text-white' : 'text-navy-700'}`}>
                       {lesson.startTime}
                     </div>
                     <div className={`text-xs ${isCurrent ? 'text-navy-200' : 'text-gray-400'}`}>—</div>
-                    <div className={`text-sm md:text-base ${isCurrent ? 'text-navy-100' : 'text-navy-600'}`}>
+                    <div className={`text-sm ${isCurrent ? 'text-navy-100' : 'text-navy-600'}`}>
                       {lesson.endTime}
                     </div>
                     {isCurrent && (
@@ -219,28 +214,28 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
                   </div>
 
                   {/* Content */}
-                  <CardContent className="flex-1 p-4 md:p-5">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-navy-700 text-base md:text-lg leading-tight">
+                  <CardContent className="flex-1 p-3 md:p-4">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-navy-700 text-sm md:text-base leading-tight truncate">
                           {lesson.subject}
                         </h3>
                         
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-2 space-y-1.5">
                           <div className="flex items-center gap-2 text-gray-600">
-                            <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                            <span className="text-sm">{lesson.teacher}</span>
+                            <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                            <span className="text-xs md:text-sm truncate">{lesson.teacher}</span>
                           </div>
                           
                           <div className="flex items-center gap-2 text-gray-600">
-                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                            <span className="text-sm">{lesson.classroom}</span>
+                            <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                            <span className="text-xs md:text-sm">{lesson.classroom}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex md:flex-col items-center md:items-end gap-2">
-                        <span className="px-3 py-1.5 bg-navy-100 text-navy-700 text-sm font-medium rounded-lg">
+                      <div className="flex md:flex-col items-center md:items-end gap-2 flex-shrink-0">
+                        <span className="px-2.5 py-1 bg-navy-100 text-navy-700 text-xs md:text-sm font-medium rounded-md">
                           {lesson.group}
                         </span>
                         <span className="text-xs text-gray-400">
