@@ -35,7 +35,7 @@ function generateScheduleHTML(lessons: Lesson[]): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Розклад занять - Таврійський Коледж</title>
+  <title>Розклад занять - ВСП «КФКМГ ТНУ ім.В.І.Вернадського»</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     h1 { color: #1e3a5f; text-align: center; }
@@ -50,7 +50,7 @@ function generateScheduleHTML(lessons: Lesson[]): string {
   </style>
 </head>
 <body>
-  <h1>Розклад занять - Таврійський Коледж</h1>
+  <h1>Розклад занять - ВСП «КФКМГ ТНУ ім.В.І.Вернадського»</h1>
   <p style="text-align: center; color: #666;">Згенеровано: ${new Date().toLocaleDateString('uk-UA')}</p>
 `;
 

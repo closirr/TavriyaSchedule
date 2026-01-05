@@ -11,7 +11,7 @@ interface WeekFormatIndicatorProps {
 export default function WeekFormatIndicator({ metadata, currentWeek, isWeekManual, isLoading }: WeekFormatIndicatorProps) {
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-4">
+      <div className="flex items-center justify-between">
         <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
         <div className="h-5 w-24 bg-gray-200 rounded animate-pulse" />
       </div>
@@ -21,7 +21,7 @@ export default function WeekFormatIndicator({ metadata, currentWeek, isWeekManua
   const format = metadata?.defaultFormat;
 
   return (
-    <div className="max-w-4xl mx-auto flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-4">
+    <div className="flex items-center justify-between">
       {/* Week indicator */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-navy-50 dark:bg-navy-900/30 rounded-lg flex items-center justify-center">
@@ -37,22 +37,23 @@ export default function WeekFormatIndicator({ metadata, currentWeek, isWeekManua
 
       {/* Format indicator */}
       <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-500 dark:text-gray-400">Формат навчання:</span>
         {format === 'онлайн' ? (
           <>
-            <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <Monitor className="w-4 h-4 text-blue-500" />
+            <div className="w-8 h-8 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+              <Monitor className="w-4 h-4 text-green-500" />
             </div>
-            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Онлайн</span>
+            <span className="text-sm font-medium text-green-600 dark:text-green-400">Онлайн</span>
           </>
         ) : format === 'офлайн' ? (
           <>
-            <div className="w-8 h-8 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-green-500" />
+            <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
             </div>
-            <span className="text-sm font-medium text-green-600 dark:text-green-400">Офлайн</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Офлайн</span>
           </>
         ) : (
-          <span className="text-sm text-gray-400">Формат не вказано</span>
+          <span className="text-sm text-gray-400">не вказано</span>
         )}
       </div>
     </div>

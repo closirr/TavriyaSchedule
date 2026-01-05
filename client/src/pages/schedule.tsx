@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { GraduationCap, Printer } from "lucide-react";
 import ScheduleFilters from "@/components/schedule-filters";
 import ScheduleGrid from "@/components/schedule-grid";
-import WeekFormatIndicator from "@/components/week-format-indicator";
 import { useScheduleData } from "@/hooks/useScheduleData";
 import { Button } from "@/components/ui/button";
 import { SchedulePrinter, convertLessonsToPrinterFormat } from "@/lib/schedule-printer";
@@ -45,8 +44,8 @@ export default function Schedule() {
       : lessons;
 
     const printerData = convertLessonsToPrinterFormat(
-      lessonsForPrint,
-      "2 семестр 2024–2025 н.р."
+      lessonsForPrint
+      // семестр визначається автоматично
     );
     
     const printer = new SchedulePrinter({ groupsPerPage: 4 });
@@ -64,7 +63,7 @@ export default function Schedule() {
                 <GraduationCap className="text-white text-lg" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-navy-700">Таврійський Коледж</h1>
+                <h1 className="text-xl font-semibold text-navy-700">ВСП «КФКМГ ТНУ ім.В.І.Вернадського»</h1>
                 <p className="text-sm text-gray-500">Розклад занять</p>
               </div>
             </div>
@@ -83,20 +82,15 @@ export default function Schedule() {
       </header>
 
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Filters */}
+        {/* Filters with Week and Format Indicator */}
         <ScheduleFilters
           filters={filters}
           filterOptions={filterOptions}
           onFiltersChange={setFilters}
-          currentWeek={currentWeek}
-        />
-
-        {/* Week and Format Indicator */}
-        <WeekFormatIndicator 
-          metadata={metadata} 
+          metadata={metadata}
           currentWeek={currentWeek}
           isWeekManual={isWeekManual}
-          isLoading={isLoading} 
+          isLoading={isLoading}
         />
 
         {/* Schedule Grid */}

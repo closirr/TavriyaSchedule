@@ -53,6 +53,51 @@ const DEFAULT_CONFIG: PrinterConfig = {
 };
 
 /**
+ * Автоматично визначає поточний семестр та навчальний рік
+ * 
+ * Логіка:
+ * - Навчальний рік: вересень поточного року - червень наступного року
+ * - 1 семестр: вересень - січень
+ * - 2 семестр: лютий - червень
+ * - Літо (липень-серпень): показуємо наступний навчальний рік, 1 семестр
+ * 
+ * @returns Рядок у форматі "X семестр YYYY–YYYY н.р."
+ */
+export function getCurrentSemesterString(): string {
+  const now = new Date();
+  const month = now.getMonth(); // 0-11 (січень = 0)
+  const year = now.getFullYear();
+  
+  let semester: number;
+  let academicYearStart: number;
+  let academicYearEnd: number;
+  
+  if (month >= 8) {
+    // Вересень - Грудень: 1 семестр поточного навчального року
+    semester = 1;
+    academicYearStart = year;
+    academicYearEnd = year + 1;
+  } else if (month === 0) {
+    // Січень: ще 1 семестр (сесія)
+    semester = 1;
+    academicYearStart = year - 1;
+    academicYearEnd = year;
+  } else if (month >= 1 && month <= 5) {
+    // Лютий - Червень: 2 семестр
+    semester = 2;
+    academicYearStart = year - 1;
+    academicYearEnd = year;
+  } else {
+    // Липень - Серпень: канікули, показуємо наступний навчальний рік
+    semester = 1;
+    academicYearStart = year;
+    academicYearEnd = year + 1;
+  }
+  
+  return `${semester} семестр ${academicYearStart}–${academicYearEnd} н.р.`;
+}
+
+/**
  * Маппінг днів тижня з формату Lesson до формату принтера
  */
 const DAY_MAP: Record<string, string> = {
@@ -65,30 +110,32 @@ const DAY_MAP: Record<string, string> = {
 };
 
 /**
- * Стандартні часові слоти для пар (відповідно до розкладу коледжу)
+ * Витягує унікальні часові слоти з уроків та сортує їх
  */
-const TIME_SLOTS = [
-  { number: 1, time: '9:00–10:20' },
-  { number: 2, time: '10:30–11:50' },
-  { number: 3, time: '12:10–13:30' },
-  { number: 4, time: '13:40–15:00' },
-  { number: 5, time: '15:10–16:30' },
-  { number: 6, time: '16:40–18:00' },
-];
-
-/**
- * Визначає номер пари за часом початку
- */
-function getLessonNumber(startTime: string): number {
-  const timeMap: Record<string, number> = {
-    '09:00': 1, '9:00': 1,
-    '10:30': 2,
-    '12:10': 3,
-    '13:40': 4,
-    '15:10': 5,
-    '16:40': 6,
-  };
-  return timeMap[startTime] || 0;
+function extractTimeSlots(lessons: Lesson[]): { startTime: string; endTime: string; time: string }[] {
+  const timeMap = new Map<string, { startTime: string; endTime: string }>();
+  
+  for (const lesson of lessons) {
+    if (lesson.startTime && lesson.endTime) {
+      const key = lesson.startTime;
+      if (!timeMap.has(key)) {
+        timeMap.set(key, { startTime: lesson.startTime, endTime: lesson.endTime });
+      }
+    }
+  }
+  
+  // Сортуємо за часом початку
+  const sorted = Array.from(timeMap.values()).sort((a, b) => {
+    const [aH, aM] = a.startTime.split(':').map(Number);
+    const [bH, bM] = b.startTime.split(':').map(Number);
+    return (aH * 60 + aM) - (bH * 60 + bM);
+  });
+  
+  // Форматуємо час для відображення
+  return sorted.map(slot => ({
+    ...slot,
+    time: `${slot.startTime.replace(/^0/, '')}–${slot.endTime.replace(/^0/, '')}`,
+  }));
 }
 
 /**
@@ -105,13 +152,26 @@ export function convertLessonsToPrinterFormat(
   const groups = Array.from(new Set(lessons.map(l => l.group))).sort();
   console.log('[PRINTER] Groups found:', groups);
   
+  // Динамічно витягуємо часові слоти з даних
+  const timeSlots = extractTimeSlots(lessons);
+  console.log('[PRINTER] Extracted time slots:', timeSlots);
+  
+  // Створюємо маппінг startTime -> номер пари
+  const timeToNumber = new Map<string, number>();
+  timeSlots.forEach((slot, index) => {
+    timeToNumber.set(slot.startTime, index + 1);
+    // Також додаємо варіант без провідного нуля
+    const withoutLeadingZero = slot.startTime.replace(/^0/, '');
+    timeToNumber.set(withoutLeadingZero, index + 1);
+  });
+  
   // Ініціалізуємо розклад
   const schedule: Record<string, PrinterTimeSlot[]> = {};
   
   // Групуємо уроки по днях
   for (const day of Object.values(DAY_MAP)) {
-    schedule[day] = TIME_SLOTS.map(slot => ({
-      number: slot.number,
+    schedule[day] = timeSlots.map((slot, index) => ({
+      number: index + 1,
       time: slot.time,
       groups: {},
     }));
@@ -138,8 +198,8 @@ export function convertLessonsToPrinterFormat(
       continue;
     }
     
-    const lessonNumber = getLessonNumber(lesson.startTime);
-    if (lessonNumber === 0) {
+    const lessonNumber = timeToNumber.get(lesson.startTime);
+    if (!lessonNumber) {
       unmatchedTimes++;
       if (unmatchedTimes <= 5) {
         console.log('[PRINTER] Time not found in timeMap:', lesson.startTime);
@@ -171,7 +231,7 @@ export function convertLessonsToPrinterFormat(
   }
   
   return {
-    semester: semester || `${new Date().getFullYear()} н.р.`,
+    semester: semester || getCurrentSemesterString(),
     directorName: directorName || 'Маргарита РОМАНОВА',
     groups,
     schedule,
@@ -202,6 +262,47 @@ function getStyles(): string {
       height: 20px;
       border-bottom: 2px dashed #999;
       margin: 15px 0;
+    }
+
+    .signatures-block {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-size: 11px;
+      padding: 0 10px;
+    }
+
+    .signature-item {
+      display: inline-flex;
+      align-items: baseline;
+      flex-wrap: nowrap;
+    }
+
+    .signature-item .label {
+      white-space: nowrap;
+    }
+
+    .signature-item .line {
+      display: inline-block;
+      width: 80px;
+      border-bottom: 1px solid #000;
+      margin-left: 5px;
+      margin-right: 5px;
+    }
+
+    .signature-item .name {
+      white-space: nowrap;
+    }
+
+    @media print {
+      .signatures-block {
+        display: flex !important;
+        justify-content: space-between !important;
+      }
+      .signature-item {
+        display: inline-flex !important;
+      }
     }
 
     @media print {
@@ -345,9 +446,27 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
 
   // Для кожного чанку груп генеруємо повний розклад
   groupChunks.forEach((groups, chunkIndex) => {
-    // Візуальний розділювач між секціями
+    // Підписи та візуальний розділювач між секціями
     if (chunkIndex > 0) {
-      html += `<div class="section-separator"></div>`;
+      html += `
+        <div class="signatures-block">
+          <div class="signature-item">
+            <span class="label">Голова&nbsp;студ.ради</span>
+            <span class="line"></span>
+          </div>
+          <div class="signature-item">
+            <span class="label">Методист</span>
+            <span class="name">&nbsp;Ірина&nbsp;ОЛІЙНИК</span>
+            <span class="line"></span>
+          </div>
+          <div class="signature-item">
+            <span class="label">Заступник&nbsp;директора&nbsp;з&nbsp;НВР</span>
+            <span class="name">&nbsp;Людмила&nbsp;ПУСТОВОЙТ</span>
+            <span class="line"></span>
+          </div>
+        </div>
+        <div class="section-separator"></div>
+      `;
     }
 
     // Генеруємо таблиці для всіх днів
@@ -385,6 +504,26 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
       `;
     });
   });
+
+  // Додаємо підписи в кінці останнього блоку
+  html += `
+    <div class="signatures-block">
+      <div class="signature-item">
+        <span class="label">Голова&nbsp;студ.ради</span>
+        <span class="line"></span>
+      </div>
+      <div class="signature-item">
+        <span class="label">Методист</span>
+        <span class="name">&nbsp;Ірина&nbsp;ОЛІЙНИК</span>
+        <span class="line"></span>
+      </div>
+      <div class="signature-item">
+        <span class="label">Заступник&nbsp;директора&nbsp;з&nbsp;НВР</span>
+        <span class="name">&nbsp;Людмила&nbsp;ПУСТОВОЙТ</span>
+        <span class="line"></span>
+      </div>
+    </div>
+  `;
 
   return html;
 }

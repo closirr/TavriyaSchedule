@@ -1,6 +1,6 @@
 # Product Overview
 
-This is a **Schedule Management System** for Tavriysky College (Таврійський Коледж) - a Ukrainian educational institution.
+This is a **Schedule Management System** for ВСП «КФКМГ ТНУ ім.В.І.Вернадського» - a Ukrainian educational institution.
 
 ## Core Functionality
 

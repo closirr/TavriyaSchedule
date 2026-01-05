@@ -2,13 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
-import type { ScheduleFilters, FilterOptions, WeekNumber } from '@/types/schedule';
+import type { ScheduleFilters, FilterOptions, ScheduleMetadata, WeekNumber } from '@/types/schedule';
+import WeekFormatIndicator from './week-format-indicator';
 
 interface ScheduleFiltersProps {
   filters: ScheduleFilters;
   filterOptions: FilterOptions;
   onFiltersChange: (filters: ScheduleFilters) => void;
-  currentWeek?: WeekNumber | null;
+  metadata?: ScheduleMetadata | null;
+  currentWeek?: WeekNumber;
+  isWeekManual?: boolean;
+  isLoading?: boolean;
 }
 
 interface SearchSuggestion {
@@ -17,7 +21,7 @@ interface SearchSuggestion {
   label: string;
 }
 
-export default function ScheduleFilters({ filters, filterOptions, onFiltersChange, currentWeek }: ScheduleFiltersProps) {
+export default function ScheduleFilters({ filters, filterOptions, onFiltersChange, metadata, currentWeek = 1, isWeekManual = false, isLoading = false }: ScheduleFiltersProps) {
   const [search, setSearch] = useState(filters.search || '');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -158,17 +162,11 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
     inputRef.current?.focus();
   };
 
-  const handleWeekChange = (week?: WeekNumber) => {
-    onFiltersChange({
-      ...filters,
-      weekNumber: week,
-    });
-  };
-
   return (
     <div className="mb-8">
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="relative w-full space-y-4">
+      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+        {/* Search input */}
+        <div className="relative w-full">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
@@ -233,44 +231,15 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
               ))}
             </div>
           )}
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2">
-            <div className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-              <span>Відображення по тижнях:</span>
-              {currentWeek && (
-                <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full dark:bg-blue-900/30 dark:text-blue-200">
-                  Зараз: {currentWeek}-й
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:grid-cols-3">
-              <Button
-                variant={filters.weekNumber ? "outline" : "default"}
-                size="sm"
-                onClick={() => handleWeekChange(undefined)}
-                className="text-sm"
-              >
-                Усі
-              </Button>
-              <Button
-                variant={filters.weekNumber === 1 ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleWeekChange(1)}
-                className="text-sm"
-              >
-                1-й тиждень
-              </Button>
-              <Button
-                variant={filters.weekNumber === 2 ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleWeekChange(2)}
-                className="text-sm"
-              >
-                2-й тиждень
-              </Button>
-            </div>
-          </div>
         </div>
+
+        {/* Week and Format indicator */}
+        <WeekFormatIndicator
+          metadata={metadata ?? null}
+          currentWeek={currentWeek}
+          isWeekManual={isWeekManual}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );
