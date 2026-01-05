@@ -137,21 +137,29 @@ function stripWeekMarkers(value: string): string {
 
 /**
  * Splits a cell value into week-based alternatives (for "мигалка")
- * Supports only ";" as a separator between 1-й та 2-й варіантами.
- * Empty sides are allowed (e.g., "Предмет;" або "; Викладач").
+ * Supports "/" or ";" as separators between 1-й та 2-й варіантами.
+ * Empty sides are allowed (e.g., "Предмет/" або "/ Викладач").
  */
 function splitAlternatingValues(value: string): [string, string] | null {
   if (!value) return null;
   const normalized = value.trim();
   if (!normalized) return null;
 
-  // Explicit "1 тиждень ... ; 2 тиждень ..." pattern (parts may be empty)
-  const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.*?);\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.*)/i);
+  // Explicit "1 тиждень ... / 2 тиждень ..." or "1 тиждень ... ; 2 тиждень ..." pattern
+  const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.*?)[;\/]\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.*)/i);
   if (explicitMatch) {
     return [explicitMatch[1]?.trim() ?? '', explicitMatch[2]?.trim() ?? ''];
   }
 
-  // Always split by ";" into two parts, even if one is empty
+  // Split by "/" first (primary separator for Excel), then by ";"
+  if (normalized.includes('/')) {
+    const parts = normalized.split('/').map(p => p.trim());
+    if (parts.length >= 2) {
+      return [parts[0] ?? '', parts[1] ?? ''];
+    }
+  }
+
+  // Fallback to ";" separator
   const parts = normalized.split(';').map(p => p.trim());
   if (parts.length >= 2) {
     return [parts[0] ?? '', parts[1] ?? ''];
@@ -203,10 +211,12 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
 
 
 /**
- * Parses time range like "9:00-10:20" into start and end times
+ * Parses time range like "9:00-10:20" or "1) 9:00-10:20" into start and end times
+ * Ignores lesson number prefix (e.g., "1)", "2)", etc.)
  */
 export function parseTimeRange(timeStr: string): { startTime: string; endTime: string } | null {
-  const match = timeStr.match(/^(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})$/);
+  // Match time with optional lesson number prefix like "1) ", "2) ", etc.
+  const match = timeStr.match(/^(?:\d+\)\s*)?(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})$/);
   if (!match) return null;
   
   const normalizeTime = (t: string) => {
