@@ -13,7 +13,7 @@ import { DAY_NAME_MAP } from '../types/schedule';
 /**
  * Parses a single CSV line, handling quoted fields correctly
  */
-function parseCSVLine(line: string): string[] {
+export function parseCSVLine(line: string): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
@@ -43,7 +43,7 @@ function parseCSVLine(line: string): string[] {
 /**
  * Checks if a cell contains a day of week
  */
-function isDayOfWeek(cell: string): DayOfWeek | null {
+export function isDayOfWeek(cell: string): DayOfWeek | null {
   const upper = cell.toUpperCase().trim();
   return DAY_NAME_MAP[upper] || null;
 }
@@ -51,7 +51,7 @@ function isDayOfWeek(cell: string): DayOfWeek | null {
 /**
  * Extracts week number from text (e.g., "1 тиждень", "2-й тиждень", "тиждень 1")
  */
-function extractWeekNumber(text: string): WeekNumber | null {
+export function extractWeekNumber(text: string): WeekNumber | null {
   const normalized = text.toLowerCase().trim();
   
   // Match patterns like "1 тиждень", "1-й тиждень", "тиждень 1", "I тиждень", "II тиждень"
@@ -68,7 +68,7 @@ function extractWeekNumber(text: string): WeekNumber | null {
 /**
  * Extracts lesson format from text (online/offline)
  */
-function extractLessonFormat(text: string): LessonFormat | null {
+export function extractLessonFormat(text: string): LessonFormat | null {
   const normalized = text.toLowerCase().trim();
   
   if (/онлайн|online|дистанц/i.test(normalized)) {
@@ -84,7 +84,7 @@ function extractLessonFormat(text: string): LessonFormat | null {
 /**
  * Extracts metadata from CSV header rows
  */
-function extractMetadata(lines: string[]): ScheduleMetadata {
+export function extractMetadata(lines: string[]): ScheduleMetadata {
   const metadata: ScheduleMetadata = {};
   
   // Check first 10 lines for metadata
@@ -126,7 +126,7 @@ function extractMetadata(lines: string[]): ScheduleMetadata {
 /**
  * Parses time range like "9:00-10:20" into start and end times
  */
-function parseTimeRange(timeStr: string): { startTime: string; endTime: string } | null {
+export function parseTimeRange(timeStr: string): { startTime: string; endTime: string } | null {
   const match = timeStr.match(/^(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})$/);
   if (!match) return null;
   
@@ -154,7 +154,7 @@ interface GroupColumn {
 /**
  * Parses header row to extract group columns
  */
-function parseGroupHeaders(headerRow: string[]): GroupColumn[] {
+export function parseGroupHeaders(headerRow: string[]): GroupColumn[] {
   const groups: GroupColumn[] = [];
   const skipWords = ['час', 'предмет', 'викладач', 'аудиторія', 'аудиторiя', ''];
   
@@ -173,6 +173,83 @@ function parseGroupHeaders(headerRow: string[]): GroupColumn[] {
   return groups;
 }
 
+type FlatHeaderMap = {
+  day: number;
+  startTime: number;
+  endTime: number;
+  subject: number;
+  teacher: number;
+  group: number;
+  classroom: number;
+};
+
+function detectFlatHeader(headerRow: string[]): FlatHeaderMap | null {
+  const normalized = headerRow.map((value) => value.trim().toLowerCase());
+
+  const indexOf = (options: string[]) => normalized.findIndex((value) => options.includes(value));
+
+  const day = indexOf(['день', 'день недели', 'день тижня']);
+  const startTime = indexOf(['час початку', 'время начала', 'час начала']);
+  const endTime = indexOf(['час закінчення', 'время окончания', 'час окончания']);
+  const subject = indexOf(['предмет']);
+  const teacher = indexOf(['викладач', 'преподаватель']);
+  const group = indexOf(['група', 'группа']);
+  const classroom = indexOf(['аудиторія', 'аудитория']);
+
+  if ([day, startTime, endTime, subject, teacher, group, classroom].some((idx) => idx === -1)) {
+    return null;
+  }
+
+  return { day, startTime, endTime, subject, teacher, group, classroom };
+}
+
+function parseFlatScheduleCSV(lines: string[], headerMap: FlatHeaderMap): ParseResult {
+  const lessons: Lesson[] = [];
+  const errors: ParseError[] = [];
+  let lessonIndex = 0;
+
+  const normalizeTime = (time: string) => {
+    const [hours, minutes] = time.split(':');
+    return `${hours.padStart(2, '0')}:${minutes}`;
+  };
+
+  for (let i = 1; i < lines.length; i++) {
+    const fields = parseCSVLine(lines[i]);
+    if (fields.length === 0 || fields.every((field) => field.trim().length === 0)) continue;
+
+    const dayCell = fields[headerMap.day]?.trim() || '';
+    const dayOfWeek = isDayOfWeek(dayCell);
+    if (!dayOfWeek) continue;
+
+    const startTimeRaw = fields[headerMap.startTime]?.trim() || '';
+    const endTimeRaw = fields[headerMap.endTime]?.trim() || '';
+
+    if (!/^\d{1,2}:\d{2}$/.test(startTimeRaw) || !/^\d{1,2}:\d{2}$/.test(endTimeRaw)) {
+      continue;
+    }
+
+    const subject = fields[headerMap.subject]?.trim() || '';
+    const teacher = fields[headerMap.teacher]?.trim() || '';
+    const group = fields[headerMap.group]?.trim() || '';
+    const classroom = fields[headerMap.classroom]?.trim() || '';
+
+    if (!subject && !teacher && !classroom) continue;
+
+    lessons.push({
+      id: `lesson-${lessonIndex++}`,
+      dayOfWeek,
+      startTime: normalizeTime(startTimeRaw),
+      endTime: normalizeTime(endTimeRaw),
+      subject,
+      teacher,
+      group,
+      classroom,
+    });
+  }
+
+  return { lessons, errors };
+}
+
 /**
  * Parses CSV data from Google Sheets vertical format.
  * Time slots are extracted from Monday (first day) and reused for all other days.
@@ -186,9 +263,15 @@ export function parseScheduleCSV(csv: string): ParseResult {
   }
   
   const lines = csv.split(/\r?\n/).filter(line => line.trim().length > 0);
+  const headerFields = lines.length > 0 ? parseCSVLine(lines[0]) : [];
+  const flatHeader = detectFlatHeader(headerFields);
   
-  if (lines.length < 3) {
+  if (lines.length < 3 && !flatHeader) {
     return { lessons: [], errors: [{ row: 0, message: 'Not enough data rows' }] };
+  }
+
+  if (flatHeader) {
+    return parseFlatScheduleCSV(lines, flatHeader);
   }
   
   // Extract metadata from header rows

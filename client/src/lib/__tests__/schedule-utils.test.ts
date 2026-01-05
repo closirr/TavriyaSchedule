@@ -70,12 +70,12 @@ const filtersArb: fc.Arbitrary<ScheduleFilters> = fc.record({
 });
 
 const DAY_ORDER: Record<DayOfWeek, number> = {
-  'Понедельник': 0,
-  'Вторник': 1,
-  'Среда': 2,
-  'Четверг': 3,
-  'Пятница': 4,
-  'Суббота': 5,
+  'Понеділок': 0,
+  'Вівторок': 1,
+  'Середа': 2,
+  'Четвер': 3,
+  "П'ятниця": 4,
+  'Субота': 5,
 };
 
 function timeToMinutes(time: string): number {
