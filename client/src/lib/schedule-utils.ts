@@ -7,8 +7,45 @@
  * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 8.2
  */
 
-import type { Lesson, ScheduleFilters, FilterOptions, ScheduleStatistics, DayOfWeek } from '../types/schedule';
+import type { Lesson, ScheduleFilters, FilterOptions, ScheduleStatistics, DayOfWeek, WeekNumber } from '../types/schedule';
 import { DAYS_OF_WEEK } from '../types/schedule';
+
+/**
+ * Calculates the current academic week number (1 or 2) based on September 1st.
+ * Week 1 starts from September 1st, then alternates every week.
+ * 
+ * @param date - Date to calculate week for (defaults to current date)
+ * @returns 1 or 2 representing the current academic week
+ */
+export function calculateAcademicWeek(date: Date = new Date()): WeekNumber {
+  const year = date.getMonth() >= 8 ? date.getFullYear() : date.getFullYear() - 1; // Academic year starts in September
+  const september1st = new Date(year, 8, 1); // September is month 8 (0-indexed)
+  
+  // Calculate the difference in days
+  const diffTime = date.getTime() - september1st.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  // Calculate week number (0-indexed from Sept 1)
+  const weekNumber = Math.floor(diffDays / 7);
+  
+  // Week 1 = odd weeks (0, 2, 4...), Week 2 = even weeks (1, 3, 5...)
+  return (weekNumber % 2 === 0) ? 1 : 2;
+}
+
+/**
+ * Gets the academic week with optional manual override.
+ * Priority: manual override > automatic calculation
+ * 
+ * @param manualWeek - Optional manual week override from Excel
+ * @param date - Date to calculate week for (defaults to current date)
+ * @returns The effective week number
+ */
+export function getEffectiveWeek(manualWeek?: WeekNumber | null, date: Date = new Date()): WeekNumber {
+  if (manualWeek === 1 || manualWeek === 2) {
+    return manualWeek;
+  }
+  return calculateAcademicWeek(date);
+}
 
 /**
  * Filters lessons based on the provided filter criteria.

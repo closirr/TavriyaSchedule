@@ -17,15 +17,17 @@ export default function Schedule() {
     filterOptions,
     isLoading,
     metadata,
+    currentWeek,
+    isWeekManual,
   } = useScheduleData();
   const { toast } = useToast();
 
   // Автовибір тижня з метаданих (якщо не вибрано вручну)
   useEffect(() => {
-    if (metadata?.currentWeek && !filters.weekNumber) {
-      setFilters({ ...filters, weekNumber: metadata.currentWeek });
+    if (currentWeek && !filters.weekNumber) {
+      setFilters({ ...filters, weekNumber: currentWeek });
     }
-  }, [metadata?.currentWeek, filters, setFilters]);
+  }, [currentWeek, filters, setFilters]);
 
   const handlePrint = () => {
     // Друкуємо всі групи, але з урахуванням вибраного тижня
@@ -86,11 +88,16 @@ export default function Schedule() {
           filters={filters}
           filterOptions={filterOptions}
           onFiltersChange={setFilters}
-          currentWeek={metadata?.currentWeek ?? null}
+          currentWeek={currentWeek}
         />
 
         {/* Week and Format Indicator */}
-        <WeekFormatIndicator metadata={metadata} isLoading={isLoading} />
+        <WeekFormatIndicator 
+          metadata={metadata} 
+          currentWeek={currentWeek}
+          isWeekManual={isWeekManual}
+          isLoading={isLoading} 
+        />
 
         {/* Schedule Grid */}
         <ScheduleGrid lessons={filteredLessons} isLoading={isLoading} selectedGroup={filters.group} />

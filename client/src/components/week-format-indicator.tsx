@@ -1,12 +1,14 @@
 import { Calendar, Monitor, Building2 } from "lucide-react";
-import type { ScheduleMetadata } from "@/types/schedule";
+import type { ScheduleMetadata, WeekNumber } from "@/types/schedule";
 
 interface WeekFormatIndicatorProps {
   metadata: ScheduleMetadata | null;
+  currentWeek: WeekNumber;
+  isWeekManual: boolean;
   isLoading?: boolean;
 }
 
-export default function WeekFormatIndicator({ metadata, isLoading }: WeekFormatIndicatorProps) {
+export default function WeekFormatIndicator({ metadata, currentWeek, isWeekManual, isLoading }: WeekFormatIndicatorProps) {
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-4">
@@ -16,13 +18,7 @@ export default function WeekFormatIndicator({ metadata, isLoading }: WeekFormatI
     );
   }
 
-  const weekNumber = metadata?.currentWeek;
   const format = metadata?.defaultFormat;
-
-  // Don't render if no metadata
-  if (!weekNumber && !format) {
-    return null;
-  }
 
   return (
     <div className="max-w-4xl mx-auto flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-4">
@@ -32,7 +28,10 @@ export default function WeekFormatIndicator({ metadata, isLoading }: WeekFormatI
           <Calendar className="w-4 h-4 text-navy-600 dark:text-navy-400" />
         </div>
         <span className="text-sm font-medium text-navy-700 dark:text-navy-300">
-          {weekNumber ? `${weekNumber}-й тиждень` : 'Тиждень не вказано'}
+          {currentWeek}-й тиждень
+          {!isWeekManual && (
+            <span className="text-xs text-gray-400 ml-1">(авто)</span>
+          )}
         </span>
       </div>
 

@@ -93,16 +93,16 @@ export function isDayOfWeek(cell: string): DayOfWeek | null {
 }
 
 /**
- * Extracts week number from text (e.g., "1 тиждень", "2-й тиждень", "тиждень 1")
+ * Extracts week number from text (e.g., "1 тиждень", "2-й тиждень", "тиждень 1", "перший тиждень", "другий тиждень")
  */
 export function extractWeekNumber(text: string): WeekNumber | null {
   const normalized = text.toLowerCase().trim();
   
-  // Match patterns like "1 тиждень", "1-й тиждень", "тиждень 1", "I тиждень", "II тиждень"
-  if (/(?:^|\s)1[-\s]?(?:й\s+)?тиждень|тиждень\s*1|^i\s+тиждень/i.test(normalized)) {
+  // Match patterns like "1 тиждень", "1-й тиждень", "тиждень 1", "I тиждень", "II тиждень", "перший тиждень"
+  if (/(?:^|\s)1[-\s]?(?:й\s+)?тиждень|тиждень\s*1|^i\s+тиждень|перший\s+тиждень|непарний\s+тиждень/i.test(normalized)) {
     return 1;
   }
-  if (/(?:^|\s)2[-\s]?(?:й\s+)?тиждень|тиждень\s*2|^ii\s+тиждень/i.test(normalized)) {
+  if (/(?:^|\s)2[-\s]?(?:й\s+)?тиждень|тиждень\s*2|^ii\s+тиждень|другий\s+тиждень|парний\s+тиждень/i.test(normalized)) {
     return 2;
   }
   
@@ -137,7 +137,7 @@ function stripWeekMarkers(value: string): string {
 
 /**
  * Splits a cell value into week-based alternatives (for "мигалка")
- * Supports "/" or ";" as separators between 1-й та 2-й варіантами.
+ * Supports "/" as separator between 1-й та 2-й варіантами.
  * Empty sides are allowed (e.g., "Предмет/" або "/ Викладач").
  */
 function splitAlternatingValues(value: string): [string, string] | null {
@@ -145,13 +145,13 @@ function splitAlternatingValues(value: string): [string, string] | null {
   const normalized = value.trim();
   if (!normalized) return null;
 
-  // Explicit "1 тиждень ... / 2 тиждень ..." or "1 тиждень ... ; 2 тиждень ..." pattern
-  const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.*?)[;\/]\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.*)/i);
+  // Explicit "1 тиждень ... / 2 тиждень ..." pattern
+  const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.*?)\/\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.*)/i);
   if (explicitMatch) {
     return [explicitMatch[1]?.trim() ?? '', explicitMatch[2]?.trim() ?? ''];
   }
 
-  // Split by "/" first (primary separator for Excel), then by ";"
+  // Split by "/"
   if (normalized.includes('/')) {
     const parts = normalized.split('/').map(p => p.trim());
     if (parts.length >= 2) {
@@ -159,35 +159,52 @@ function splitAlternatingValues(value: string): [string, string] | null {
     }
   }
 
-  // Fallback to ";" separator
-  const parts = normalized.split(';').map(p => p.trim());
-  if (parts.length >= 2) {
-    return [parts[0] ?? '', parts[1] ?? ''];
-  }
-
   return null;
 }
 
 /**
  * Extracts metadata from CSV header rows
+ * Week number is read from cell E3 (row 3, column E) - manual override
  */
 export function extractMetadata(lines: string[]): ScheduleMetadata {
   const metadata: ScheduleMetadata = {};
   
-  // Check first 10 lines for metadata
+  // Debug: log first 5 rows to see structure
+  console.log('[CSV-PARSER] First 5 rows for metadata:');
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    const fields = parseCSVLine(lines[i]);
+    console.log(`  Row ${i + 1}:`, fields.slice(0, 8));
+  }
+  
+  // Search for week value in first 5 rows, column E (index 4) or nearby
+  for (let rowIdx = 0; rowIdx < Math.min(5, lines.length); rowIdx++) {
+    const fields = parseCSVLine(lines[rowIdx]);
+    
+    // Check columns D, E, F (indices 3, 4, 5) for week value
+    for (let colIdx = 3; colIdx <= 5; colIdx++) {
+      const cell = fields[colIdx]?.trim() || '';
+      if (!cell) continue;
+      
+      const cellLower = cell.toLowerCase();
+      if (cellLower === 'перший' || cellLower === '1' || cellLower === 'i' || cellLower === 'непарний') {
+        metadata.currentWeek = 1;
+        console.log(`[CSV-PARSER] Week found: 1 ("${cell}" at row ${rowIdx + 1}, col ${colIdx + 1})`);
+        break;
+      } else if (cellLower === 'другий' || cellLower === '2' || cellLower === 'ii' || cellLower === 'парний') {
+        metadata.currentWeek = 2;
+        console.log(`[CSV-PARSER] Week found: 2 ("${cell}" at row ${rowIdx + 1}, col ${colIdx + 1})`);
+        break;
+      }
+    }
+    if (metadata.currentWeek) break;
+  }
+  
+  // Check header lines for other metadata (format, semester)
   const headerLines = lines.slice(0, 10);
   
   for (const line of headerLines) {
     const fields = parseCSVLine(line);
     const fullLine = fields.join(' ');
-    
-    // Extract week number
-    if (!metadata.currentWeek) {
-      const weekNum = extractWeekNumber(fullLine);
-      if (weekNum) {
-        metadata.currentWeek = weekNum;
-      }
-    }
     
     // Extract format
     if (!metadata.defaultFormat) {

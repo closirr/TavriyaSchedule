@@ -24,6 +24,8 @@ import {
   extractFilterOptions,
   calculateStatistics,
   sortLessonsByDayAndTime,
+  calculateAcademicWeek,
+  getEffectiveWeek,
 } from '../lib/schedule-utils';
 import { fetchGoogleSheetsCSVOrThrow } from '@/lib/google-sheets-fetcher';
 import { getConfig } from '@/lib/google-sheets-config';
@@ -63,6 +65,10 @@ export interface UseScheduleDataReturn {
   configError: string | null;
   /** Schedule metadata (week number, format, semester) */
   metadata: ScheduleMetadata | null;
+  /** Current academic week (1 or 2), auto-calculated or from Excel */
+  currentWeek: 1 | 2;
+  /** Whether the week was manually set from Excel */
+  isWeekManual: boolean;
 }
 
 
@@ -154,6 +160,12 @@ export function useScheduleData(): UseScheduleDataReturn {
   const lastUpdated = data?.fetchedAt ?? null;
   const metadata = data?.metadata ?? null;
   
+  // Calculate current academic week
+  // Priority: manual override from Excel > automatic calculation from Sept 1
+  const manualWeekFromExcel = metadata?.currentWeek;
+  const currentWeek = getEffectiveWeek(manualWeekFromExcel);
+  const isWeekManual = manualWeekFromExcel === 1 || manualWeekFromExcel === 2;
+  
   // Calculate filter options from all lessons (Requirements 2.1)
   const filterOptions = useMemo(
     () => extractFilterOptions(lessons),
@@ -209,5 +221,7 @@ export function useScheduleData(): UseScheduleDataReturn {
     isRefreshing: isFetching && !isLoading,
     configError,
     metadata,
+    currentWeek,
+    isWeekManual,
   };
 }
