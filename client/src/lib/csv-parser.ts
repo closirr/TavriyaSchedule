@@ -82,6 +82,48 @@ function extractLessonFormat(text: string): LessonFormat | null {
 }
 
 /**
+ * Removes week labels (e.g., "1 тиждень") from a cell value
+ */
+function stripWeekMarkers(value: string): string {
+  if (!value) return '';
+  return value
+    .replace(/(?:^|\s)(?:1|2|i{1,2})\s*[-–.]?\s*тиждень[:\-]?\s*/gi, '')
+    .trim();
+}
+
+/**
+ * Splits a cell value into week-based alternatives (for "мигалка")
+ * Supports separators: new line, ";", "|", or "/" with spaces.
+ */
+function splitAlternatingValues(value: string): [string, string] | null {
+  if (!value) return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  // Explicit "1 тиждень ... 2 тиждень ..." pattern
+  const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.+?)[;\n|\/]+\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.+)/i);
+  if (explicitMatch) {
+    return [explicitMatch[1].trim(), explicitMatch[2].trim()];
+  }
+
+  const separators = [
+    /\r?\n+/,
+    /\s*;\s*/,
+    /\s*\|\s*/,
+    /\s+\/\s+/,
+  ];
+
+  for (const pattern of separators) {
+    const parts = normalized.split(pattern).map(p => p.trim()).filter(Boolean);
+    if (parts.length === 2) {
+      return [parts[0], parts[1]];
+    }
+  }
+
+  return null;
+}
+
+/**
  * Extracts metadata from CSV header rows
  */
 function extractMetadata(lines: string[]): ScheduleMetadata {
@@ -171,6 +213,56 @@ function parseGroupHeaders(headerRow: string[]): GroupColumn[] {
   }
   
   return groups;
+}
+
+/**
+ * Builds lesson variants for a cell that may contain alternating week content.
+ * Returns one or two lessons with explicit weekNumber when applicable.
+ */
+function buildLessonVariants(
+  subject: string,
+  teacher: string,
+  classroom: string
+): Array<{ subject: string; teacher: string; classroom: string; weekNumber?: WeekNumber }> {
+  const subjectAlternatives = splitAlternatingValues(subject);
+  const teacherAlternatives = splitAlternatingValues(teacher);
+  const classroomAlternatives = splitAlternatingValues(classroom);
+
+  // If any field has two alternatives – treat as alternating weeks
+  if (subjectAlternatives || teacherAlternatives || classroomAlternatives) {
+    const [subject1, subject2] = subjectAlternatives ?? [subject, subject];
+    const [teacher1, teacher2] = teacherAlternatives ?? [teacher, teacher];
+    const [classroom1, classroom2] = classroomAlternatives ?? [classroom, classroom];
+
+    return [
+      {
+        subject: stripWeekMarkers(subject1) || 'Невідомий предмет',
+        teacher: stripWeekMarkers(teacher1) || 'Невідомий викладач',
+        classroom: stripWeekMarkers(classroom1) || '-',
+        weekNumber: 1,
+      },
+      {
+        subject: stripWeekMarkers(subject2) || stripWeekMarkers(subject1) || 'Невідомий предмет',
+        teacher: stripWeekMarkers(teacher2) || stripWeekMarkers(teacher1) || 'Невідомий викладач',
+        classroom: stripWeekMarkers(classroom2) || stripWeekMarkers(classroom1) || '-',
+        weekNumber: 2,
+      },
+    ];
+  }
+
+  // No explicit alternation – check if the text contains a single week marker
+  const explicitWeek =
+    extractWeekNumber(subject) ||
+    extractWeekNumber(teacher) ||
+    extractWeekNumber(classroom) ||
+    null;
+
+  return [{
+    subject: stripWeekMarkers(subject) || 'Невідомий предмет',
+    teacher: stripWeekMarkers(teacher) || 'Невідомий викладач',
+    classroom: stripWeekMarkers(classroom) || '-',
+    weekNumber: explicitWeek || undefined,
+  }];
 }
 
 /**
@@ -311,18 +403,22 @@ export function parseScheduleCSV(csv: string): ParseResult {
       if (subject.includes('#ERROR') || subject.includes('#REF')) continue;
       
       if (subject || teacher) {
-        lessons.push({
-          id: `lesson-${lessonIndex++}`,
-          dayOfWeek: currentDay,
-          startTime: effectiveTimeRange.startTime,
-          endTime: effectiveTimeRange.endTime,
-          subject: subject || 'Невідомий предмет',
-          teacher: teacher || 'Невідомий викладач',
-          group: group.groupName,
-          classroom: classroom || '-',
-          weekNumber: metadata.currentWeek,
-          format: metadata.defaultFormat,
-        });
+        const variants = buildLessonVariants(subject, teacher, classroom);
+        
+        for (const variant of variants) {
+          lessons.push({
+            id: `lesson-${lessonIndex++}`,
+            dayOfWeek: currentDay,
+            startTime: effectiveTimeRange.startTime,
+            endTime: effectiveTimeRange.endTime,
+            subject: variant.subject,
+            teacher: variant.teacher,
+            group: group.groupName,
+            classroom: variant.classroom,
+            weekNumber: variant.weekNumber,
+            format: metadata.defaultFormat,
+          });
+        }
       }
     }
   }
