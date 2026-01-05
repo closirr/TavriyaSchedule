@@ -26,6 +26,11 @@ export function filterLessons(lessons: Lesson[], filters: ScheduleFilters): Less
   }
 
   return lessons.filter(lesson => {
+    // Week filter (only hide mismatched explicit weeks; lessons without weekNumber are shown for both)
+    if (filters.weekNumber && lesson.weekNumber && lesson.weekNumber !== filters.weekNumber) {
+      return false;
+    }
+
     // Group filter
     if (filters.group && lesson.group !== filters.group) {
       return false;

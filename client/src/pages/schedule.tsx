@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { GraduationCap, Printer } from "lucide-react";
 import ScheduleFilters from "@/components/schedule-filters";
 import ScheduleGrid from "@/components/schedule-grid";
@@ -19,8 +20,15 @@ export default function Schedule() {
   } = useScheduleData();
   const { toast } = useToast();
 
+  // Автовибір тижня з метаданих (якщо не вибрано вручну)
+  useEffect(() => {
+    if (metadata?.currentWeek && !filters.weekNumber) {
+      setFilters({ ...filters, weekNumber: metadata.currentWeek });
+    }
+  }, [metadata?.currentWeek, filters, setFilters]);
+
   const handlePrint = () => {
-    // Завжди друкуємо ВСІ уроки (всі групи по 4 в рядку)
+    // Друкуємо всі групи, але з урахуванням вибраного тижня
     if (lessons.length === 0) {
       toast({
         title: "Помилка",
@@ -30,8 +38,12 @@ export default function Schedule() {
       return;
     }
 
+    const lessonsForPrint = filters.weekNumber
+      ? lessons.filter(lesson => !lesson.weekNumber || lesson.weekNumber === filters.weekNumber)
+      : lessons;
+
     const printerData = convertLessonsToPrinterFormat(
-      lessons,
+      lessonsForPrint,
       "2 семестр 2024–2025 н.р."
     );
     
@@ -74,6 +86,7 @@ export default function Schedule() {
           filters={filters}
           filterOptions={filterOptions}
           onFiltersChange={setFilters}
+          currentWeek={metadata?.currentWeek ?? null}
         />
 
         {/* Week and Format Indicator */}

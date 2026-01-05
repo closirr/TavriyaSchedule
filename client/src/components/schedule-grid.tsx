@@ -238,6 +238,11 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
                         <span className="px-2.5 py-1 bg-navy-100 text-navy-700 text-xs md:text-sm font-medium rounded-md">
                           {lesson.group}
                         </span>
+                        {lesson.weekNumber && (
+                          <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-[11px] md:text-xs font-semibold rounded-md border border-amber-100">
+                            {lesson.weekNumber}-й тиждень
+                          </span>
+                        )}
                         <span className="text-xs text-gray-400">
                           Пара {index + 1}
                         </span>

@@ -97,12 +97,14 @@ export interface ScheduleMetadata {
 export interface ScheduleFilters {
   /** Text search query (searches across subject, teacher, group, classroom) */
   search?: string;
-  /** Filter by specific group */
+ /** Filter by specific group */
   group?: string;
   /** Filter by specific teacher */
   teacher?: string;
   /** Filter by specific classroom */
   classroom?: string;
+  /** Show lessons only for specific week (1/2); undefined = both weeks */
+  weekNumber?: WeekNumber;
 }
 
 /**

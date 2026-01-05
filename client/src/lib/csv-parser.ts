@@ -11,6 +11,50 @@ import type { Lesson, ParseResult, DayOfWeek, ScheduleMetadata, WeekNumber, Less
 import { DAY_NAME_MAP } from '../types/schedule';
 
 /**
+ * Splits raw CSV text into rows while respecting quoted newlines.
+ */
+function splitCsvIntoRows(csv: string): string[] {
+  const rows: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < csv.length; i++) {
+    const char = csv[i];
+    const next = csv[i + 1];
+
+    if (char === '"') {
+      // Preserve quotes for downstream parsing
+      if (inQuotes && next === '"') {
+        current += '""';
+        i++; // Skip escaped quote
+      } else {
+        current += '"';
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === '\r') {
+      // Skip carriage returns; handle newline in next iteration if present
+      continue;
+    }
+
+    if (char === '\n' && !inQuotes) {
+      rows.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.length > 0) {
+    rows.push(current);
+  }
+
+  return rows;
+}
+
+/**
  * Parses a single CSV line, handling quoted fields correctly
  */
 export function parseCSVLine(line: string): string[] {
@@ -78,6 +122,41 @@ export function extractLessonFormat(text: string): LessonFormat | null {
     return 'офлайн';
   }
   
+  return null;
+}
+
+/**
+ * Removes week labels (e.g., "1 тиждень") from a cell value
+ */
+function stripWeekMarkers(value: string): string {
+  if (!value) return '';
+  return value
+    .replace(/(?:^|\s)(?:1|2|i{1,2})\s*[-–.]?\s*тиждень[:\-]?\s*/gi, '')
+    .trim();
+}
+
+/**
+ * Splits a cell value into week-based alternatives (for "мигалка")
+ * Supports only ";" as a separator between 1-й та 2-й варіантами.
+ * Empty sides are allowed (e.g., "Предмет;" або "; Викладач").
+ */
+function splitAlternatingValues(value: string): [string, string] | null {
+  if (!value) return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  // Explicit "1 тиждень ... ; 2 тиждень ..." pattern (parts may be empty)
+  const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.*?);\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.*)/i);
+  if (explicitMatch) {
+    return [explicitMatch[1]?.trim() ?? '', explicitMatch[2]?.trim() ?? ''];
+  }
+
+  // Always split by ";" into two parts, even if one is empty
+  const parts = normalized.split(';').map(p => p.trim());
+  if (parts.length >= 2) {
+    return [parts[0] ?? '', parts[1] ?? ''];
+  }
+
   return null;
 }
 
@@ -251,6 +330,56 @@ function parseFlatScheduleCSV(lines: string[], headerMap: FlatHeaderMap): ParseR
 }
 
 /**
+ * Builds lesson variants for a cell that may contain alternating week content.
+ * Returns one or two lessons with explicit weekNumber when applicable.
+ */
+function buildLessonVariants(
+  subject: string,
+  teacher: string,
+  classroom: string
+): Array<{ subject: string; teacher: string; classroom: string; weekNumber?: WeekNumber }> {
+  const subjectAlternatives = splitAlternatingValues(subject);
+  const teacherAlternatives = splitAlternatingValues(teacher);
+  const classroomAlternatives = splitAlternatingValues(classroom);
+
+  // If any field has two alternatives – treat as alternating weeks
+  if (subjectAlternatives || teacherAlternatives || classroomAlternatives) {
+    const [subject1, subject2] = subjectAlternatives ?? [subject, subject];
+    const [teacher1, teacher2] = teacherAlternatives ?? [teacher, teacher];
+    const [classroom1, classroom2] = classroomAlternatives ?? [classroom, classroom];
+
+    return [
+      {
+        subject: stripWeekMarkers(subject1) || 'Невідомий предмет',
+        teacher: stripWeekMarkers(teacher1) || 'Невідомий викладач',
+        classroom: stripWeekMarkers(classroom1) || '-',
+        weekNumber: 1,
+      },
+      {
+        subject: stripWeekMarkers(subject2) || stripWeekMarkers(subject1) || 'Невідомий предмет',
+        teacher: stripWeekMarkers(teacher2) || stripWeekMarkers(teacher1) || 'Невідомий викладач',
+        classroom: stripWeekMarkers(classroom2) || stripWeekMarkers(classroom1) || '-',
+        weekNumber: 2,
+      },
+    ];
+  }
+
+  // No explicit alternation – check if the text contains a single week marker
+  const explicitWeek =
+    extractWeekNumber(subject) ||
+    extractWeekNumber(teacher) ||
+    extractWeekNumber(classroom) ||
+    null;
+
+  return [{
+    subject: stripWeekMarkers(subject) || 'Невідомий предмет',
+    teacher: stripWeekMarkers(teacher) || 'Невідомий викладач',
+    classroom: stripWeekMarkers(classroom) || '-',
+    weekNumber: explicitWeek || undefined,
+  }];
+}
+
+/**
  * Parses CSV data from Google Sheets vertical format.
  * Time slots are extracted from Monday (first day) and reused for all other days.
  */
@@ -262,7 +391,7 @@ export function parseScheduleCSV(csv: string): ParseResult {
     return { lessons: [], errors: [{ row: 0, message: 'Invalid CSV input' }] };
   }
   
-  const lines = csv.split(/\r?\n/).filter(line => line.trim().length > 0);
+  const lines = splitCsvIntoRows(csv).filter(line => line.trim().length > 0);
   const headerFields = lines.length > 0 ? parseCSVLine(lines[0]) : [];
   const flatHeader = detectFlatHeader(headerFields);
   
@@ -394,18 +523,22 @@ export function parseScheduleCSV(csv: string): ParseResult {
       if (subject.includes('#ERROR') || subject.includes('#REF')) continue;
       
       if (subject || teacher) {
-        lessons.push({
-          id: `lesson-${lessonIndex++}`,
-          dayOfWeek: currentDay,
-          startTime: effectiveTimeRange.startTime,
-          endTime: effectiveTimeRange.endTime,
-          subject: subject || 'Невідомий предмет',
-          teacher: teacher || 'Невідомий викладач',
-          group: group.groupName,
-          classroom: classroom || '-',
-          weekNumber: metadata.currentWeek,
-          format: metadata.defaultFormat,
-        });
+        const variants = buildLessonVariants(subject, teacher, classroom);
+        
+        for (const variant of variants) {
+          lessons.push({
+            id: `lesson-${lessonIndex++}`,
+            dayOfWeek: currentDay,
+            startTime: effectiveTimeRange.startTime,
+            endTime: effectiveTimeRange.endTime,
+            subject: variant.subject,
+            teacher: variant.teacher,
+            group: group.groupName,
+            classroom: variant.classroom,
+            weekNumber: variant.weekNumber,
+            format: metadata.defaultFormat,
+          });
+        }
       }
     }
   }
