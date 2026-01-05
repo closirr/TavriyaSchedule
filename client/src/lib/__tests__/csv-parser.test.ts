@@ -1,8 +1,7 @@
 /**
- * CSV Parser Property Tests
- * 
- * Property-based tests for the CSV parser module using fast-check.
- * Tests validate parsing correctness and error handling.
+ * CSV Parser Tests
+ *
+ * Property-based and unit tests for the public CSV parser API.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -11,34 +10,19 @@ import { parseScheduleCSV, lessonsToCSV } from '../csv-parser';
 import type { Lesson, DayOfWeek } from '../../types/schedule';
 import { DAYS_OF_WEEK } from '../../types/schedule';
 
-/**
- * Generator for valid time strings in HH:MM format
- */
 const timeArb = fc.tuple(
   fc.integer({ min: 0, max: 23 }),
   fc.integer({ min: 0, max: 59 })
 ).map(([h, m]) => `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
 
-/**
- * Generator for valid day of week
- */
 const dayOfWeekArb = fc.constantFrom(...DAYS_OF_WEEK) as fc.Arbitrary<DayOfWeek>;
 
-/**
- * Generator for non-empty strings without problematic characters
- * Avoids newlines, commas, quotes, and ensures at least one non-whitespace character
- */
-const safeStringArb = fc.stringOf(
-  fc.char().filter(c => c !== '\n' && c !== '\r' && c !== ',' && c !== '"'),
-  { minLength: 1, maxLength: 50 }
-)
-  .filter(s => s.trim().length > 0)
-  .map(s => s.trim());
+const safeStringArb = fc.string({ minLength: 1, maxLength: 40 })
+  .map((value) => value.trim())
+  .filter((value) => value.length > 0)
+  .filter((value) => !/[\n\r",]/.test(value));
 
-/**
- * Generator for valid lesson objects (without ID)
- */
-const lessonDataArb = fc.record({
+const lessonArb: fc.Arbitrary<Lesson> = fc.record({
   dayOfWeek: dayOfWeekArb,
   startTime: timeArb,
   endTime: timeArb,
@@ -46,329 +30,219 @@ const lessonDataArb = fc.record({
   teacher: safeStringArb,
   group: safeStringArb,
   classroom: safeStringArb,
-});
-
-/**
- * Generator for valid lesson with ID
- */
-const lessonArb = lessonDataArb.chain((data) =>
+}).chain((data) =>
   fc.nat({ max: 10000 }).map((idx) => ({
     ...data,
     id: `${data.dayOfWeek}-${data.startTime}-${data.group}-${idx}`.replace(/\s+/g, '_').toLowerCase(),
   }))
 );
 
-/**
- * Generator for array of valid lessons
- */
-const lessonsArb = fc.array(lessonArb, { minLength: 0, maxLength: 50 });
+const lessonsArb = fc.array(lessonArb, { minLength: 0, maxLength: 30 });
 
-/**
- * **Feature: static-site-migration, Property 1: CSV Parsing Round Trip**
- * **Validates: Requirements 1.2**
- * 
- * For any valid array of lessons, serializing to CSV format and then parsing back
- * should produce an equivalent array of lessons (with the same data, though IDs may differ).
- */
+const groupNameArb = safeStringArb.filter((value) => !['час', 'предмет', 'викладач', 'аудиторія'].includes(value.toLowerCase()));
+
+function buildVerticalCsv(lines: string[]): string {
+  return lines.join('\n');
+}
+
+function buildVerticalHeader(groupName: string): string[] {
+  return [
+    `Час,${groupName},,`,
+    ',Предмет,Викладач,Аудиторія',
+  ];
+}
+
 describe('CSV Parser', () => {
-  describe('Property 1: CSV Parsing Round Trip', () => {
-    it('should preserve lesson data through CSV serialization and parsing', () => {
-      fc.assert(
-        fc.property(lessonsArb, (originalLessons) => {
-          // Serialize lessons to CSV
-          const csv = lessonsToCSV(originalLessons, true);
-          
-          // Parse the CSV back
-          const result = parseScheduleCSV(csv);
-          
-          // Should have no errors for valid data
-          expect(result.errors).toHaveLength(0);
-          
-          // Should have the same number of lessons
-          expect(result.lessons).toHaveLength(originalLessons.length);
-          
-          // Each lesson should have equivalent data (ignoring ID which is regenerated)
-          for (let i = 0; i < originalLessons.length; i++) {
-            const original = originalLessons[i];
-            const parsed = result.lessons[i];
-            
-            expect(parsed.dayOfWeek).toBe(original.dayOfWeek);
-            expect(parsed.startTime).toBe(original.startTime);
-            expect(parsed.endTime).toBe(original.endTime);
-            expect(parsed.subject).toBe(original.subject);
-            expect(parsed.teacher).toBe(original.teacher);
-            expect(parsed.group).toBe(original.group);
-            expect(parsed.classroom).toBe(original.classroom);
-          }
-          
-          return true;
-        }),
-        { numRuns: 100 }
-      );
-    });
+  /**
+   * **Feature: excel-schedule-parsing-tests, Property 10: Serialization Round Trip**
+   * **Validates: Requirements 7.3**
+   */
+  it('property 10: should preserve lesson data through CSV serialization and parsing', () => {
+    fc.assert(
+      fc.property(lessonsArb, (originalLessons) => {
+        const csv = lessonsToCSV(originalLessons, true);
+        const result = parseScheduleCSV(csv);
 
-    it('should handle empty lesson arrays', () => {
-      const csv = lessonsToCSV([], true);
-      const result = parseScheduleCSV(csv);
-      
-      expect(result.lessons).toHaveLength(0);
-      expect(result.errors).toHaveLength(0);
-    });
+        expect(result.errors).toHaveLength(0);
+        expect(result.lessons).toHaveLength(originalLessons.length);
 
-    it('should handle CSV without header', () => {
-      fc.assert(
-        fc.property(lessonsArb.filter(l => l.length > 0), (originalLessons) => {
-          // Serialize without header
-          const csv = lessonsToCSV(originalLessons, false);
-          
-          // Parse should still work (auto-detect no header)
-          const result = parseScheduleCSV(csv);
-          
-          // Should parse all lessons
-          expect(result.lessons.length).toBe(originalLessons.length);
-          
-          return true;
-        }),
-        { numRuns: 50 }
-      );
-    });
+        for (let i = 0; i < originalLessons.length; i += 1) {
+          const original = originalLessons[i];
+          const parsed = result.lessons[i];
+
+          expect(parsed.dayOfWeek).toBe(original.dayOfWeek);
+          expect(parsed.startTime).toBe(original.startTime);
+          expect(parsed.endTime).toBe(original.endTime);
+          expect(parsed.subject).toBe(original.subject);
+          expect(parsed.teacher).toBe(original.teacher);
+          expect(parsed.group).toBe(original.group);
+          expect(parsed.classroom).toBe(original.classroom);
+        }
+
+        return true;
+      }),
+      { numRuns: 100 }
+    );
   });
-
 
   /**
-   * **Feature: static-site-migration, Property 2: Invalid Row Filtering**
-   * **Validates: Requirements 1.3, 1.5**
-   * 
-   * For any CSV string containing a mix of valid and invalid rows, parsing should
-   * return only lessons from valid rows, and the count of returned lessons plus
-   * the count of parse errors should equal the total row count.
+   * **Feature: excel-schedule-parsing-tests, Property 11: CSV Field Escaping Is Correct**
+   * **Validates: Requirements 7.2**
    */
-  describe('Property 2: Invalid Row Filtering', () => {
-    /**
-     * Generator for invalid day of week
-     */
-    const invalidDayArb = fc.string({ minLength: 1, maxLength: 20 })
-      .filter(s => !DAYS_OF_WEEK.includes(s as DayOfWeek) && s.trim().length > 0);
+  it('property 11: should escape fields with commas or quotes and restore values', () => {
+    const escapableFieldArb = fc.string({ minLength: 1, maxLength: 30 })
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0)
+      .filter((value) => /[",]/.test(value))
+      .filter((value) => !/[\n\r]/.test(value));
 
-    /**
-     * Generator for invalid time format
-     * These are strings that will definitely fail the time regex validation
-     */
-    const invalidTimeArb = fc.constantFrom(
-      '25:00',
-      '12:60',
-      'abc',
-      '1200',
-      '12-00',
-      'noon',
-      '',
+    fc.assert(
+      fc.property(escapableFieldArb, safeStringArb, safeStringArb, (subject, teacher, group) => {
+        const lesson: Lesson = {
+          id: 'lesson-1',
+          dayOfWeek: 'Понеділок',
+          startTime: '09:00',
+          endTime: '10:30',
+          subject,
+          teacher,
+          group,
+          classroom: '101',
+        };
+
+        const csv = lessonsToCSV([lesson], true);
+        const result = parseScheduleCSV(csv);
+
+        expect(result.errors).toHaveLength(0);
+        expect(result.lessons).toHaveLength(1);
+        expect(result.lessons[0].subject).toBe(subject);
+
+        return true;
+      }),
+      { numRuns: 100 }
     );
-
-    /**
-     * Generator for empty/whitespace-only strings
-     */
-    const emptyStringArb = fc.constantFrom('', '   ', '\t');
-
-    /**
-     * Generator for a valid CSV row
-     */
-    const validRowArb = lessonDataArb.map(lesson => 
-      [
-        lesson.dayOfWeek,
-        lesson.startTime,
-        lesson.endTime,
-        lesson.subject,
-        lesson.teacher,
-        lesson.group,
-        lesson.classroom,
-      ].join(',')
-    );
-
-    /**
-     * Generator for an invalid CSV row (various types of invalidity)
-     * Each type of invalid row is guaranteed to fail validation
-     */
-    const invalidRowArb = fc.oneof(
-      // Invalid day of week - use a constant that's definitely not a valid day
-      fc.tuple(
-        fc.constantFrom('InvalidDay', 'Monday', 'Sunday', 'Неділя'),
-        timeArb, timeArb, safeStringArb, safeStringArb, safeStringArb, safeStringArb
-      ).map(fields => fields.join(',')),
-      // Invalid start time
-      fc.tuple(
-        dayOfWeekArb, invalidTimeArb, timeArb, safeStringArb, safeStringArb, safeStringArb, safeStringArb
-      ).map(fields => fields.join(',')),
-      // Empty subject (empty string between commas)
-      fc.tuple(dayOfWeekArb, timeArb, timeArb, safeStringArb, safeStringArb, safeStringArb)
-        .map(([day, start, end, teacher, group, classroom]) => 
-          `${day},${start},${end},,${teacher},${group},${classroom}`),
-      // Too few fields (only 3 fields)
-      fc.tuple(dayOfWeekArb, timeArb, timeArb)
-        .map(fields => fields.join(',')),
-    );
-
-    /**
-     * Generator for mixed CSV with both valid and invalid rows
-     */
-    const mixedRowsArb = fc.tuple(
-      fc.array(validRowArb, { minLength: 0, maxLength: 20 }),
-      fc.array(invalidRowArb, { minLength: 0, maxLength: 20 })
-    ).chain(([validRows, invalidRows]) => {
-      // Shuffle the rows together
-      const allRows = [...validRows.map(r => ({ row: r, valid: true })), 
-                       ...invalidRows.map(r => ({ row: r, valid: false }))];
-      return fc.shuffledSubarray(allRows, { minLength: allRows.length, maxLength: allRows.length })
-        .map(shuffled => ({
-          rows: shuffled,
-          expectedValidCount: validRows.length,
-          expectedInvalidCount: invalidRows.length,
-        }));
-    });
-
-    it('should count valid lessons plus errors equal total data rows', () => {
-      fc.assert(
-        fc.property(mixedRowsArb, ({ rows, expectedValidCount, expectedInvalidCount }) => {
-          // Build CSV with header
-          const header = 'День недели,Время начала,Время окончания,Предмет,Преподаватель,Группа,Аудитория';
-          const csvLines = [header, ...rows.map(r => r.row)];
-          const csv = csvLines.join('\n');
-          
-          const result = parseScheduleCSV(csv);
-          
-          // Total data rows (excluding header)
-          const totalDataRows = rows.length;
-          
-          // Lessons + errors should equal total data rows
-          const totalProcessed = result.lessons.length + result.errors.length;
-          expect(totalProcessed).toBe(totalDataRows);
-          
-          return true;
-        }),
-        { numRuns: 100 }
-      );
-    });
-
-    it('should only return valid lessons from mixed input', () => {
-      fc.assert(
-        fc.property(mixedRowsArb, ({ rows }) => {
-          const header = 'День недели,Время начала,Время окончания,Предмет,Преподаватель,Группа,Аудитория';
-          const csvLines = [header, ...rows.map(r => r.row)];
-          const csv = csvLines.join('\n');
-          
-          const result = parseScheduleCSV(csv);
-          
-          // All returned lessons should be valid (have required fields)
-          for (const lesson of result.lessons) {
-            expect(DAYS_OF_WEEK).toContain(lesson.dayOfWeek);
-            expect(lesson.startTime).toMatch(/^\d{2}:\d{2}$/);
-            expect(lesson.endTime).toMatch(/^\d{2}:\d{2}$/);
-            expect(lesson.subject.trim().length).toBeGreaterThan(0);
-            expect(lesson.teacher.trim().length).toBeGreaterThan(0);
-            expect(lesson.group.trim().length).toBeGreaterThan(0);
-            expect(lesson.classroom.trim().length).toBeGreaterThan(0);
-          }
-          
-          // The key property: lessons + errors = total rows
-          // (already tested in another property, but validates consistency)
-          expect(result.lessons.length + result.errors.length).toBe(rows.length);
-          
-          return true;
-        }),
-        { numRuns: 100 }
-      );
-    });
-
-    it('should report errors for invalid rows with row numbers', () => {
-      fc.assert(
-        fc.property(
-          fc.array(invalidRowArb, { minLength: 1, maxLength: 10 }),
-          (invalidRows) => {
-            const header = 'День недели,Время начала,Время окончания,Предмет,Преподаватель,Группа,Аудитория';
-            const csv = [header, ...invalidRows].join('\n');
-            
-            const result = parseScheduleCSV(csv);
-            
-            // Should have no valid lessons from invalid rows
-            expect(result.lessons.length).toBe(0);
-            
-            // Should have at least one error (all rows are invalid)
-            expect(result.errors.length).toBeGreaterThan(0);
-            
-            // Total processed should equal input rows
-            expect(result.lessons.length + result.errors.length).toBe(invalidRows.length);
-            
-            // Each error should have a valid row number (1-indexed, after header)
-            for (const error of result.errors) {
-              expect(error.row).toBeGreaterThan(1); // After header
-              expect(error.message.length).toBeGreaterThan(0);
-            }
-            
-            return true;
-          }
-        ),
-        { numRuns: 100 }
-      );
-    });
   });
 
-  // Unit tests for edge cases
-  describe('Unit Tests', () => {
-    it('should handle null input', () => {
-      const result = parseScheduleCSV(null as any);
+  /**
+   * **Feature: excel-schedule-parsing-tests, Property 12: Empty Lessons Are Filtered**
+   * **Validates: Requirements 6.5**
+   */
+  it('property 12: should filter rows with empty subject and teacher', () => {
+    fc.assert(
+      fc.property(groupNameArb, timeArb, (groupName, time) => {
+        const csv = buildVerticalCsv([
+          ...buildVerticalHeader(groupName),
+          'Понеділок',
+          `${time}-${time},,,`,
+        ]);
+
+        const result = parseScheduleCSV(csv);
+
+        expect(result.errors).toHaveLength(0);
+        expect(result.lessons).toHaveLength(0);
+
+        return true;
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  describe('Unit tests: error handling and edge cases', () => {
+    it('should filter #ERROR and #REF cells', () => {
+      const csv = buildVerticalCsv([
+        ...buildVerticalHeader('КН-21'),
+        'Понеділок',
+        '09:00-10:30,#ERROR,Петров,101',
+        '10:40-12:10,#REF,Іванов,102',
+      ]);
+
+      const result = parseScheduleCSV(csv);
+
+      expect(result.errors).toHaveLength(0);
       expect(result.lessons).toHaveLength(0);
-      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should handle null input', () => {
+      const result = parseScheduleCSV(null as unknown as string);
+      expect(result.lessons).toHaveLength(0);
+      expect(result.errors[0]?.message).toBe('Invalid CSV input');
     });
 
     it('should handle undefined input', () => {
-      const result = parseScheduleCSV(undefined as any);
+      const result = parseScheduleCSV(undefined as unknown as string);
       expect(result.lessons).toHaveLength(0);
-      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]?.message).toBe('Invalid CSV input');
     });
 
-    it('should handle empty string gracefully', () => {
-      const result = parseScheduleCSV('');
+    it('should return an error for insufficient rows', () => {
+      const result = parseScheduleCSV('foo,bar');
       expect(result.lessons).toHaveLength(0);
-      // Empty input may or may not produce an error depending on implementation
-      // The key is that no lessons are returned
+      expect(result.errors[0]?.message).toBe('Not enough data rows');
     });
 
-    it('should handle CSV with only header', () => {
-      const csv = 'День недели,Время начала,Время окончания,Предмет,Преподаватель,Группа,Аудитория';
+    it('should detect a header row with "час" in the first column', () => {
+      const csv = buildVerticalCsv([
+        ...buildVerticalHeader('КН-21'),
+        'Понеділок',
+        '09:00-10:30,Математика,Іванов,101',
+      ]);
+
       const result = parseScheduleCSV(csv);
-      expect(result.lessons).toHaveLength(0);
+
       expect(result.errors).toHaveLength(0);
-    });
-
-    it('should parse a valid single row', () => {
-      const csv = `День недели,Время начала,Время окончания,Предмет,Преподаватель,Группа,Аудитория
-Понедельник,09:00,10:30,Математика,Іванов І.І.,КН-21,101`;
-      
-      const result = parseScheduleCSV(csv);
-      
       expect(result.lessons).toHaveLength(1);
+      expect(result.lessons[0].group).toBe('КН-21');
+    });
+  });
+
+  describe('Integration tests: vertical format parsing', () => {
+    it('should parse a realistic schedule with metadata', () => {
+      const csv = buildVerticalCsv([
+        '2 семестр 2024-2025 н.р.',
+        '1 тиждень онлайн',
+        'Час,КН-21,, ,КН-22,,',
+        ',Предмет,Викладач,Аудиторія,Предмет,Викладач,Аудиторія',
+        'Понеділок',
+        '09:00-10:30,Математика,Іванов,101,Фізика,Петров,202',
+        '10:40-12:10,Алгебра,Сидоренко,103,Хімія,Коваленко,204',
+      ]);
+
+      const result = parseScheduleCSV(csv);
+
       expect(result.errors).toHaveLength(0);
-      expect(result.lessons[0].dayOfWeek).toBe('Понедельник');
-      expect(result.lessons[0].subject).toBe('Математика');
+      expect(result.lessons).toHaveLength(4);
+      expect(result.metadata?.currentWeek).toBe(1);
+      expect(result.metadata?.defaultFormat).toBe('онлайн');
+      expect(result.metadata?.semester).toBe('2 семестр 2024-2025 н.р.');
+
+      const firstLesson = result.lessons[0];
+      expect(firstLesson.dayOfWeek).toBe('Понеділок');
+      expect(firstLesson.startTime).toBe('09:00');
+      expect(firstLesson.endTime).toBe('10:30');
+      expect(firstLesson.group).toBe('КН-21');
     });
 
-    it('should handle quoted fields with commas', () => {
-      const csv = `День недели,Время начала,Время окончания,Предмет,Преподаватель,Группа,Аудитория
-Понедельник,09:00,10:30,"Математика, вища",Іванов І.І.,КН-21,101`;
-      
-      const result = parseScheduleCSV(csv);
-      
-      expect(result.lessons).toHaveLength(1);
-      expect(result.lessons[0].subject).toBe('Математика, вища');
-    });
+    it('should reuse Monday time slots for other days', () => {
+      const csv = buildVerticalCsv([
+        ...buildVerticalHeader('КН-21'),
+        'Понеділок',
+        '09:00-10:30,Математика,Іванов,101',
+        '10:40-12:10,Алгебра,Сидоренко,103',
+        'Вівторок',
+        ',Фізика,Петров,202',
+        ',Хімія,Коваленко,204',
+      ]);
 
-    it('should normalize single-digit hours', () => {
-      const csv = `День недели,Время начала,Время окончания,Предмет,Преподаватель,Группа,Аудитория
-Понедельник,9:00,10:30,Математика,Іванов І.І.,КН-21,101`;
-      
       const result = parseScheduleCSV(csv);
-      
-      expect(result.lessons).toHaveLength(1);
-      expect(result.lessons[0].startTime).toBe('09:00');
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.lessons).toHaveLength(4);
+
+      const tuesdayLessons = result.lessons.filter((lesson) => lesson.dayOfWeek === 'Вівторок');
+      expect(tuesdayLessons).toHaveLength(2);
+      expect(tuesdayLessons[0].startTime).toBe('09:00');
+      expect(tuesdayLessons[0].endTime).toBe('10:30');
+      expect(tuesdayLessons[1].startTime).toBe('10:40');
+      expect(tuesdayLessons[1].endTime).toBe('12:10');
     });
   });
 });
