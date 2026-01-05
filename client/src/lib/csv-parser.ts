@@ -11,6 +11,50 @@ import type { Lesson, ParseResult, DayOfWeek, ScheduleMetadata, WeekNumber, Less
 import { DAY_NAME_MAP } from '../types/schedule';
 
 /**
+ * Splits raw CSV text into rows while respecting quoted newlines.
+ */
+function splitCsvIntoRows(csv: string): string[] {
+  const rows: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < csv.length; i++) {
+    const char = csv[i];
+    const next = csv[i + 1];
+
+    if (char === '"') {
+      // Preserve quotes for downstream parsing
+      if (inQuotes && next === '"') {
+        current += '""';
+        i++; // Skip escaped quote
+      } else {
+        current += '"';
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === '\r') {
+      // Skip carriage returns; handle newline in next iteration if present
+      continue;
+    }
+
+    if (char === '\n' && !inQuotes) {
+      rows.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.length > 0) {
+    rows.push(current);
+  }
+
+  return rows;
+}
+
+/**
  * Parses a single CSV line, handling quoted fields correctly
  */
 function parseCSVLine(line: string): string[] {
@@ -93,31 +137,24 @@ function stripWeekMarkers(value: string): string {
 
 /**
  * Splits a cell value into week-based alternatives (for "мигалка")
- * Supports separators: new line, ";", "|", or "/" with spaces.
+ * Supports only ";" as a separator between 1-й та 2-й варіантами.
+ * Empty sides are allowed (e.g., "Предмет;" або "; Викладач").
  */
 function splitAlternatingValues(value: string): [string, string] | null {
   if (!value) return null;
   const normalized = value.trim();
   if (!normalized) return null;
 
-  // Explicit "1 тиждень ... 2 тиждень ..." pattern
-  const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.+?)[;\n|\/]+\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.+)/i);
+  // Explicit "1 тиждень ... ; 2 тиждень ..." pattern (parts may be empty)
+  const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.*?);\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.*)/i);
   if (explicitMatch) {
-    return [explicitMatch[1].trim(), explicitMatch[2].trim()];
+    return [explicitMatch[1]?.trim() ?? '', explicitMatch[2]?.trim() ?? ''];
   }
 
-  const separators = [
-    /\r?\n+/,
-    /\s*;\s*/,
-    /\s*\|\s*/,
-    /\s+\/\s+/,
-  ];
-
-  for (const pattern of separators) {
-    const parts = normalized.split(pattern).map(p => p.trim()).filter(Boolean);
-    if (parts.length === 2) {
-      return [parts[0], parts[1]];
-    }
+  // Always split by ";" into two parts, even if one is empty
+  const parts = normalized.split(';').map(p => p.trim());
+  if (parts.length >= 2) {
+    return [parts[0] ?? '', parts[1] ?? ''];
   }
 
   return null;
@@ -277,7 +314,7 @@ export function parseScheduleCSV(csv: string): ParseResult {
     return { lessons: [], errors: [{ row: 0, message: 'Invalid CSV input' }] };
   }
   
-  const lines = csv.split(/\r?\n/).filter(line => line.trim().length > 0);
+  const lines = splitCsvIntoRows(csv).filter(line => line.trim().length > 0);
   
   if (lines.length < 3) {
     return { lessons: [], errors: [{ row: 0, message: 'Not enough data rows' }] };
