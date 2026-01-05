@@ -1,6 +1,7 @@
 import { GraduationCap, Printer } from "lucide-react";
 import ScheduleFilters from "@/components/schedule-filters";
 import ScheduleGrid from "@/components/schedule-grid";
+import WeekFormatIndicator from "@/components/week-format-indicator";
 import { useScheduleData } from "@/hooks/useScheduleData";
 import { Button } from "@/components/ui/button";
 import { SchedulePrinter, convertLessonsToPrinterFormat } from "@/lib/schedule-printer";
@@ -14,6 +15,7 @@ export default function Schedule() {
     setFilters,
     filterOptions,
     isLoading,
+    metadata,
   } = useScheduleData();
   const { toast } = useToast();
 
@@ -73,6 +75,9 @@ export default function Schedule() {
           filterOptions={filterOptions}
           onFiltersChange={setFilters}
         />
+
+        {/* Week and Format Indicator */}
+        <WeekFormatIndicator metadata={metadata} isLoading={isLoading} />
 
         {/* Schedule Grid */}
         <ScheduleGrid lessons={filteredLessons} isLoading={isLoading} selectedGroup={filters.group} />

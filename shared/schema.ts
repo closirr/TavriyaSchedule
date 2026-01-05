@@ -18,6 +18,9 @@ export type {
   ParseResult,
   ParseError,
   FetchResult,
+  WeekNumber,
+  LessonFormat,
+  ScheduleMetadata,
 } from "../client/src/types/schedule";
 
 export { DAYS_OF_WEEK } from "../client/src/types/schedule";

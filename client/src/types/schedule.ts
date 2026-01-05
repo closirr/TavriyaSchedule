@@ -44,6 +44,16 @@ export const DAY_NAME_MAP: Record<string, DayOfWeek> = {
 };
 
 /**
+ * Week number type (1 or 2 for alternating weeks)
+ */
+export type WeekNumber = 1 | 2;
+
+/**
+ * Lesson format type (online or offline)
+ */
+export type LessonFormat = 'онлайн' | 'офлайн';
+
+/**
  * Represents a single lesson/class in the schedule
  */
 export interface Lesson {
@@ -63,6 +73,22 @@ export interface Lesson {
   group: string;
   /** Classroom/room number */
   classroom: string;
+  /** Week number (1 or 2) - optional, for alternating schedules */
+  weekNumber?: WeekNumber;
+  /** Lesson format (online/offline) - optional */
+  format?: LessonFormat;
+}
+
+/**
+ * Schedule metadata extracted from the document
+ */
+export interface ScheduleMetadata {
+  /** Current week number (1 or 2) */
+  currentWeek?: WeekNumber;
+  /** Default lesson format for the schedule */
+  defaultFormat?: LessonFormat;
+  /** Semester info (e.g., "2 семестр 2024-2025 н.р.") */
+  semester?: string;
 }
 
 /**
@@ -135,6 +161,8 @@ export interface ParseResult {
   lessons: Lesson[];
   /** Errors encountered during parsing */
   errors: ParseError[];
+  /** Metadata extracted from the schedule */
+  metadata?: ScheduleMetadata;
 }
 
 /**

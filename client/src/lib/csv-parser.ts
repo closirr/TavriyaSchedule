@@ -7,7 +7,7 @@
 
 console.log('[CSV-PARSER] Version 2.0 loaded - Vertical format parser');
 
-import type { Lesson, ParseResult, DayOfWeek } from '../types/schedule';
+import type { Lesson, ParseResult, DayOfWeek, ScheduleMetadata, WeekNumber, LessonFormat, ParseError } from '../types/schedule';
 import { DAY_NAME_MAP } from '../types/schedule';
 
 /**
@@ -46,6 +46,80 @@ function parseCSVLine(line: string): string[] {
 function isDayOfWeek(cell: string): DayOfWeek | null {
   const upper = cell.toUpperCase().trim();
   return DAY_NAME_MAP[upper] || null;
+}
+
+/**
+ * Extracts week number from text (e.g., "1 тиждень", "2-й тиждень", "тиждень 1")
+ */
+function extractWeekNumber(text: string): WeekNumber | null {
+  const normalized = text.toLowerCase().trim();
+  
+  // Match patterns like "1 тиждень", "1-й тиждень", "тиждень 1", "I тиждень", "II тиждень"
+  if (/(?:^|\s)1[-\s]?(?:й\s+)?тиждень|тиждень\s*1|^i\s+тиждень/i.test(normalized)) {
+    return 1;
+  }
+  if (/(?:^|\s)2[-\s]?(?:й\s+)?тиждень|тиждень\s*2|^ii\s+тиждень/i.test(normalized)) {
+    return 2;
+  }
+  
+  return null;
+}
+
+/**
+ * Extracts lesson format from text (online/offline)
+ */
+function extractLessonFormat(text: string): LessonFormat | null {
+  const normalized = text.toLowerCase().trim();
+  
+  if (/онлайн|online|дистанц/i.test(normalized)) {
+    return 'онлайн';
+  }
+  if (/офлайн|offline|очн|аудитор/i.test(normalized)) {
+    return 'офлайн';
+  }
+  
+  return null;
+}
+
+/**
+ * Extracts metadata from CSV header rows
+ */
+function extractMetadata(lines: string[]): ScheduleMetadata {
+  const metadata: ScheduleMetadata = {};
+  
+  // Check first 10 lines for metadata
+  const headerLines = lines.slice(0, 10);
+  
+  for (const line of headerLines) {
+    const fields = parseCSVLine(line);
+    const fullLine = fields.join(' ');
+    
+    // Extract week number
+    if (!metadata.currentWeek) {
+      const weekNum = extractWeekNumber(fullLine);
+      if (weekNum) {
+        metadata.currentWeek = weekNum;
+      }
+    }
+    
+    // Extract format
+    if (!metadata.defaultFormat) {
+      const format = extractLessonFormat(fullLine);
+      if (format) {
+        metadata.defaultFormat = format;
+      }
+    }
+    
+    // Extract semester info
+    if (!metadata.semester && /семестр|н\.?\s*р\.?|навч/i.test(fullLine)) {
+      const semesterMatch = fullLine.match(/(\d\s*семестр\s*\d{4}[-–]\d{4}\s*н\.?\s*р\.?)/i);
+      if (semesterMatch) {
+        metadata.semester = semesterMatch[1];
+      }
+    }
+  }
+  
+  return metadata;
 }
 
 
@@ -101,6 +175,7 @@ function parseGroupHeaders(headerRow: string[]): GroupColumn[] {
 
 /**
  * Parses CSV data from Google Sheets vertical format.
+ * Time slots are extracted from Monday (first day) and reused for all other days.
  */
 export function parseScheduleCSV(csv: string): ParseResult {
   const lessons: Lesson[] = [];
@@ -116,9 +191,17 @@ export function parseScheduleCSV(csv: string): ParseResult {
     return { lessons: [], errors: [{ row: 0, message: 'Not enough data rows' }] };
   }
   
+  // Extract metadata from header rows
+  const metadata = extractMetadata(lines);
+  
   let currentGroups: GroupColumn[] = [];
   let currentDay: DayOfWeek | null = null;
   let lessonIndex = 0;
+  
+  // Time slots extracted from Monday (first day) - reused for all days
+  const timeSlots: { startTime: string; endTime: string }[] = [];
+  let isFirstDay = true;
+  let currentLessonInDay = 0;
   
   for (let i = 0; i < lines.length; i++) {
     const fields = parseCSVLine(lines[i]);
@@ -146,7 +229,12 @@ export function parseScheduleCSV(csv: string): ParseResult {
     // Check for day of week
     const dayMatch = isDayOfWeek(firstCell);
     if (dayMatch) {
+      // If we're moving past Monday, mark that we've collected time slots
+      if (currentDay === 'Понеділок' && dayMatch !== 'Понеділок') {
+        isFirstDay = false;
+      }
       currentDay = dayMatch;
+      currentLessonInDay = 0; // Reset lesson counter for new day
       continue;
     }
     
@@ -154,14 +242,65 @@ export function parseScheduleCSV(csv: string): ParseResult {
     for (const field of fields) {
       const dayInField = isDayOfWeek(field);
       if (dayInField) {
+        if (currentDay === 'Понеділок' && dayInField !== 'Понеділок') {
+          isFirstDay = false;
+        }
         currentDay = dayInField;
+        currentLessonInDay = 0;
         break;
       }
     }
     
-    // Parse lesson row
+    if (!currentDay || currentGroups.length === 0) continue;
+    
+    // Try to parse time from first cell
     const timeRange = parseTimeRange(firstCell);
-    if (!timeRange || !currentDay || currentGroups.length === 0) continue;
+    
+    // Determine the time slot to use
+    let effectiveTimeRange: { startTime: string; endTime: string } | null = null;
+    
+    if (timeRange) {
+      // We have explicit time in this row
+      effectiveTimeRange = timeRange;
+      
+      // If this is Monday (first day), collect time slots
+      if (isFirstDay && currentDay === 'Понеділок') {
+        // Only add if not already in the list
+        const exists = timeSlots.some(
+          ts => ts.startTime === timeRange.startTime && ts.endTime === timeRange.endTime
+        );
+        if (!exists) {
+          timeSlots.push(timeRange);
+        }
+      }
+    } else if (!isFirstDay && timeSlots.length > 0) {
+      // No time in this row, but we have collected time slots from Monday
+      // Check if this row has lesson data (not empty)
+      const hasLessonData = currentGroups.some(group => {
+        const subject = fields[group.subjectCol]?.trim() || '';
+        const teacher = fields[group.teacherCol]?.trim() || '';
+        return subject || teacher;
+      });
+      
+      if (hasLessonData && currentLessonInDay < timeSlots.length) {
+        effectiveTimeRange = timeSlots[currentLessonInDay];
+        currentLessonInDay++;
+      }
+    }
+    
+    // If we still don't have a time range, skip this row
+    if (!effectiveTimeRange) {
+      // But if we have time, increment the counter for Monday
+      if (timeRange && isFirstDay) {
+        currentLessonInDay++;
+      }
+      continue;
+    }
+    
+    // If we used time from the row (not from slots), increment counter
+    if (timeRange) {
+      currentLessonInDay++;
+    }
     
     for (const group of currentGroups) {
       const subject = fields[group.subjectCol]?.trim() || '';
@@ -175,18 +314,22 @@ export function parseScheduleCSV(csv: string): ParseResult {
         lessons.push({
           id: `lesson-${lessonIndex++}`,
           dayOfWeek: currentDay,
-          startTime: timeRange.startTime,
-          endTime: timeRange.endTime,
+          startTime: effectiveTimeRange.startTime,
+          endTime: effectiveTimeRange.endTime,
           subject: subject || 'Невідомий предмет',
           teacher: teacher || 'Невідомий викладач',
           group: group.groupName,
           classroom: classroom || '-',
+          weekNumber: metadata.currentWeek,
+          format: metadata.defaultFormat,
         });
       }
     }
   }
   
-  return { lessons, errors };
+  console.log('[CSV-PARSER] Extracted time slots from Monday:', timeSlots);
+  
+  return { lessons, errors, metadata };
 }
 
 /**

@@ -16,6 +16,7 @@ import type {
   ScheduleFilters,
   FilterOptions,
   ScheduleStatistics,
+  ScheduleMetadata,
 } from '../types/schedule';
 import { parseScheduleCSV } from '../lib/csv-parser';
 import {
@@ -60,6 +61,8 @@ export interface UseScheduleDataReturn {
   isRefreshing: boolean;
   /** Configuration error if Google Sheets URL is not set */
   configError: string | null;
+  /** Schedule metadata (week number, format, semester) */
+  metadata: ScheduleMetadata | null;
 }
 
 
@@ -70,6 +73,7 @@ async function fetchScheduleData(): Promise<{
   lessons: Lesson[];
   fetchedAt: Date;
   parseErrors: number;
+  metadata?: ScheduleMetadata;
 }> {
   const fetchResult = await fetchGoogleSheetsCSVOrThrow();
   const parseResult = parseScheduleCSV(fetchResult.data);
@@ -97,6 +101,7 @@ async function fetchScheduleData(): Promise<{
     lessons: sortedLessons,
     fetchedAt: fetchResult.fetchedAt,
     parseErrors: parseResult.errors.length,
+    metadata: parseResult.metadata,
   };
 }
 
@@ -147,6 +152,7 @@ export function useScheduleData(): UseScheduleDataReturn {
   // Extract lessons from query data
   const lessons = data?.lessons ?? [];
   const lastUpdated = data?.fetchedAt ?? null;
+  const metadata = data?.metadata ?? null;
   
   // Calculate filter options from all lessons (Requirements 2.1)
   const filterOptions = useMemo(
@@ -202,5 +208,6 @@ export function useScheduleData(): UseScheduleDataReturn {
     refresh,
     isRefreshing: isFetching && !isLoading,
     configError,
+    metadata,
   };
 }

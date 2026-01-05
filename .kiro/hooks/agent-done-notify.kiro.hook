@@ -8,6 +8,8 @@
   },
   "then": {
     "type": "runCommand",
-    "command": "powershell -Command \"[System.Media.SystemSounds]::Asterisk.Play(); Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Агент завершил работу!', 'Kiro Agent', 'OK', 'Information')\""
-  }
+    "command": "powershell -Command \"[System.Media.SystemSounds]::Asterisk.Play(); "
+  },
+  "workspaceFolderName": "TavryaSchedule",
+  "shortName": "agent-done-notify"
 }
