@@ -11,6 +11,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 const STORAGE_KEY = 'tavriya-schedule-group';
+const SUBGROUP_STORAGE_KEY = 'tavriya-schedule-subgroup';
 import type {
   Lesson,
   ScheduleFilters,
@@ -128,11 +129,23 @@ export function useScheduleData(): UseScheduleDataReturn {
   const configResult = getConfig();
   const configError = configResult.success ? null : configResult.error.message;
   
-  // Local state for filters - initialize with saved group from localStorage
+  // Local state for filters - initialize with saved group and subgroup from localStorage
   const [filters, setFiltersState] = useState<ScheduleFilters>(() => {
     try {
       const savedGroup = localStorage.getItem(STORAGE_KEY);
-      return savedGroup ? { group: savedGroup } : {};
+      const savedSubgroup = localStorage.getItem(SUBGROUP_STORAGE_KEY);
+      
+      const initialFilters: ScheduleFilters = {};
+      
+      if (savedGroup) {
+        initialFilters.group = savedGroup;
+      }
+      
+      if (savedSubgroup && (savedSubgroup === '1' || savedSubgroup === '2')) {
+        initialFilters.subgroup = parseInt(savedSubgroup) as 1 | 2;
+      }
+      
+      return initialFilters;
     } catch {
       return {};
     }
@@ -185,16 +198,30 @@ export function useScheduleData(): UseScheduleDataReturn {
     [lessons, filters]
   );
   
-  // Memoized setFilters callback - saves only group to localStorage
+  // Memoized setFilters callback - saves group and subgroup to localStorage
   const setFilters = useCallback((newFilters: ScheduleFilters) => {
     setFiltersState(newFilters);
-    // Only save/overwrite when a GROUP is selected
-    // Teacher, classroom, search, or clearing filters should NOT affect saved group
+    
     try {
+      // Save group when selected
       if (newFilters.group) {
         localStorage.setItem(STORAGE_KEY, newFilters.group);
       }
-      // Never clear localStorage - only group selection can overwrite it
+      
+      // Save subgroup when selected, clear when set to undefined
+      if (newFilters.subgroup !== undefined) {
+        localStorage.setItem(SUBGROUP_STORAGE_KEY, newFilters.subgroup.toString());
+      } else if (newFilters.subgroup === undefined && 'subgroup' in newFilters) {
+        // Explicitly clear subgroup when set to undefined
+        localStorage.removeItem(SUBGROUP_STORAGE_KEY);
+      }
+      
+      // Clear subgroup when group changes (new group selected)
+      const currentGroup = localStorage.getItem(STORAGE_KEY);
+      if (newFilters.group && currentGroup && newFilters.group !== currentGroup) {
+        localStorage.removeItem(SUBGROUP_STORAGE_KEY);
+      }
+      
     } catch {
       // Ignore localStorage errors
     }

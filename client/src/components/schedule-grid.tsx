@@ -71,6 +71,7 @@ interface ScheduleGridProps {
   selectedClassroom?: string;
   searchQuery?: string;
   currentWeek?: WeekNumber;
+  selectedSubgroup?: SubgroupNumber;
 }
 
 /**
@@ -212,15 +213,18 @@ function LessonCard({
 /**
  * Компонент картки з поділом на підгрупи
  * Відображає дві підгрупи з горизонтальною лінією-розділювачем
+ * Або спрощений вигляд для конкретної підгрупи
  */
 function SubgroupCard({ 
   slot, 
   index, 
-  isCurrent 
+  isCurrent,
+  selectedSubgroup
 }: { 
   slot: LessonSlot; 
   index: number; 
   isCurrent: boolean;
+  selectedSubgroup?: SubgroupNumber;
 }) {
   const subgroup1 = slot.subgroup1Lesson;
   const subgroup2 = slot.subgroup2Lesson;
@@ -229,7 +233,7 @@ function SubgroupCard({
   const baseLesson = subgroup1 || subgroup2;
   if (!baseLesson) return null;
 
-  const renderSubgroupContent = (lesson: Lesson | undefined, subgroupLabel: string) => {
+  const renderSubgroupContent = (lesson: Lesson | undefined, subgroupLabel: string, showLabel: boolean = true) => {
     if (!lesson) {
       return (
         <div className="flex-1 p-2 md:p-3 flex items-center justify-center">
@@ -242,11 +246,13 @@ function SubgroupCard({
       <div className="flex-1 p-2 md:p-3">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-1 md:gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="px-1.5 py-0.5 bg-navy-100 text-navy-700 text-[10px] md:text-xs font-medium rounded">
-                {subgroupLabel}
-              </span>
-            </div>
+            {showLabel && (
+              <div className="flex items-center gap-2">
+                <span className="px-1.5 py-0.5 bg-navy-100 text-navy-700 text-[10px] md:text-xs font-medium rounded">
+                  {subgroupLabel}
+                </span>
+              </div>
+            )}
             <h4 className="font-semibold text-navy-700 text-xs md:text-sm leading-tight truncate mt-1">
               {lesson.subject}
             </h4>
@@ -267,6 +273,55 @@ function SubgroupCard({
       </div>
     );
   };
+
+  // Якщо вибрана конкретна підгрупа - показуємо спрощений вигляд
+  if (selectedSubgroup) {
+    const selectedLesson = selectedSubgroup === 1 ? subgroup1 : subgroup2;
+    if (!selectedLesson) return null;
+
+    return (
+      <Card 
+        className={`
+          border-0 shadow-sm overflow-hidden transition-all bg-white
+          ${isCurrent ? 'ring-2 ring-navy-400 shadow-lg' : ''}
+        `}
+      >
+        <div className="flex">
+          {/* Time Column */}
+          <div className="w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center bg-navy-50">
+            <div className="text-xl md:text-2xl font-bold text-navy-700">
+              {getLessonNumber(selectedLesson.startTime) || (index + 1)}
+            </div>
+            <div className="w-full my-2 border-t border-gray-400" />
+            <div className="text-base md:text-lg text-navy-700">
+              {selectedLesson.startTime}
+            </div>
+            <div className="text-xs text-gray-400">—</div>
+            <div className="text-sm text-navy-600">
+              {selectedLesson.endTime}
+            </div>
+            {isCurrent && (
+              <span className="mt-2 px-2 py-0.5 bg-navy-600 text-white text-xs rounded-full">
+                Зараз
+              </span>
+            )}
+          </div>
+
+          {/* Content - Single subgroup */}
+          <div className="flex-1 flex flex-col">
+            {renderSubgroupContent(selectedLesson, `${selectedSubgroup} підгр.`, true)}
+          </div>
+
+          {/* Group badge */}
+          <div className="flex items-center pr-3 md:pr-4">
+            <span className="px-2.5 py-1 bg-navy-100 text-navy-700 text-xs md:text-sm font-medium rounded-md">
+              {selectedLesson.group}
+            </span>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card 
@@ -326,7 +381,8 @@ export default function ScheduleGrid({
   selectedTeacher,
   selectedClassroom,
   searchQuery,
-  currentWeek 
+  currentWeek,
+  selectedSubgroup
 }: ScheduleGridProps) {
   const daysOfWeek = [
     'Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота', 'Неділя'
@@ -606,6 +662,7 @@ export default function ScheduleGrid({
                   slot={slot}
                   index={index}
                   isCurrent={isCurrentLesson(slot, selectedDay)}
+                  selectedSubgroup={selectedSubgroup}
                 />
               ) : (
                 <LessonCard 

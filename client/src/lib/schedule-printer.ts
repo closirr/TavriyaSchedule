@@ -16,6 +16,7 @@ import type { Lesson } from '@/types/schedule';
 interface PrinterLessonData {
   subject: string;
   teacher: string;
+  classroom: string;
 }
 
 /**
@@ -251,6 +252,7 @@ export function convertLessonsToPrinterFormat(
       const lessonData: PrinterLessonData = {
         subject: lesson.subject,
         teacher: lesson.teacher,
+        classroom: lesson.classroom,
       };
       
       // Ініціалізуємо комірку якщо ще не існує
@@ -577,6 +579,11 @@ function getStyles(): string {
       font-style: italic;
     }
 
+    .classroom {
+      font-size: 9px;
+      color: #666;
+    }
+
     /* Стилі для мигалок - комірок з двома предметами (тижні) */
     .split-cell {
       display: flex;
@@ -740,18 +747,22 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
             // Підгрупи - комірка з горизонтальним розділенням
             const subgroup1Subject = cell.subgroup1?.subject ? `<div class="subject">${escapeHtml(cell.subgroup1.subject).replace(/\n/g, '<br>')}</div>` : '<div class="subject">—</div>';
             const subgroup1Teacher = cell.subgroup1?.teacher ? `<div class="teacher">${escapeHtml(cell.subgroup1.teacher)}</div>` : '';
+            const subgroup1Classroom = cell.subgroup1?.classroom && cell.subgroup1.classroom.trim() ? `<div class="classroom">ауд. ${escapeHtml(cell.subgroup1.classroom)}</div>` : '';
             const subgroup2Subject = cell.subgroup2?.subject ? `<div class="subject">${escapeHtml(cell.subgroup2.subject).replace(/\n/g, '<br>')}</div>` : '<div class="subject">—</div>';
             const subgroup2Teacher = cell.subgroup2?.teacher ? `<div class="teacher">${escapeHtml(cell.subgroup2.teacher)}</div>` : '';
+            const subgroup2Classroom = cell.subgroup2?.classroom && cell.subgroup2.classroom.trim() ? `<div class="classroom">ауд. ${escapeHtml(cell.subgroup2.classroom)}</div>` : '';
             return `
               <td style="padding: 0;">
                 <div class="subgroup-cell">
                   <div class="subgroup-part subgroup1">
                     ${subgroup1Subject}
                     ${subgroup1Teacher}
+                    ${subgroup1Classroom}
                   </div>
                   <div class="subgroup-part subgroup2">
                     ${subgroup2Subject}
                     ${subgroup2Teacher}
+                    ${subgroup2Classroom}
                   </div>
                 </div>
               </td>
@@ -760,18 +771,22 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
             // Мигалка - комірка з вертикальним розділенням
             const week1Subject = cell.week1?.subject ? `<div class="subject">${escapeHtml(cell.week1.subject).replace(/\n/g, '<br>')}</div>` : '';
             const week1Teacher = cell.week1?.teacher ? `<div class="teacher">${escapeHtml(cell.week1.teacher)}</div>` : '';
+            const week1Classroom = cell.week1?.classroom && cell.week1.classroom.trim() ? `<div class="classroom">ауд. ${escapeHtml(cell.week1.classroom)}</div>` : '';
             const week2Subject = cell.week2?.subject ? `<div class="subject">${escapeHtml(cell.week2.subject).replace(/\n/g, '<br>')}</div>` : '';
             const week2Teacher = cell.week2?.teacher ? `<div class="teacher">${escapeHtml(cell.week2.teacher)}</div>` : '';
+            const week2Classroom = cell.week2?.classroom && cell.week2.classroom.trim() ? `<div class="classroom">ауд. ${escapeHtml(cell.week2.classroom)}</div>` : '';
             return `
               <td style="padding: 0;">
                 <div class="split-cell">
                   <div class="week-part week1">
                     ${week1Subject}
                     ${week1Teacher}
+                    ${week1Classroom}
                   </div>
                   <div class="week-part week2">
                     ${week2Subject}
                     ${week2Teacher}
+                    ${week2Classroom}
                   </div>
                 </div>
               </td>
@@ -780,10 +795,12 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
             // Звичайна комірка
             const singleSubject = cell.single.subject ? `<div class="subject">${escapeHtml(cell.single.subject).replace(/\n/g, '<br>')}</div>` : '';
             const singleTeacher = cell.single.teacher ? `<div class="teacher">${escapeHtml(cell.single.teacher)}</div>` : '';
+            const singleClassroom = cell.single.classroom && cell.single.classroom.trim() ? `<div class="classroom">ауд. ${escapeHtml(cell.single.classroom)}</div>` : '';
             return `
               <td>
                 ${singleSubject}
                 ${singleTeacher}
+                ${singleClassroom}
               </td>
             `;
           }

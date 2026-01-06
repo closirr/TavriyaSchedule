@@ -98,7 +98,8 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
   const updateFilters = (searchTerm: string, type?: 'group' | 'teacher' | 'classroom') => {
     const newFilters: ScheduleFilters = {
       weekNumber: filters.weekNumber,
-      subgroup: filters.subgroup,
+      // Скидаємо підгрупу при виборі нової групи
+      subgroup: type === 'group' ? undefined : filters.subgroup,
       search: !type ? searchTerm.trim() || undefined : undefined,
       group: type === 'group' ? searchTerm : undefined,
       teacher: type === 'teacher' ? searchTerm : undefined,

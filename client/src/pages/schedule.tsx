@@ -91,7 +91,8 @@ export default function Schedule() {
           selectedTeacher={filters.teacher}
           selectedClassroom={filters.classroom}
           searchQuery={filters.search}
-          currentWeek={currentWeek} 
+          currentWeek={currentWeek}
+          selectedSubgroup={filters.subgroup}
         />
       </div>
 
