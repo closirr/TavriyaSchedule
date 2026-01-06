@@ -394,15 +394,6 @@ function buildLessonVariants(
   const teacherAlternatives = splitAlternatingValues(teacher);
   const classroomAlternatives = splitAlternatingValues(classroom);
 
-  console.log(`[CSV-PARSER] buildLessonVariants input: subject="${subject}", teacher="${teacher}", classroom="${classroom}"`);
-  
-  // Special debug for the problematic lesson
-  if (subject.includes('Автоматизований') || subject.includes('Технічні засоби')) {
-    console.log(`[CSV-PARSER] *** FOUND TARGET LESSON: subject="${subject}", teacher="${teacher}"`);
-  }
-  
-  console.log(`[CSV-PARSER] buildLessonVariants alternatives: subject=${JSON.stringify(subjectAlternatives)}, teacher=${JSON.stringify(teacherAlternatives)}, classroom=${JSON.stringify(classroomAlternatives)}`);
-
   // If any field has two alternatives – treat as alternating weeks
   if (subjectAlternatives || teacherAlternatives || classroomAlternatives) {
     const [subject1, subject2] = subjectAlternatives ?? [subject, subject];
@@ -419,8 +410,7 @@ function buildLessonVariants(
     const isEmpty1 = isEmptyLesson(cleanSubject1) && isEmptyLesson(cleanTeacher1);
     const isEmpty2 = isEmptyLesson(cleanSubject2) && isEmptyLesson(cleanTeacher2);
 
-    console.log(`[CSV-PARSER] buildLessonVariants check: cleanSubject1="${cleanSubject1}", cleanSubject2="${cleanSubject2}"`);
-    console.log(`[CSV-PARSER] buildLessonVariants check: isEmpty1=${isEmpty1}, isEmpty2=${isEmpty2}`);
+
 
     // If both are empty, don't create any lessons
     if (isEmpty1 && isEmpty2) {
@@ -449,7 +439,6 @@ function buildLessonVariants(
       });
     }
     
-    console.log(`[CSV-PARSER] buildLessonVariants SPLIT result:`, result);
     return result;
   }
 

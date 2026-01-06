@@ -179,10 +179,10 @@ export function useScheduleData(): UseScheduleDataReturn {
   );
   
   // Apply filters to lessons (Requirements 2.2, 2.3, 2.4, 2.5)
-  // Always include currentWeek in filters for proper week-based filtering
+  // DON'T filter by week here - let schedule-grid handle week display for alternating lessons
   const filteredLessons = useMemo(
-    () => filterLessons(lessons, { ...filters, weekNumber: filters.weekNumber ?? currentWeek }),
-    [lessons, filters, currentWeek]
+    () => filterLessons(lessons, { ...filters }),
+    [lessons, filters]
   );
   
   // Memoized setFilters callback - saves only group to localStorage

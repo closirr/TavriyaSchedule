@@ -580,10 +580,16 @@ function getStyles(): string {
     .day-table th,
     .day-table td {
       border: 1px solid #000;
-      padding: 2px 3px;
+      padding: 4px 3px;
       text-align: center;
       vertical-align: middle;
       word-wrap: break-word;
+      height: 100%;
+    }
+    
+    .day-table th {
+      background-color: #e8f4fc;
+      font-weight: bold;
     }`;
 }
 
