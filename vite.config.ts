@@ -4,8 +4,12 @@ import path from "path";
 
 // Static site configuration for Tavriya Schedule
 // Google Sheets URL is configured via VITE_GOOGLE_SHEETS_URL environment variable
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  // Remove console.log in production
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -42,4 +46,4 @@ export default defineConfig({
   // Environment variables - VITE_GOOGLE_SHEETS_URL is automatically available
   // via import.meta.env.VITE_GOOGLE_SHEETS_URL in client code
   envPrefix: 'VITE_',
-});
+}));
