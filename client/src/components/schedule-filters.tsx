@@ -50,6 +50,12 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
     const searchLower = search.toLowerCase();
     const newSuggestions: SearchSuggestion[] = [];
 
+    // Debug: log filter options (only once per search session)
+    if (search.length === 1) {
+      console.log('[SEARCH] All teachers:', filterOptions.teachers);
+      console.log('[SEARCH] All classrooms:', filterOptions.classrooms);
+    }
+
     // Add group suggestions (from 1 character)
     filterOptions.groups.forEach((group: string) => {
       if (group.toLowerCase().includes(searchLower)) {
@@ -237,7 +243,6 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
         <WeekFormatIndicator
           metadata={metadata ?? null}
           currentWeek={currentWeek}
-          isWeekManual={isWeekManual}
           isLoading={isLoading}
         />
       </div>

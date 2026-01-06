@@ -19,12 +19,27 @@ interface PrinterLessonData {
 }
 
 /**
+ * Дані для комірки - може бути звичайний урок або "мигалка" (split)
+ * Мигалка - комірка розділена вертикальною лінією:
+ * - ліва частина (week1) - предмет для 1-го тижня (чисельник)
+ * - права частина (week2) - предмет для 2-го тижня (знаменник)
+ */
+interface PrinterCellData {
+  /** Звичайний урок (без розділення по тижнях) */
+  single?: PrinterLessonData;
+  /** Урок для 1-го тижня (ліва частина мигалки) */
+  week1?: PrinterLessonData;
+  /** Урок для 2-го тижня (права частина мигалки) */
+  week2?: PrinterLessonData;
+}
+
+/**
  * Дані для одного слоту часу
  */
 interface PrinterTimeSlot {
   number: number;
   time: string;
-  groups: Record<string, PrinterLessonData>;
+  groups: Record<string, PrinterCellData>;
 }
 
 /**
@@ -57,8 +72,8 @@ const DEFAULT_CONFIG: PrinterConfig = {
  * 
  * Логіка:
  * - Навчальний рік: вересень поточного року - червень наступного року
- * - 1 семестр: вересень - січень
- * - 2 семестр: лютий - червень
+ * - 1 семестр: вересень - грудень
+ * - 2 семестр: січень - червень
  * - Літо (липень-серпень): показуємо наступний навчальний рік, 1 семестр
  * 
  * @returns Рядок у форматі "X семестр YYYY–YYYY н.р."
@@ -77,13 +92,8 @@ export function getCurrentSemesterString(): string {
     semester = 1;
     academicYearStart = year;
     academicYearEnd = year + 1;
-  } else if (month === 0) {
-    // Січень: ще 1 семестр (сесія)
-    semester = 1;
-    academicYearStart = year - 1;
-    academicYearEnd = year;
-  } else if (month >= 1 && month <= 5) {
-    // Лютий - Червень: 2 семестр
+  } else if (month >= 0 && month <= 5) {
+    // Січень - Червень: 2 семестр
     semester = 2;
     academicYearStart = year - 1;
     academicYearEnd = year;
@@ -211,11 +221,46 @@ export function convertLessonsToPrinterFormat(
     const slot = daySchedule.find(s => s.number === lessonNumber);
     
     if (slot) {
-      slot.groups[lesson.group] = {
+      const lessonData: PrinterLessonData = {
         subject: lesson.subject,
         teacher: lesson.teacher,
       };
+      
+      // Ініціалізуємо комірку якщо ще не існує
+      if (!slot.groups[lesson.group]) {
+        slot.groups[lesson.group] = {};
+      }
+      
+      const cell = slot.groups[lesson.group];
+      
+      if (lesson.weekNumber === 1) {
+        // Урок для 1-го тижня (ліва частина мигалки)
+        cell.week1 = lessonData;
+        console.log(`[PRINTER] Week 1 lesson: ${lesson.group} - ${lesson.subject} (${lesson.dayOfWeek} ${lesson.startTime})`);
+      } else if (lesson.weekNumber === 2) {
+        // Урок для 2-го тижня (права частина мигалки)
+        cell.week2 = lessonData;
+        console.log(`[PRINTER] Week 2 lesson: ${lesson.group} - ${lesson.subject} (${lesson.dayOfWeek} ${lesson.startTime})`);
+      } else {
+        // Звичайний урок без розділення по тижнях
+        cell.single = lessonData;
+      }
+      
       matchedLessons++;
+    }
+  }
+  
+  // Debug: показати всі мигалки
+  for (const [day, slots] of Object.entries(schedule)) {
+    for (const slot of slots) {
+      for (const [group, cell] of Object.entries(slot.groups)) {
+        if (cell.week1 || cell.week2) {
+          console.log(`[PRINTER] Split cell found: ${day} ${slot.time} ${group}`, {
+            week1: cell.week1,
+            week2: cell.week2,
+          });
+        }
+      }
     }
   }
   
@@ -254,8 +299,20 @@ function escapeHtml(text: string): string {
 function getStyles(): string {
   return `
     @page {
-      size: A4 portrait;
+      size: A4 landscape;
       margin: 10mm;
+      /* Прибираємо стандартні колонтитули браузера */
+      margin-top: 10mm;
+      margin-bottom: 10mm;
+    }
+    
+    @page {
+      @top-left { content: none; }
+      @top-center { content: none; }
+      @top-right { content: none; }
+      @bottom-left { content: none; }
+      @bottom-center { content: none; }
+      @bottom-right { content: none; }
     }
     
     .section-separator {
@@ -321,6 +378,41 @@ function getStyles(): string {
         page-break-before: auto;
         break-before: auto;
       }
+      
+      /* Заборона розриву рядків таблиці */
+      tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      
+      td, th {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      
+      .schedule-block {
+        page-break-inside: auto;
+      }
+      
+      .day-table {
+        page-break-inside: auto;
+      }
+      
+      /* Заголовок таблиці не відривається від даних */
+      thead {
+        display: table-header-group;
+      }
+      
+      /* Підписи не відриваються від таблиці */
+      .signatures-block {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      
+      .section-separator {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
     }
 
     * { box-sizing: border-box; }
@@ -382,6 +474,37 @@ function getStyles(): string {
       cursor: pointer;
     }
 
+    .print-controls {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .print-hint {
+      position: fixed;
+      top: 15px;
+      left: 100px;
+      z-index: 1000;
+      margin: 0;
+      font-size: 11px;
+      color: #666;
+      max-width: 350px;
+      background: #fff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    @media print {
+      .print-controls { display: none; }
+      .print-hint { display: none; }
+    }
+
     .col-days { width: 26px; }
     .col-number { width: 20px; }
     .col-time { width: 60px; }
@@ -395,6 +518,10 @@ function getStyles(): string {
 
     .time-cell { font-size: 10px; }
 
+    .day-separator td {
+      border-top: 2px solid #000;
+    }
+
     .subject {
       font-size: 11px;
       font-weight: bold;
@@ -402,6 +529,32 @@ function getStyles(): string {
 
     .teacher {
       font-size: 9px;
+      font-style: italic;
+    }
+
+    /* Стилі для мигалок - комірок з двома предметами */
+    .split-cell {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      min-height: 40px;
+    }
+    
+    .split-cell .week-part {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2px;
+    }
+    
+    .split-cell .week-part.week1 {
+      border-right: 1px solid #000;
+    }
+    
+    .split-cell .week-part.week2 {
+      /* права частина без додаткової границі */
     }
 
     .day-block {
@@ -409,12 +562,15 @@ function getStyles(): string {
       break-inside: avoid;
     }
     
+    .schedule-block {
+      margin-bottom: 5px;
+    }
+    
     .day-table {
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
       border: 2px solid #000;
-      margin-bottom: 5px;
     }
     
     .day-table th,
@@ -469,14 +625,11 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
       `;
     }
 
-    // Генеруємо таблиці для всіх днів
-    printDays.forEach((day) => {
-      const lessons = scheduleData.schedule[day];
-      if (!lessons || lessons.length === 0) return;
-
-      html += `
-        <div class="day-block">
-          <table class="day-table">
+    // Генеруємо одну таблицю для всіх днів
+    html += `
+      <div class="schedule-block">
+        <table class="day-table">
+          <thead>
             <tr>
               <th class="col-days" rowspan="2">Дні</th>
               <th class="col-number" rowspan="2">№</th>
@@ -486,23 +639,62 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
             <tr>
               ${groups.map(g => `<th>${escapeHtml(g)}</th>`).join('')}
             </tr>
-            ${lessons.map((lesson, li) => `
-              <tr>
-                ${li === 0 ? `<td class="day-cell" rowspan="${lessons.length}">${day}</td>` : ''}
-                <td>${lesson.number}</td>
-                <td class="time-cell">${lesson.time}</td>
-                ${groups.map(group => `
-                  <td>
-                    ${lesson.groups[group]?.subject ? `<div class="subject">${escapeHtml(lesson.groups[group].subject).replace(/\n/g, '<br>')}</div>` : ''}
-                    ${lesson.groups[group]?.teacher ? `<div class="teacher">${escapeHtml(lesson.groups[group].teacher)}</div>` : ''}
-                  </td>
-                `).join('')}
-              </tr>
-            `).join('')}
-          </table>
-        </div>
-      `;
+          </thead>
+          <tbody>
+    `;
+
+    printDays.forEach((day, dayIndex) => {
+      const lessons = scheduleData.schedule[day];
+      if (!lessons || lessons.length === 0) return;
+
+      html += lessons.map((lesson, li) => `
+        <tr class="${li === 0 && dayIndex > 0 ? 'day-separator' : ''}">
+          ${li === 0 ? `<td class="day-cell" rowspan="${lessons.length}">${day}</td>` : ''}
+          <td>${lesson.number}</td>
+          <td class="time-cell">${lesson.time}</td>
+          ${groups.map(group => {
+            const cell = lesson.groups[group];
+            if (!cell) return '<td></td>';
+            
+            // Перевіряємо чи це мигалка (є week1 або week2)
+            const isSplit = cell.week1 || cell.week2;
+            
+            if (isSplit) {
+              // Мигалка - комірка з вертикальним розділенням
+              return `
+                <td style="padding: 0;">
+                  <div class="split-cell">
+                    <div class="week-part week1">
+                      ${cell.week1?.subject ? `<div class="subject">${escapeHtml(cell.week1.subject).replace(/\n/g, '<br>')}</div>` : ''}
+                      ${cell.week1?.teacher ? `<div class="teacher">${escapeHtml(cell.week1.teacher)}</div>` : ''}
+                    </div>
+                    <div class="week-part week2">
+                      ${cell.week2?.subject ? `<div class="subject">${escapeHtml(cell.week2.subject).replace(/\n/g, '<br>')}</div>` : ''}
+                      ${cell.week2?.teacher ? `<div class="teacher">${escapeHtml(cell.week2.teacher)}</div>` : ''}
+                    </div>
+                  </div>
+                </td>
+              `;
+            } else if (cell.single) {
+              // Звичайна комірка
+              return `
+                <td>
+                  ${cell.single.subject ? `<div class="subject">${escapeHtml(cell.single.subject).replace(/\n/g, '<br>')}</div>` : ''}
+                  ${cell.single.teacher ? `<div class="teacher">${escapeHtml(cell.single.teacher)}</div>` : ''}
+                </td>
+              `;
+            }
+            return '<td></td>';
+          }).join('')}
+        </tr>
+      `).join('');
     });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
   });
 
   // Додаємо підписи в кінці останнього блоку
@@ -552,7 +744,10 @@ ${getStyles()}
   </style>
 </head>
 <body>
-<button id="printBtn" onclick="window.print()">Друк</button>
+<div class="print-controls">
+  <button id="printBtn" onclick="window.print()">Друк</button>
+  <p class="print-hint">При друку вимкніть "Колонтитули" (Headers and footers) в налаштуваннях</p>
+</div>
 
 <div id="wrapper">
   <div class="top-line">
@@ -577,6 +772,7 @@ ${getStyles()}
 
   /**
    * Відкриває нове вікно з HTML для друку
+   * Користувач може натиснути кнопку "Друк" на сторінці для друку
    */
   print(scheduleData: PrinterScheduleData): void {
     const printContent = this.generateHTML(scheduleData);
@@ -584,10 +780,6 @@ ${getStyles()}
     if (printWindow) {
       printWindow.document.write(printContent);
       printWindow.document.close();
-
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
     }
   }
 }

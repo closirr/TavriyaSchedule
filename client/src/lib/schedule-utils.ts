@@ -51,6 +51,10 @@ export function getEffectiveWeek(manualWeek?: WeekNumber | null, date: Date = ne
  * Filters lessons based on the provided filter criteria.
  * All filter conditions are applied simultaneously (AND logic).
  * 
+ * Special handling for "мигалки" (alternating week lessons):
+ * - If both weeks have lessons in the same slot → show only current week
+ * - If only one week has a lesson (other is empty) → show it (will be styled as "other week")
+ * 
  * @param lessons - Array of lessons to filter
  * @param filters - Filter criteria to apply
  * @returns Filtered array of lessons matching all criteria
@@ -62,10 +66,32 @@ export function filterLessons(lessons: Lesson[], filters: ScheduleFilters): Less
     return [];
   }
 
+  // Build a map of lesson slots to check for "мигалки" pairs
+  // Key: "day-startTime-group", Value: array of weekNumbers present
+  const slotWeekMap = new Map<string, Set<WeekNumber>>();
+  
+  for (const lesson of lessons) {
+    if (lesson.weekNumber) {
+      const slotKey = `${lesson.dayOfWeek}-${lesson.startTime}-${lesson.group}`;
+      if (!slotWeekMap.has(slotKey)) {
+        slotWeekMap.set(slotKey, new Set());
+      }
+      slotWeekMap.get(slotKey)!.add(lesson.weekNumber);
+    }
+  }
+
   return lessons.filter(lesson => {
-    // Week filter (only hide mismatched explicit weeks; lessons without weekNumber are shown for both)
+    // Week filter with "мигалка" logic
     if (filters.weekNumber && lesson.weekNumber && lesson.weekNumber !== filters.weekNumber) {
-      return false;
+      // This lesson is for a different week - check if there's a pair for current week
+      const slotKey = `${lesson.dayOfWeek}-${lesson.startTime}-${lesson.group}`;
+      const weeksInSlot = slotWeekMap.get(slotKey);
+      
+      // If both weeks have lessons in this slot, hide the non-current week lesson
+      if (weeksInSlot && weeksInSlot.has(filters.weekNumber)) {
+        return false;
+      }
+      // Otherwise, keep it (will be shown as "other week" with styling)
     }
 
     // Group filter

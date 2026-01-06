@@ -115,11 +115,19 @@ export function extractWeekNumber(text: string): WeekNumber | null {
 export function extractLessonFormat(text: string): LessonFormat | null {
   const normalized = text.toLowerCase().trim();
   
+  // Skip header text that contains both options like "онлайн або оффлайн"
+  if (/онлайн\s+(або|чи|\/)\s+оф{1,2}лайн/i.test(normalized) || 
+      /оф{1,2}лайн\s+(або|чи|\/)\s+онлайн/i.test(normalized)) {
+    return null;
+  }
+  
+  // Check for offline first (more specific patterns)
+  if (/оф{1,2}лайн|offline|очн|аудитор/i.test(normalized)) {
+    return 'офлайн';
+  }
+  // Then check for online
   if (/онлайн|online|дистанц/i.test(normalized)) {
     return 'онлайн';
-  }
-  if (/офлайн|offline|очн|аудитор/i.test(normalized)) {
-    return 'офлайн';
   }
   
   return null;
@@ -148,6 +156,7 @@ function splitAlternatingValues(value: string): [string, string] | null {
   // Explicit "1 тиждень ... / 2 тиждень ..." pattern
   const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.*?)\/\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.*)/i);
   if (explicitMatch) {
+    console.log(`[CSV-PARSER] splitAlternatingValues explicit match: "${value}" -> ["${explicitMatch[1]}", "${explicitMatch[2]}"]`);
     return [explicitMatch[1]?.trim() ?? '', explicitMatch[2]?.trim() ?? ''];
   }
 
@@ -155,6 +164,7 @@ function splitAlternatingValues(value: string): [string, string] | null {
   if (normalized.includes('/')) {
     const parts = normalized.split('/').map(p => p.trim());
     if (parts.length >= 2) {
+      console.log(`[CSV-PARSER] splitAlternatingValues "/" split: "${value}" -> ["${parts[0]}", "${parts[1]}"]`);
       return [parts[0] ?? '', parts[1] ?? ''];
     }
   }
@@ -180,17 +190,19 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
   for (let rowIdx = 0; rowIdx < Math.min(5, lines.length); rowIdx++) {
     const fields = parseCSVLine(lines[rowIdx]);
     
-    // Check columns D, E, F (indices 3, 4, 5) for week value
-    for (let colIdx = 3; colIdx <= 5; colIdx++) {
+    // Check columns D, E, F, G (indices 3, 4, 5, 6) for week value
+    for (let colIdx = 3; colIdx <= 6; colIdx++) {
       const cell = fields[colIdx]?.trim() || '';
       if (!cell) continue;
       
       const cellLower = cell.toLowerCase();
-      if (cellLower === 'перший' || cellLower === '1' || cellLower === 'i' || cellLower === 'непарний') {
+      console.log(`[CSV-PARSER] Checking cell [${rowIdx + 1}, ${colIdx + 1}]: "${cell}" -> "${cellLower}"`);
+      
+      if (cellLower === 'перший' || cellLower === '1' || cellLower === 'i' || cellLower === 'непарний' || cellLower === 'перша') {
         metadata.currentWeek = 1;
         console.log(`[CSV-PARSER] Week found: 1 ("${cell}" at row ${rowIdx + 1}, col ${colIdx + 1})`);
         break;
-      } else if (cellLower === 'другий' || cellLower === '2' || cellLower === 'ii' || cellLower === 'парний') {
+      } else if (cellLower === 'другий' || cellLower === '2' || cellLower === 'ii' || cellLower === 'парний' || cellLower === 'друга') {
         metadata.currentWeek = 2;
         console.log(`[CSV-PARSER] Week found: 2 ("${cell}" at row ${rowIdx + 1}, col ${colIdx + 1})`);
         break;
@@ -357,8 +369,21 @@ function parseFlatScheduleCSV(lines: string[], headerMap: FlatHeaderMap): ParseR
 }
 
 /**
+ * Checks if a value represents "no lesson" (empty, dash, etc.)
+ */
+function isEmptyLesson(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return !normalized || normalized === '-' || normalized === '—' || normalized === '–';
+}
+
+/**
  * Builds lesson variants for a cell that may contain alternating week content.
  * Returns one or two lessons with explicit weekNumber when applicable.
+ * 
+ * Logic:
+ * - If both weeks have content: create 2 lessons with weekNumber 1 and 2
+ * - If only one week has content (other is "-" or empty): create 1 lesson with that weekNumber
+ * - If no alternation: create 1 lesson without weekNumber
  */
 function buildLessonVariants(
   subject: string,
@@ -369,26 +394,63 @@ function buildLessonVariants(
   const teacherAlternatives = splitAlternatingValues(teacher);
   const classroomAlternatives = splitAlternatingValues(classroom);
 
+  console.log(`[CSV-PARSER] buildLessonVariants input: subject="${subject}", teacher="${teacher}", classroom="${classroom}"`);
+  
+  // Special debug for the problematic lesson
+  if (subject.includes('Автоматизований') || subject.includes('Технічні засоби')) {
+    console.log(`[CSV-PARSER] *** FOUND TARGET LESSON: subject="${subject}", teacher="${teacher}"`);
+  }
+  
+  console.log(`[CSV-PARSER] buildLessonVariants alternatives: subject=${JSON.stringify(subjectAlternatives)}, teacher=${JSON.stringify(teacherAlternatives)}, classroom=${JSON.stringify(classroomAlternatives)}`);
+
   // If any field has two alternatives – treat as alternating weeks
   if (subjectAlternatives || teacherAlternatives || classroomAlternatives) {
     const [subject1, subject2] = subjectAlternatives ?? [subject, subject];
     const [teacher1, teacher2] = teacherAlternatives ?? [teacher, teacher];
     const [classroom1, classroom2] = classroomAlternatives ?? [classroom, classroom];
 
-    return [
-      {
-        subject: stripWeekMarkers(subject1) || 'Невідомий предмет',
-        teacher: stripWeekMarkers(teacher1) || 'Невідомий викладач',
-        classroom: stripWeekMarkers(classroom1) || '-',
-        weekNumber: 1,
-      },
-      {
-        subject: stripWeekMarkers(subject2) || stripWeekMarkers(subject1) || 'Невідомий предмет',
-        teacher: stripWeekMarkers(teacher2) || stripWeekMarkers(teacher1) || 'Невідомий викладач',
-        classroom: stripWeekMarkers(classroom2) || stripWeekMarkers(classroom1) || '-',
-        weekNumber: 2,
-      },
-    ];
+    const cleanSubject1 = stripWeekMarkers(subject1);
+    const cleanSubject2 = stripWeekMarkers(subject2);
+    const cleanTeacher1 = stripWeekMarkers(teacher1);
+    const cleanTeacher2 = stripWeekMarkers(teacher2);
+    const cleanClassroom1 = stripWeekMarkers(classroom1);
+    const cleanClassroom2 = stripWeekMarkers(classroom2);
+
+    const isEmpty1 = isEmptyLesson(cleanSubject1) && isEmptyLesson(cleanTeacher1);
+    const isEmpty2 = isEmptyLesson(cleanSubject2) && isEmptyLesson(cleanTeacher2);
+
+    console.log(`[CSV-PARSER] buildLessonVariants check: cleanSubject1="${cleanSubject1}", cleanSubject2="${cleanSubject2}"`);
+    console.log(`[CSV-PARSER] buildLessonVariants check: isEmpty1=${isEmpty1}, isEmpty2=${isEmpty2}`);
+
+    // If both are empty, don't create any lessons
+    if (isEmpty1 && isEmpty2) {
+      return [];
+    }
+
+    const result: Array<{ subject: string; teacher: string; classroom: string; weekNumber?: WeekNumber }> = [];
+
+    // Create lesson for week 1 only if it has content
+    if (!isEmpty1) {
+      result.push({
+        subject: cleanSubject1 || 'Невідомий предмет',
+        teacher: cleanTeacher1 || 'Невідомий викладач',
+        classroom: cleanClassroom1 || '-',
+        weekNumber: 1 as WeekNumber,
+      });
+    }
+
+    // Create lesson for week 2 only if it has content
+    if (!isEmpty2) {
+      result.push({
+        subject: cleanSubject2 || 'Невідомий предмет',
+        teacher: cleanTeacher2 || 'Невідомий викладач',
+        classroom: cleanClassroom2 || '-',
+        weekNumber: 2 as WeekNumber,
+      });
+    }
+    
+    console.log(`[CSV-PARSER] buildLessonVariants SPLIT result:`, result);
+    return result;
   }
 
   // No explicit alternation – check if the text contains a single week marker

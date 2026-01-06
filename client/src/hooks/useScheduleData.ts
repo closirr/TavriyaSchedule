@@ -179,9 +179,10 @@ export function useScheduleData(): UseScheduleDataReturn {
   );
   
   // Apply filters to lessons (Requirements 2.2, 2.3, 2.4, 2.5)
+  // Always include currentWeek in filters for proper week-based filtering
   const filteredLessons = useMemo(
-    () => filterLessons(lessons, filters),
-    [lessons, filters]
+    () => filterLessons(lessons, { ...filters, weekNumber: filters.weekNumber ?? currentWeek }),
+    [lessons, filters, currentWeek]
   );
   
   // Memoized setFilters callback - saves only group to localStorage

@@ -8,10 +8,10 @@ interface WeekFormatIndicatorProps {
   isLoading?: boolean;
 }
 
-export default function WeekFormatIndicator({ metadata, currentWeek, isWeekManual, isLoading }: WeekFormatIndicatorProps) {
+export default function WeekFormatIndicator({ metadata, currentWeek, isLoading }: Omit<WeekFormatIndicatorProps, 'isWeekManual'>) {
   if (isLoading) {
     return (
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
         <div className="h-5 w-24 bg-gray-200 rounded animate-pulse" />
       </div>
@@ -21,23 +21,20 @@ export default function WeekFormatIndicator({ metadata, currentWeek, isWeekManua
   const format = metadata?.defaultFormat;
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
       {/* Week indicator */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-navy-50 dark:bg-navy-900/30 rounded-lg flex items-center justify-center">
           <Calendar className="w-4 h-4 text-navy-600 dark:text-navy-400" />
         </div>
-        <span className="text-sm font-medium text-navy-700 dark:text-navy-300 leading-snug">
+        <span className="text-sm font-medium text-navy-700 dark:text-navy-300">
           {currentWeek}-й тиждень
         </span>
       </div>
 
       {/* Format indicator */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-gray-500 dark:text-gray-400 leading-snug">
-          <span className="block sm:inline">Формат</span>{" "}
-          <span className="block sm:inline">навчання:</span>
-        </span>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">навчаємось:</span>
         {format === 'онлайн' ? (
           <>
             <div className="w-8 h-8 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center">

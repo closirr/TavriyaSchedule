@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { GraduationCap, Printer } from "lucide-react";
 import ScheduleFilters from "@/components/schedule-filters";
 import ScheduleGrid from "@/components/schedule-grid";
@@ -21,15 +20,8 @@ export default function Schedule() {
   } = useScheduleData();
   const { toast } = useToast();
 
-  // Автовибір тижня з метаданих (якщо не вибрано вручну)
-  useEffect(() => {
-    if (currentWeek && !filters.weekNumber) {
-      setFilters({ ...filters, weekNumber: currentWeek });
-    }
-  }, [currentWeek, filters, setFilters]);
-
   const handlePrint = () => {
-    // Друкуємо всі групи, але з урахуванням вибраного тижня
+    // Друкуємо всі групи з усіма уроками (включаючи мигалки для обох тижнів)
     if (lessons.length === 0) {
       toast({
         title: "Помилка",
@@ -39,12 +31,10 @@ export default function Schedule() {
       return;
     }
 
-    const lessonsForPrint = filters.weekNumber
-      ? lessons.filter(lesson => !lesson.weekNumber || lesson.weekNumber === filters.weekNumber)
-      : lessons;
-
+    // Для друку передаємо ВСІ уроки, щоб мигалки відображалися правильно
+    // (уроки з weekNumber: 1 та weekNumber: 2 об'єднуються в одну комірку)
     const printerData = convertLessonsToPrinterFormat(
-      lessonsForPrint
+      lessons
       // семестр визначається автоматично
     );
     
@@ -94,8 +84,25 @@ export default function Schedule() {
         />
 
         {/* Schedule Grid */}
-        <ScheduleGrid lessons={filteredLessons} isLoading={isLoading} selectedGroup={filters.group} />
+        <ScheduleGrid 
+          lessons={filteredLessons} 
+          isLoading={isLoading} 
+          selectedGroup={filters.group} 
+          selectedTeacher={filters.teacher}
+          selectedClassroom={filters.classroom}
+          searchQuery={filters.search}
+          currentWeek={currentWeek} 
+        />
       </div>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <p className="text-center text-sm text-gray-500">
+            © 2026 ВСП «КФКМГ ТНУ ім.В.І.Вернадського». Київ, Україна
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

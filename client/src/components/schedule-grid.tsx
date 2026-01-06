@@ -1,15 +1,64 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, MapPin, User, Users } from "lucide-react";
-import type { Lesson } from "@/types/schedule";
+import type { Lesson, WeekNumber } from "@/types/schedule";
+
+/**
+ * Маппінг часу початку пари до номера пари
+ * Стандартний розклад дзвінків
+ */
+const LESSON_TIME_TO_NUMBER: Record<string, number> = {
+  '09:00': 1,
+  '9:00': 1,
+  '10:30': 2,
+  '12:30': 3,
+  '14:00': 4,
+  '15:30': 5,
+};
+
+/**
+ * Визначає номер пари за часом початку
+ */
+function getLessonNumber(startTime: string): number | null {
+  // Спробуємо знайти точний збіг
+  if (LESSON_TIME_TO_NUMBER[startTime]) {
+    return LESSON_TIME_TO_NUMBER[startTime];
+  }
+  
+  // Спробуємо без провідного нуля
+  const withoutLeadingZero = startTime.replace(/^0/, '');
+  if (LESSON_TIME_TO_NUMBER[withoutLeadingZero]) {
+    return LESSON_TIME_TO_NUMBER[withoutLeadingZero];
+  }
+  
+  // Спробуємо з провідним нулем
+  const withLeadingZero = startTime.replace(/^(\d):/, '0$1:');
+  if (LESSON_TIME_TO_NUMBER[withLeadingZero]) {
+    return LESSON_TIME_TO_NUMBER[withLeadingZero];
+  }
+  
+  return null;
+}
 
 interface ScheduleGridProps {
   lessons: Lesson[];
   isLoading: boolean;
   selectedGroup?: string;
+  selectedTeacher?: string;
+  selectedClassroom?: string;
+  searchQuery?: string;
+  currentWeek?: WeekNumber;
 }
 
-export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: ScheduleGridProps) {
+export default function ScheduleGrid({ 
+  lessons, 
+  isLoading, 
+  selectedGroup, 
+  selectedTeacher,
+  selectedClassroom,
+  searchQuery,
+  currentWeek 
+}: ScheduleGridProps) {
   const daysOfWeek = [
     'Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота', 'Неділя'
   ];
@@ -19,14 +68,17 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
     return today === 0 ? 6 : today - 1; // Convert Sunday=0 to index 6
   });
 
-  if (!selectedGroup && !isLoading) {
+  // Check if any filter is active
+  const hasActiveFilter = selectedGroup || selectedTeacher || selectedClassroom || searchQuery;
+
+  if (!hasActiveFilter && !isLoading) {
     return (
       <div className="mb-8 p-12 bg-white rounded-2xl border border-gray-200 text-center">
         <div className="w-16 h-16 bg-navy-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Users className="w-8 h-8 text-navy-600" />
         </div>
-        <p className="text-gray-600 text-lg font-medium">Оберіть групу для перегляду розкладу</p>
-        <p className="text-gray-400 text-sm mt-2">Використайте фільтр вище</p>
+        <p className="text-gray-600 text-lg font-medium">Оберіть групу, викладача або аудиторію</p>
+        <p className="text-gray-400 text-sm mt-2">Використайте пошук вище</p>
       </div>
     );
   }
@@ -101,10 +153,14 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
                 px-3 py-2.5 rounded-lg font-medium transition-all min-w-[90px] relative text-center
                 ${isToday
                   ? isSelected
-                    ? 'bg-blue-50 text-navy-700 border-[3px] border-navy-600'
-                    : 'bg-blue-50 text-navy-700 border-2 border-blue-300 hover:bg-blue-100'
+                    ? hasLessons 
+                      ? 'bg-blue-50 text-navy-700 border-[3px] border-navy-600'
+                      : 'bg-gray-100 text-navy-700 border-[3px] border-navy-600'
+                    : hasLessons
+                      ? 'bg-blue-50 text-navy-700 border-2 border-blue-300 hover:bg-blue-100'
+                      : 'bg-gray-100 text-navy-700 border-2 border-blue-300 hover:bg-gray-200'
                   : isSelected
-                    ? 'bg-white text-navy-700 border-[3px] border-navy-600 hover:border-navy-700'
+                    ? 'bg-white text-navy-700 border-[3px] border-navy-600'
                     : hasLessons
                       ? 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
                       : 'bg-gray-100 text-gray-400'
@@ -143,8 +199,12 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
                     px-4 py-3 rounded-xl font-medium transition-all min-w-[100px] flex-shrink-0 relative
                     ${isToday
                       ? isSelected
-                        ? 'bg-blue-50 text-navy-700 border-[3px] border-navy-600'
-                        : 'bg-blue-50 text-navy-700 border-2 border-blue-300'
+                        ? hasLessons
+                          ? 'bg-blue-50 text-navy-700 border-[3px] border-navy-600'
+                          : 'bg-gray-100 text-navy-700 border-[3px] border-navy-600'
+                        : hasLessons
+                          ? 'bg-blue-50 text-navy-700 border-2 border-blue-300'
+                          : 'bg-gray-100 text-navy-700 border-2 border-blue-300'
                       : isSelected
                         ? 'bg-white text-navy-700 border-[3px] border-navy-600'
                         : hasLessons
@@ -184,30 +244,36 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
         ) : (
           currentDayLessons.map((lesson, index) => {
             const isCurrent = isCurrentLesson(lesson, selectedDay);
+            // Урок для іншого тижня — робимо напівпрозорим
+            const isOtherWeek = currentWeek && lesson.weekNumber && lesson.weekNumber !== currentWeek;
             
             return (
               <Card 
                 key={lesson.id} 
                 className={`
-                  border-0 shadow-sm overflow-hidden transition-all hover:shadow-md
+                  border-0 shadow-sm overflow-hidden transition-all
                   ${isCurrent ? 'ring-2 ring-navy-400 shadow-lg' : ''}
+                  ${isOtherWeek ? 'opacity-50 bg-gray-100' : 'hover:shadow-md'}
                 `}
               >
                 <div className="flex">
                   {/* Time Column */}
-                  <div className={`
-                    w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center
-                    ${isCurrent ? 'bg-navy-600' : 'bg-navy-50'}
-                  `}>
-                    <div className={`text-base md:text-lg font-bold ${isCurrent ? 'text-white' : 'text-navy-700'}`}>
+                  <div className="w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center bg-navy-50">
+                    {/* Lesson Number */}
+                    <div className="text-xl md:text-2xl font-bold text-navy-700">
+                      {getLessonNumber(lesson.startTime) || (index + 1)}
+                    </div>
+                    <div className="w-full my-2 border-t border-gray-400" />
+                    
+                    <div className="text-base md:text-lg text-navy-700">
                       {lesson.startTime}
                     </div>
-                    <div className={`text-xs ${isCurrent ? 'text-navy-200' : 'text-gray-400'}`}>—</div>
-                    <div className={`text-sm ${isCurrent ? 'text-navy-100' : 'text-navy-600'}`}>
+                    <div className="text-xs text-gray-400">—</div>
+                    <div className="text-sm text-navy-600">
                       {lesson.endTime}
                     </div>
                     {isCurrent && (
-                      <span className="mt-2 px-2 py-0.5 bg-white/20 text-white text-xs rounded-full">
+                      <span className="mt-2 px-2 py-0.5 bg-navy-600 text-white text-xs rounded-full">
                         Зараз
                       </span>
                     )}
@@ -243,9 +309,6 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
                             {lesson.weekNumber}-й тиждень
                           </span>
                         )}
-                        <span className="text-xs text-gray-400">
-                          Пара {index + 1}
-                        </span>
                       </div>
                     </div>
                   </CardContent>
@@ -255,25 +318,6 @@ export default function ScheduleGrid({ lessons, isLoading, selectedGroup }: Sche
           })
         )}
       </div>
-
-      {/* Quick Stats */}
-      {currentDayLessons.length > 0 && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-          <div className="flex flex-wrap gap-4 justify-center text-sm text-gray-600">
-            <span>
-              <strong className="text-navy-700">{currentDayLessons.length}</strong> {currentDayLessons.length === 1 ? 'пара' : currentDayLessons.length < 5 ? 'пари' : 'пар'}
-            </span>
-            <span className="text-gray-300">•</span>
-            <span>
-              Початок: <strong className="text-navy-700">{currentDayLessons[0]?.startTime}</strong>
-            </span>
-            <span className="text-gray-300">•</span>
-            <span>
-              Кінець: <strong className="text-navy-700">{currentDayLessons[currentDayLessons.length - 1]?.endTime}</strong>
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
