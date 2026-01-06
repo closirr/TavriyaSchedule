@@ -7,7 +7,7 @@
  * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 8.2
  */
 
-import type { Lesson, ScheduleFilters, FilterOptions, ScheduleStatistics, DayOfWeek, WeekNumber } from '../types/schedule';
+import type { Lesson, ScheduleFilters, FilterOptions, ScheduleStatistics, DayOfWeek, WeekNumber, SubgroupNumber } from '../types/schedule';
 import { DAYS_OF_WEEK } from '../types/schedule';
 
 /**
@@ -55,11 +55,15 @@ export function getEffectiveWeek(manualWeek?: WeekNumber | null, date: Date = ne
  * - If both weeks have lessons in the same slot → show only current week
  * - If only one week has a lesson (other is empty) → show it (will be styled as "other week")
  * 
+ * Subgroup filtering:
+ * - If subgroup filter is set → show only lessons for that subgroup OR lessons without subgroup
+ * - If no subgroup filter → show all lessons (both subgroups in split view)
+ * 
  * @param lessons - Array of lessons to filter
  * @param filters - Filter criteria to apply
  * @returns Filtered array of lessons matching all criteria
  * 
- * Requirements: 2.2, 2.3, 2.4, 2.5
+ * Requirements: 2.2, 2.3, 2.4, 2.5, 6.1, 6.2
  */
 export function filterLessons(lessons: Lesson[], filters: ScheduleFilters): Lesson[] {
   if (!lessons || !Array.isArray(lessons)) {
@@ -92,6 +96,12 @@ export function filterLessons(lessons: Lesson[], filters: ScheduleFilters): Less
         return false;
       }
       // Otherwise, keep it (will be shown as "other week" with styling)
+    }
+
+    // Subgroup filter
+    // If filter is set, show only lessons for that subgroup OR lessons without subgroup (regular lessons)
+    if (filters.subgroup && lesson.subgroupNumber && lesson.subgroupNumber !== filters.subgroup) {
+      return false;
     }
 
     // Group filter

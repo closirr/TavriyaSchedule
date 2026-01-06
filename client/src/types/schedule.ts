@@ -49,6 +49,12 @@ export const DAY_NAME_MAP: Record<string, DayOfWeek> = {
 export type WeekNumber = 1 | 2;
 
 /**
+ * Subgroup number type (1 or 2 for group splitting)
+ * Used when an academic group is divided into two parts attending different lessons
+ */
+export type SubgroupNumber = 1 | 2;
+
+/**
  * Lesson format type (online or offline)
  */
 export type LessonFormat = 'онлайн' | 'офлайн';
@@ -75,6 +81,8 @@ export interface Lesson {
   classroom: string;
   /** Week number (1 or 2) - optional, for alternating schedules */
   weekNumber?: WeekNumber;
+  /** Subgroup number (1 or 2) - optional, for group splitting */
+  subgroupNumber?: SubgroupNumber;
   /** Lesson format (online/offline) - optional */
   format?: LessonFormat;
 }
@@ -105,6 +113,8 @@ export interface ScheduleFilters {
   classroom?: string;
   /** Show lessons only for specific week (1/2); undefined = both weeks */
   weekNumber?: WeekNumber;
+  /** Filter by specific subgroup (1/2); undefined = show all subgroups */
+  subgroup?: SubgroupNumber;
 }
 
 /**

@@ -19,10 +19,13 @@ interface PrinterLessonData {
 }
 
 /**
- * Дані для комірки - може бути звичайний урок або "мигалка" (split)
+ * Дані для комірки - може бути звичайний урок, "мигалка" (тижні) або підгрупи
  * Мигалка - комірка розділена вертикальною лінією:
  * - ліва частина (week1) - предмет для 1-го тижня (чисельник)
  * - права частина (week2) - предмет для 2-го тижня (знаменник)
+ * Підгрупи - комірка розділена горизонтальною лінією:
+ * - верхня частина (subgroup1) - предмет для 1-ї підгрупи
+ * - нижня частина (subgroup2) - предмет для 2-ї підгрупи
  */
 interface PrinterCellData {
   /** Звичайний урок (без розділення по тижнях) */
@@ -31,6 +34,10 @@ interface PrinterCellData {
   week1?: PrinterLessonData;
   /** Урок для 2-го тижня (права частина мигалки) */
   week2?: PrinterLessonData;
+  /** Урок для 1-ї підгрупи (верхня частина) */
+  subgroup1?: PrinterLessonData;
+  /** Урок для 2-ї підгрупи (нижня частина) */
+  subgroup2?: PrinterLessonData;
 }
 
 /**
@@ -261,6 +268,14 @@ export function convertLessonsToPrinterFormat(
         // Урок для 2-го тижня (права частина мигалки)
         cell.week2 = lessonData;
         console.log(`[PRINTER] Week 2 lesson: ${lesson.group} - ${lesson.subject} (${lesson.dayOfWeek} ${lesson.startTime})`);
+      } else if (lesson.subgroupNumber === 1) {
+        // Урок для 1-ї підгрупи (верхня частина)
+        cell.subgroup1 = lessonData;
+        console.log(`[PRINTER] Subgroup 1 lesson: ${lesson.group} - ${lesson.subject} (${lesson.dayOfWeek} ${lesson.startTime})`);
+      } else if (lesson.subgroupNumber === 2) {
+        // Урок для 2-ї підгрупи (нижня частина)
+        cell.subgroup2 = lessonData;
+        console.log(`[PRINTER] Subgroup 2 lesson: ${lesson.group} - ${lesson.subject} (${lesson.dayOfWeek} ${lesson.startTime})`);
       } else {
         // Звичайний урок без розділення по тижнях
         cell.single = lessonData;
@@ -270,14 +285,20 @@ export function convertLessonsToPrinterFormat(
     }
   }
   
-  // Debug: показати всі мигалки
+  // Debug: показати всі мигалки та підгрупи
   for (const [day, slots] of Object.entries(schedule)) {
     for (const slot of slots) {
       for (const [group, cell] of Object.entries(slot.groups)) {
         if (cell.week1 || cell.week2) {
-          console.log(`[PRINTER] Split cell found: ${day} ${slot.time} ${group}`, {
+          console.log(`[PRINTER] Split cell (weeks) found: ${day} ${slot.time} ${group}`, {
             week1: cell.week1,
             week2: cell.week2,
+          });
+        }
+        if (cell.subgroup1 || cell.subgroup2) {
+          console.log(`[PRINTER] Split cell (subgroups) found: ${day} ${slot.time} ${group}`, {
+            subgroup1: cell.subgroup1,
+            subgroup2: cell.subgroup2,
           });
         }
       }
@@ -556,7 +577,7 @@ function getStyles(): string {
       font-style: italic;
     }
 
-    /* Стилі для мигалок - комірок з двома предметами */
+    /* Стилі для мигалок - комірок з двома предметами (тижні) */
     .split-cell {
       display: flex;
       width: 100%;
@@ -579,6 +600,32 @@ function getStyles(): string {
     
     .split-cell .week-part.week2 {
       /* права частина без додаткової границі */
+    }
+
+    /* Стилі для підгруп - комірок з горизонтальним поділом */
+    .subgroup-cell {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      min-height: 40px;
+    }
+    
+    .subgroup-cell .subgroup-part {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2px;
+    }
+    
+    .subgroup-cell .subgroup-part.subgroup1 {
+      border-bottom: 1px solid #000;
+    }
+    
+    .subgroup-cell .subgroup-part.subgroup2 {
+      /* нижня частина без додаткової границі */
     }
 
     .day-block {
@@ -685,9 +732,31 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
           if (!cell) return '<td></td>';
           
           // Перевіряємо чи це мигалка (є week1 або week2)
-          const isSplit = cell.week1 || cell.week2;
+          const isWeekSplit = cell.week1 || cell.week2;
+          // Перевіряємо чи це підгрупи (є subgroup1 або subgroup2)
+          const isSubgroupSplit = cell.subgroup1 || cell.subgroup2;
           
-          if (isSplit) {
+          if (isSubgroupSplit) {
+            // Підгрупи - комірка з горизонтальним розділенням
+            const subgroup1Subject = cell.subgroup1?.subject ? `<div class="subject">${escapeHtml(cell.subgroup1.subject).replace(/\n/g, '<br>')}</div>` : '<div class="subject">—</div>';
+            const subgroup1Teacher = cell.subgroup1?.teacher ? `<div class="teacher">${escapeHtml(cell.subgroup1.teacher)}</div>` : '';
+            const subgroup2Subject = cell.subgroup2?.subject ? `<div class="subject">${escapeHtml(cell.subgroup2.subject).replace(/\n/g, '<br>')}</div>` : '<div class="subject">—</div>';
+            const subgroup2Teacher = cell.subgroup2?.teacher ? `<div class="teacher">${escapeHtml(cell.subgroup2.teacher)}</div>` : '';
+            return `
+              <td style="padding: 0;">
+                <div class="subgroup-cell">
+                  <div class="subgroup-part subgroup1">
+                    ${subgroup1Subject}
+                    ${subgroup1Teacher}
+                  </div>
+                  <div class="subgroup-part subgroup2">
+                    ${subgroup2Subject}
+                    ${subgroup2Teacher}
+                  </div>
+                </div>
+              </td>
+            `;
+          } else if (isWeekSplit) {
             // Мигалка - комірка з вертикальним розділенням
             const week1Subject = cell.week1?.subject ? `<div class="subject">${escapeHtml(cell.week1.subject).replace(/\n/g, '<br>')}</div>` : '';
             const week1Teacher = cell.week1?.teacher ? `<div class="teacher">${escapeHtml(cell.week1.teacher)}</div>` : '';

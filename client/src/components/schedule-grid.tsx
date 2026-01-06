@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, MapPin, User, Users } from "lucide-react";
-import type { Lesson, WeekNumber } from "@/types/schedule";
+import type { Lesson, WeekNumber, SubgroupNumber } from "@/types/schedule";
 
 /**
  * Маппінг часу початку пари до номера пари
@@ -43,14 +43,24 @@ function getLessonSlotKey(lesson: Lesson): string {
 }
 
 /**
- * Тип для згрупованих занять (звичайні або мигалки)
+ * Тип для згрупованих занять (звичайні, мигалки або підгрупи)
  */
 interface LessonSlot {
   key: string;
+  /** Заняття для 1-го тижня (мигалки) */
   week1Lesson?: Lesson;
+  /** Заняття для 2-го тижня (мигалки) */
   week2Lesson?: Lesson;
+  /** Заняття для 1-ї підгрупи */
+  subgroup1Lesson?: Lesson;
+  /** Заняття для 2-ї підгрупи */
+  subgroup2Lesson?: Lesson;
+  /** Звичайне заняття без поділу */
   regularLesson?: Lesson;
+  /** true якщо є мигалка (два тижні) */
   isAlternating: boolean;
+  /** true якщо є поділ на підгрупи */
+  isSubgroupSplit: boolean;
 }
 
 interface ScheduleGridProps {
@@ -199,6 +209,116 @@ function LessonCard({
   );
 }
 
+/**
+ * Компонент картки з поділом на підгрупи
+ * Відображає дві підгрупи з горизонтальною лінією-розділювачем
+ */
+function SubgroupCard({ 
+  slot, 
+  index, 
+  isCurrent 
+}: { 
+  slot: LessonSlot; 
+  index: number; 
+  isCurrent: boolean;
+}) {
+  const subgroup1 = slot.subgroup1Lesson;
+  const subgroup2 = slot.subgroup2Lesson;
+  
+  // Отримуємо базову інформацію з будь-якого доступного заняття
+  const baseLesson = subgroup1 || subgroup2;
+  if (!baseLesson) return null;
+
+  const renderSubgroupContent = (lesson: Lesson | undefined, subgroupLabel: string) => {
+    if (!lesson) {
+      return (
+        <div className="flex-1 p-2 md:p-3 flex items-center justify-center">
+          <span className="text-gray-400 text-xs md:text-sm">{subgroupLabel}: —</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex-1 p-2 md:p-3">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-1 md:gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="px-1.5 py-0.5 bg-navy-100 text-navy-700 text-[10px] md:text-xs font-medium rounded">
+                {subgroupLabel}
+              </span>
+            </div>
+            <h4 className="font-semibold text-navy-700 text-xs md:text-sm leading-tight truncate mt-1">
+              {lesson.subject}
+            </h4>
+            
+            <div className="mt-1 space-y-0.5">
+              <div className="flex items-center gap-1.5 text-gray-600">
+                <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                <span className="text-[10px] md:text-xs truncate">{lesson.teacher}</span>
+              </div>
+              
+              <div className="flex items-center gap-1.5 text-gray-600">
+                <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                <span className="text-[10px] md:text-xs">{lesson.classroom}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Card 
+      className={`
+        border-0 shadow-sm overflow-hidden transition-all bg-white
+        ${isCurrent ? 'ring-2 ring-navy-400 shadow-lg' : ''}
+      `}
+    >
+      <div className="flex">
+        {/* Time Column */}
+        <div className="w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center bg-navy-50">
+          <div className="text-xl md:text-2xl font-bold text-navy-700">
+            {getLessonNumber(baseLesson.startTime) || (index + 1)}
+          </div>
+          <div className="w-full my-2 border-t border-gray-400" />
+          <div className="text-base md:text-lg text-navy-700">
+            {baseLesson.startTime}
+          </div>
+          <div className="text-xs text-gray-400">—</div>
+          <div className="text-sm text-navy-600">
+            {baseLesson.endTime}
+          </div>
+          {isCurrent && (
+            <span className="mt-2 px-2 py-0.5 bg-navy-600 text-white text-xs rounded-full">
+              Зараз
+            </span>
+          )}
+        </div>
+
+        {/* Content - Split into two subgroups */}
+        <div className="flex-1 flex flex-col">
+          {/* Підгрупа 1 - зверху */}
+          {renderSubgroupContent(subgroup1, '1 підгр.')}
+          
+          {/* Горизонтальна лінія-розділювач */}
+          <div className="border-t border-gray-300 mx-2" />
+          
+          {/* Підгрупа 2 - знизу */}
+          {renderSubgroupContent(subgroup2, '2 підгр.')}
+        </div>
+
+        {/* Group badge */}
+        <div className="flex items-center pr-3 md:pr-4">
+          <span className="px-2.5 py-1 bg-navy-100 text-navy-700 text-xs md:text-sm font-medium rounded-md">
+            {baseLesson.group}
+          </span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function ScheduleGrid({ 
   lessons, 
   isLoading, 
@@ -219,7 +339,7 @@ export default function ScheduleGrid({
 
   const hasActiveFilter = selectedGroup || selectedTeacher || selectedClassroom || searchQuery;
 
-  // Групуємо заняття в слоти (мигалки об'єднуються)
+  // Групуємо заняття в слоти (мигалки та підгрупи об'єднуються)
   const lessonSlots = useMemo(() => {
     const slotMap = new Map<string, LessonSlot>();
     
@@ -227,7 +347,27 @@ export default function ScheduleGrid({
       const key = getLessonSlotKey(lesson);
       const existing = slotMap.get(key);
       
-      if (lesson.weekNumber) {
+      if (lesson.subgroupNumber) {
+        // Заняття з номером підгрупи — поділ на підгрупи
+        if (existing) {
+          // Додаємо до існуючого слоту
+          if (lesson.subgroupNumber === 1) {
+            existing.subgroup1Lesson = lesson;
+          } else {
+            existing.subgroup2Lesson = lesson;
+          }
+          // Поділ на підгрупи якщо є хоча б одна підгрупа
+          existing.isSubgroupSplit = !!(existing.subgroup1Lesson || existing.subgroup2Lesson);
+        } else {
+          slotMap.set(key, {
+            key,
+            subgroup1Lesson: lesson.subgroupNumber === 1 ? lesson : undefined,
+            subgroup2Lesson: lesson.subgroupNumber === 2 ? lesson : undefined,
+            isAlternating: false,
+            isSubgroupSplit: true,
+          });
+        }
+      } else if (lesson.weekNumber) {
         // Заняття з номером тижня — потенційна мигалка
         if (existing) {
           // Додаємо до існуючого слоту
@@ -244,15 +384,17 @@ export default function ScheduleGrid({
             week1Lesson: lesson.weekNumber === 1 ? lesson : undefined,
             week2Lesson: lesson.weekNumber === 2 ? lesson : undefined,
             isAlternating: false,
+            isSubgroupSplit: false,
           });
         }
       } else {
-        // Звичайне заняття без номера тижня
+        // Звичайне заняття без номера тижня та підгрупи
         if (!existing) {
           slotMap.set(key, {
             key,
             regularLesson: lesson,
             isAlternating: false,
+            isSubgroupSplit: false,
           });
         } else if (!existing.regularLesson) {
           existing.regularLesson = lesson;
@@ -262,7 +404,7 @@ export default function ScheduleGrid({
     
     // Конвертуємо неповні мигалки (тільки один тиждень) у звичайні заняття
     slotMap.forEach((slot) => {
-      if (!slot.isAlternating && !slot.regularLesson) {
+      if (!slot.isAlternating && !slot.isSubgroupSplit && !slot.regularLesson) {
         const singleLesson = slot.week1Lesson || slot.week2Lesson;
         if (singleLesson) {
           slot.regularLesson = singleLesson;
@@ -301,12 +443,13 @@ export default function ScheduleGrid({
     daysOfWeek.forEach(day => {
       grouped[day] = slots
         .filter(slot => {
-          const lesson = slot.regularLesson || slot.week1Lesson || slot.week2Lesson;
+          // Враховуємо всі типи занять: звичайні, мигалки та підгрупи
+          const lesson = slot.regularLesson || slot.week1Lesson || slot.week2Lesson || slot.subgroup1Lesson || slot.subgroup2Lesson;
           return lesson?.dayOfWeek === day;
         })
         .sort((a, b) => {
-          const lessonA = a.regularLesson || a.week1Lesson || a.week2Lesson;
-          const lessonB = b.regularLesson || b.week1Lesson || b.week2Lesson;
+          const lessonA = a.regularLesson || a.week1Lesson || a.week2Lesson || a.subgroup1Lesson || a.subgroup2Lesson;
+          const lessonB = b.regularLesson || b.week1Lesson || b.week2Lesson || b.subgroup1Lesson || b.subgroup2Lesson;
           return (lessonA?.startTime || '').localeCompare(lessonB?.startTime || '');
         });
     });
@@ -321,7 +464,8 @@ export default function ScheduleGrid({
 
   const isCurrentLesson = (slot: LessonSlot, dayIndex: number) => {
     if (!isCurrentDay(dayIndex)) return false;
-    const lesson = slot.regularLesson || slot.week1Lesson || slot.week2Lesson;
+    // Враховуємо всі типи занять: звичайні, мигалки та підгрупи
+    const lesson = slot.regularLesson || slot.week1Lesson || slot.week2Lesson || slot.subgroup1Lesson || slot.subgroup2Lesson;
     if (!lesson) return false;
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -457,12 +601,20 @@ export default function ScheduleGrid({
         ) : (
           currentDaySlots.map((slot, index) => (
             <div key={slot.key} className="relative">
-              <LessonCard 
-                slot={slot}
-                index={index}
-                isCurrent={isCurrentLesson(slot, selectedDay)}
-                currentWeek={currentWeek}
-              />
+              {slot.isSubgroupSplit ? (
+                <SubgroupCard 
+                  slot={slot}
+                  index={index}
+                  isCurrent={isCurrentLesson(slot, selectedDay)}
+                />
+              ) : (
+                <LessonCard 
+                  slot={slot}
+                  index={index}
+                  isCurrent={isCurrentLesson(slot, selectedDay)}
+                  currentWeek={currentWeek}
+                />
+              )}
             </div>
           ))
         )}

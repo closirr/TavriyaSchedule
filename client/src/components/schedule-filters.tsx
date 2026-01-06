@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X } from 'lucide-react';
-import type { ScheduleFilters, FilterOptions, ScheduleMetadata, WeekNumber } from '@/types/schedule';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, X, Users } from 'lucide-react';
+import type { ScheduleFilters, FilterOptions, ScheduleMetadata, WeekNumber, SubgroupNumber } from '@/types/schedule';
 import WeekFormatIndicator from './week-format-indicator';
 
 interface ScheduleFiltersProps {
@@ -97,12 +98,21 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
   const updateFilters = (searchTerm: string, type?: 'group' | 'teacher' | 'classroom') => {
     const newFilters: ScheduleFilters = {
       weekNumber: filters.weekNumber,
+      subgroup: filters.subgroup,
       search: !type ? searchTerm.trim() || undefined : undefined,
       group: type === 'group' ? searchTerm : undefined,
       teacher: type === 'teacher' ? searchTerm : undefined,
       classroom: type === 'classroom' ? searchTerm : undefined,
     };
     onFiltersChange(newFilters);
+  };
+
+  const handleSubgroupChange = (value: string) => {
+    const subgroupValue = value === 'all' ? undefined : (parseInt(value) as SubgroupNumber);
+    onFiltersChange({
+      ...filters,
+      subgroup: subgroupValue,
+    });
   };
 
   const handleInputChange = (value: string) => {
@@ -164,6 +174,7 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
       group: undefined,
       teacher: undefined,
       classroom: undefined,
+      subgroup: undefined,
     });
     inputRef.current?.focus();
   };
@@ -240,11 +251,31 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
         </div>
 
         {/* Week and Format indicator */}
-        <WeekFormatIndicator
-          metadata={metadata ?? null}
-          currentWeek={currentWeek}
-          isLoading={isLoading}
-        />
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          {/* Subgroup selector */}
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-gray-500" />
+            <Select
+              value={filters.subgroup?.toString() || 'all'}
+              onValueChange={handleSubgroupChange}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Підгрупа" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Всі</SelectItem>
+                <SelectItem value="1">1 підгрупа</SelectItem>
+                <SelectItem value="2">2 підгрупа</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <WeekFormatIndicator
+            metadata={metadata ?? null}
+            currentWeek={currentWeek}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
     </div>
   );

@@ -7,7 +7,7 @@
 
 console.log('[CSV-PARSER] Version 2.0 loaded - Vertical format parser');
 
-import type { Lesson, ParseResult, DayOfWeek, ScheduleMetadata, WeekNumber, LessonFormat, ParseError } from '../types/schedule';
+import type { Lesson, ParseResult, DayOfWeek, ScheduleMetadata, WeekNumber, SubgroupNumber, LessonFormat, ParseError } from '../types/schedule';
 import { DAY_NAME_MAP } from '../types/schedule';
 
 /**
@@ -211,12 +211,21 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
     if (metadata.currentWeek) break;
   }
   
-  // Check header lines for other metadata (format, semester)
+  // Check header lines for other metadata (format, semester, week from text patterns)
   const headerLines = lines.slice(0, 10);
   
   for (const line of headerLines) {
     const fields = parseCSVLine(line);
     const fullLine = fields.join(' ');
+    
+    // Extract week from text patterns like "1 тиждень", "2 тиждень" if not already found
+    if (!metadata.currentWeek) {
+      const weekFromText = extractWeekNumber(fullLine);
+      if (weekFromText) {
+        metadata.currentWeek = weekFromText;
+        console.log(`[CSV-PARSER] Week found from text pattern: ${weekFromText} ("${fullLine}")`);
+      }
+    }
     
     // Extract format
     if (!metadata.defaultFormat) {
@@ -257,6 +266,26 @@ export function parseTimeRange(timeStr: string): { startTime: string; endTime: s
     startTime: normalizeTime(match[1]),
     endTime: normalizeTime(match[2]),
   };
+}
+
+/**
+ * Splits a cell value into subgroup-based alternatives (for group splitting).
+ * Uses ";" as separator between subgroup 1 and subgroup 2.
+ * 
+ * Priority: ";" (subgroups) > "/" (weeks)
+ * 
+ * @param value - Cell value to split
+ * @returns [subgroup1, subgroup2] tuple or null if no semicolon separator found
+ * 
+ * Requirements: 1.1
+ */
+export function splitSubgroupValues(value: string): [string, string] | null {
+  if (!value || !value.includes(';')) return null;
+  
+  const parts = value.split(';').map(p => p.trim());
+  if (parts.length < 2) return null;
+  
+  return [parts[0], parts[1]];
 }
 
 /**
@@ -377,19 +406,69 @@ function isEmptyLesson(value: string): boolean {
 }
 
 /**
- * Builds lesson variants for a cell that may contain alternating week content.
- * Returns one or two lessons with explicit weekNumber when applicable.
+ * Builds lesson variants for a cell that may contain alternating week content or subgroup content.
+ * Returns one or more lessons with explicit weekNumber or subgroupNumber when applicable.
+ * 
+ * Priority: ";" (subgroups) > "/" (weeks)
  * 
  * Logic:
- * - If both weeks have content: create 2 lessons with weekNumber 1 and 2
- * - If only one week has content (other is "-" or empty): create 1 lesson with that weekNumber
- * - If no alternation: create 1 lesson without weekNumber
+ * - If semicolon found: treat as subgroups (1 and 2)
+ * - Else if slash found: treat as alternating weeks (1 and 2)
+ * - Else: single lesson without weekNumber/subgroupNumber
+ * 
+ * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5
  */
 function buildLessonVariants(
   subject: string,
   teacher: string,
   classroom: string
-): Array<{ subject: string; teacher: string; classroom: string; weekNumber?: WeekNumber }> {
+): Array<{ subject: string; teacher: string; classroom: string; weekNumber?: WeekNumber; subgroupNumber?: SubgroupNumber }> {
+  // 1. First check for subgroups (;) - higher priority than weeks
+  const subjectSubgroups = splitSubgroupValues(subject);
+  const teacherSubgroups = splitSubgroupValues(teacher);
+  const classroomSubgroups = splitSubgroupValues(classroom);
+
+  if (subjectSubgroups || teacherSubgroups || classroomSubgroups) {
+    // Handle subgroups
+    const [subject1, subject2] = subjectSubgroups ?? [subject, subject];
+    const [teacher1, teacher2] = teacherSubgroups ?? [teacher, teacher];
+    const [classroom1, classroom2] = classroomSubgroups ?? [classroom, classroom];
+
+    const isEmpty1 = isEmptyLesson(subject1) && isEmptyLesson(teacher1);
+    const isEmpty2 = isEmptyLesson(subject2) && isEmptyLesson(teacher2);
+
+    // If both are empty, don't create any lessons
+    if (isEmpty1 && isEmpty2) {
+      return [];
+    }
+
+    const result: Array<{ subject: string; teacher: string; classroom: string; weekNumber?: WeekNumber; subgroupNumber?: SubgroupNumber }> = [];
+
+    // Create lesson for subgroup 1 only if it has content
+    if (!isEmpty1) {
+      result.push({
+        subject: subject1 || '-',
+        teacher: teacher1 || '-',
+        classroom: classroom1 || '-',
+        subgroupNumber: 1 as SubgroupNumber,
+      });
+    }
+
+    // Create lesson for subgroup 2 only if it has content
+    if (!isEmpty2) {
+      result.push({
+        subject: subject2 || '-',
+        teacher: teacher2 || '-',
+        classroom: classroom2 || '-',
+        subgroupNumber: 2 as SubgroupNumber,
+      });
+    }
+
+    console.log(`[CSV-PARSER] buildLessonVariants subgroups: "${subject}" -> ${result.length} lessons`);
+    return result;
+  }
+
+  // 2. Then check for weeks (/) - existing logic
   const subjectAlternatives = splitAlternatingValues(subject);
   const teacherAlternatives = splitAlternatingValues(teacher);
   const classroomAlternatives = splitAlternatingValues(classroom);
@@ -410,14 +489,12 @@ function buildLessonVariants(
     const isEmpty1 = isEmptyLesson(cleanSubject1) && isEmptyLesson(cleanTeacher1);
     const isEmpty2 = isEmptyLesson(cleanSubject2) && isEmptyLesson(cleanTeacher2);
 
-
-
     // If both are empty, don't create any lessons
     if (isEmpty1 && isEmpty2) {
       return [];
     }
 
-    const result: Array<{ subject: string; teacher: string; classroom: string; weekNumber?: WeekNumber }> = [];
+    const result: Array<{ subject: string; teacher: string; classroom: string; weekNumber?: WeekNumber; subgroupNumber?: SubgroupNumber }> = [];
 
     // Create lesson for week 1 only if it has content
     if (!isEmpty1) {
@@ -614,6 +691,7 @@ export function parseScheduleCSV(csv: string): ParseResult {
             group: group.groupName,
             classroom: variant.classroom,
             weekNumber: variant.weekNumber,
+            subgroupNumber: variant.subgroupNumber,
             format: metadata.defaultFormat,
           });
         }
