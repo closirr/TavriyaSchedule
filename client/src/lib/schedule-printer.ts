@@ -519,7 +519,11 @@ function getStyles(): string {
     .time-cell { font-size: 10px; }
 
     .day-separator td {
-      border-top: 2px solid #000;
+      border-top: 2px solid #000 !important;
+    }
+    
+    .day-last-row td {
+      border-bottom: 2px solid #000 !important;
     }
 
     .subject {
@@ -647,47 +651,66 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
       const lessons = scheduleData.schedule[day];
       if (!lessons || lessons.length === 0) return;
 
-      html += lessons.map((lesson, li) => `
-        <tr class="${li === 0 && dayIndex > 0 ? 'day-separator' : ''}">
-          ${li === 0 ? `<td class="day-cell" rowspan="${lessons.length}">${day}</td>` : ''}
+      html += lessons.map((lesson, li) => {
+        const isFirstRow = li === 0 && dayIndex > 0;
+        const isLastRow = li === lessons.length - 1;
+        const rowClasses = [
+          isFirstRow ? 'day-separator' : '',
+          isLastRow ? 'day-last-row' : ''
+        ].filter(Boolean).join(' ');
+        
+        const groupCells = groups.map(group => {
+          const cell = lesson.groups[group];
+          if (!cell) return '<td></td>';
+          
+          // Перевіряємо чи це мигалка (є week1 або week2)
+          const isSplit = cell.week1 || cell.week2;
+          
+          if (isSplit) {
+            // Мигалка - комірка з вертикальним розділенням
+            const week1Subject = cell.week1?.subject ? `<div class="subject">${escapeHtml(cell.week1.subject).replace(/\n/g, '<br>')}</div>` : '';
+            const week1Teacher = cell.week1?.teacher ? `<div class="teacher">${escapeHtml(cell.week1.teacher)}</div>` : '';
+            const week2Subject = cell.week2?.subject ? `<div class="subject">${escapeHtml(cell.week2.subject).replace(/\n/g, '<br>')}</div>` : '';
+            const week2Teacher = cell.week2?.teacher ? `<div class="teacher">${escapeHtml(cell.week2.teacher)}</div>` : '';
+            return `
+              <td style="padding: 0;">
+                <div class="split-cell">
+                  <div class="week-part week1">
+                    ${week1Subject}
+                    ${week1Teacher}
+                  </div>
+                  <div class="week-part week2">
+                    ${week2Subject}
+                    ${week2Teacher}
+                  </div>
+                </div>
+              </td>
+            `;
+          } else if (cell.single) {
+            // Звичайна комірка
+            const singleSubject = cell.single.subject ? `<div class="subject">${escapeHtml(cell.single.subject).replace(/\n/g, '<br>')}</div>` : '';
+            const singleTeacher = cell.single.teacher ? `<div class="teacher">${escapeHtml(cell.single.teacher)}</div>` : '';
+            return `
+              <td>
+                ${singleSubject}
+                ${singleTeacher}
+              </td>
+            `;
+          }
+          return '<td></td>';
+        }).join('');
+        
+        const dayCell = li === 0 ? `<td class="day-cell" rowspan="${lessons.length}">${day}</td>` : '';
+        
+        return `
+        <tr class="${rowClasses}">
+          ${dayCell}
           <td>${lesson.number}</td>
           <td class="time-cell">${lesson.time}</td>
-          ${groups.map(group => {
-            const cell = lesson.groups[group];
-            if (!cell) return '<td></td>';
-            
-            // Перевіряємо чи це мигалка (є week1 або week2)
-            const isSplit = cell.week1 || cell.week2;
-            
-            if (isSplit) {
-              // Мигалка - комірка з вертикальним розділенням
-              return `
-                <td style="padding: 0;">
-                  <div class="split-cell">
-                    <div class="week-part week1">
-                      ${cell.week1?.subject ? `<div class="subject">${escapeHtml(cell.week1.subject).replace(/\n/g, '<br>')}</div>` : ''}
-                      ${cell.week1?.teacher ? `<div class="teacher">${escapeHtml(cell.week1.teacher)}</div>` : ''}
-                    </div>
-                    <div class="week-part week2">
-                      ${cell.week2?.subject ? `<div class="subject">${escapeHtml(cell.week2.subject).replace(/\n/g, '<br>')}</div>` : ''}
-                      ${cell.week2?.teacher ? `<div class="teacher">${escapeHtml(cell.week2.teacher)}</div>` : ''}
-                    </div>
-                  </div>
-                </td>
-              `;
-            } else if (cell.single) {
-              // Звичайна комірка
-              return `
-                <td>
-                  ${cell.single.subject ? `<div class="subject">${escapeHtml(cell.single.subject).replace(/\n/g, '<br>')}</div>` : ''}
-                  ${cell.single.teacher ? `<div class="teacher">${escapeHtml(cell.single.teacher)}</div>` : ''}
-                </td>
-              `;
-            }
-            return '<td></td>';
-          }).join('')}
+          ${groupCells}
         </tr>
-      `).join('');
+      `;
+      }).join('');
     });
 
     html += `
