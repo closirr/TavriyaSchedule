@@ -57,7 +57,7 @@ export default function Schedule() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-start gap-4 py-3 sm:items-center sm:py-0 sm:h-16">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-navy-600 rounded-lg flex items-center justify-center">
                 <GraduationCap className="text-white text-lg" />
