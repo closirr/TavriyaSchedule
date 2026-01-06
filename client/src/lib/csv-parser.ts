@@ -145,26 +145,26 @@ function stripWeekMarkers(value: string): string {
 
 /**
  * Splits a cell value into week-based alternatives (for "мигалка")
- * Supports "/" as separator between 1-й та 2-й варіантами.
- * Empty sides are allowed (e.g., "Предмет/" або "/ Викладач").
+ * Supports ";" as separator between 1-й та 2-й тижнями.
+ * Empty sides are allowed (e.g., "Предмет;" або "; Викладач").
  */
 function splitAlternatingValues(value: string): [string, string] | null {
   if (!value) return null;
   const normalized = value.trim();
   if (!normalized) return null;
 
-  // Explicit "1 тиждень ... / 2 тиждень ..." pattern
-  const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.*?)\/\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.*)/i);
+  // Explicit "1 тиждень ... ; 2 тиждень ..." pattern
+  const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.*?);\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.*)/i);
   if (explicitMatch) {
     console.log(`[CSV-PARSER] splitAlternatingValues explicit match: "${value}" -> ["${explicitMatch[1]}", "${explicitMatch[2]}"]`);
     return [explicitMatch[1]?.trim() ?? '', explicitMatch[2]?.trim() ?? ''];
   }
 
-  // Split by "/"
-  if (normalized.includes('/')) {
-    const parts = normalized.split('/').map(p => p.trim());
+  // Split by ";"
+  if (normalized.includes(';')) {
+    const parts = normalized.split(';').map(p => p.trim());
     if (parts.length >= 2) {
-      console.log(`[CSV-PARSER] splitAlternatingValues "/" split: "${value}" -> ["${parts[0]}", "${parts[1]}"]`);
+      console.log(`[CSV-PARSER] splitAlternatingValues ";" split: "${value}" -> ["${parts[0]}", "${parts[1]}"]`);
       return [parts[0] ?? '', parts[1] ?? ''];
     }
   }
@@ -270,19 +270,19 @@ export function parseTimeRange(timeStr: string): { startTime: string; endTime: s
 
 /**
  * Splits a cell value into subgroup-based alternatives (for group splitting).
- * Uses ";" as separator between subgroup 1 and subgroup 2.
+ * Uses "/" as separator between subgroup 1 and subgroup 2.
  * 
- * Priority: ";" (subgroups) > "/" (weeks)
+ * Priority: "/" (subgroups) > ";" (weeks)
  * 
  * @param value - Cell value to split
- * @returns [subgroup1, subgroup2] tuple or null if no semicolon separator found
+ * @returns [subgroup1, subgroup2] tuple or null if no slash separator found
  * 
  * Requirements: 1.1
  */
 export function splitSubgroupValues(value: string): [string, string] | null {
-  if (!value || !value.includes(';')) return null;
+  if (!value || !value.includes('/')) return null;
   
-  const parts = value.split(';').map(p => p.trim());
+  const parts = value.split('/').map(p => p.trim());
   if (parts.length < 2) return null;
   
   return [parts[0], parts[1]];
@@ -409,11 +409,11 @@ function isEmptyLesson(value: string): boolean {
  * Builds lesson variants for a cell that may contain alternating week content or subgroup content.
  * Returns one or more lessons with explicit weekNumber or subgroupNumber when applicable.
  * 
- * Priority: ";" (subgroups) > "/" (weeks)
+ * Priority: "/" (subgroups) > ";" (weeks)
  * 
  * Logic:
- * - If semicolon found: treat as subgroups (1 and 2)
- * - Else if slash found: treat as alternating weeks (1 and 2)
+ * - If slash found: treat as subgroups (1 and 2)
+ * - Else if semicolon found: treat as alternating weeks (1 and 2)
  * - Else: single lesson without weekNumber/subgroupNumber
  * 
  * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5

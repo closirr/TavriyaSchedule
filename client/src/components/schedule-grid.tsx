@@ -143,7 +143,7 @@ function LessonCard({
           <CardContent className="flex-1 p-3 md:p-4">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-3">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-navy-700 text-sm md:text-base leading-tight truncate">
+                <h3 className="font-semibold text-navy-700 text-sm md:text-base leading-tight break-words">
                   {lesson.subject}
                 </h3>
                 
@@ -234,42 +234,39 @@ function SubgroupCard({
   if (!baseLesson) return null;
 
   const renderSubgroupContent = (lesson: Lesson | undefined, subgroupLabel: string, showLabel: boolean = true) => {
-    if (!lesson) {
-      return (
-        <div className="flex-1 p-2 md:p-3 flex items-center justify-center">
-          <span className="text-gray-400 text-xs md:text-sm">{subgroupLabel}: —</span>
-        </div>
-      );
-    }
-
+    // Однакова структура для обох випадків - flex-1 забезпечує рівну висоту
     return (
-      <div className="flex-1 p-2 md:p-3">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-1 md:gap-2">
-          <div className="flex-1 min-w-0">
-            {showLabel && (
-              <div className="flex items-center gap-2">
-                <span className="px-1.5 py-0.5 bg-navy-100 text-navy-700 text-[10px] md:text-xs font-medium rounded">
-                  {subgroupLabel}
-                </span>
-              </div>
-            )}
-            <h4 className="font-semibold text-navy-700 text-xs md:text-sm leading-tight truncate mt-1">
+      <div className="flex-1 p-3 md:p-4 flex flex-col">
+        {showLabel && (
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-1.5 py-0.5 bg-navy-100 text-navy-700 text-[10px] md:text-xs font-medium rounded">
+              {subgroupLabel}
+            </span>
+          </div>
+        )}
+        {lesson ? (
+          <div className="flex-1">
+            <h4 className="font-semibold text-navy-700 text-sm md:text-base leading-tight break-words">
               {lesson.subject}
             </h4>
             
-            <div className="mt-1 space-y-0.5">
-              <div className="flex items-center gap-1.5 text-gray-600">
-                <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                <span className="text-[10px] md:text-xs truncate">{lesson.teacher}</span>
+            <div className="mt-2 space-y-1.5">
+              <div className="flex items-center gap-2 text-gray-600">
+                <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                <span className="text-xs md:text-sm truncate">{lesson.teacher}</span>
               </div>
               
-              <div className="flex items-center gap-1.5 text-gray-600">
-                <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                <span className="text-[10px] md:text-xs">{lesson.classroom}</span>
+              <div className="flex items-center gap-2 text-gray-600">
+                <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                <span className="text-xs md:text-sm">{lesson.classroom}</span>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <span className="text-gray-400 text-sm">—</span>
+          </div>
+        )}
       </div>
     );
   };
@@ -307,7 +304,7 @@ function SubgroupCard({
             )}
           </div>
 
-          {/* Content - Single subgroup */}
+          {/* Content - Single subgroup using same structure as full mode */}
           <div className="flex-1 flex flex-col">
             {renderSubgroupContent(selectedLesson, `${selectedSubgroup} підгр.`, true)}
           </div>
