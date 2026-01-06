@@ -38,7 +38,8 @@ export default function WeekFormatIndicator({ metadata, currentWeek, isWeekManua
       {/* Format indicator */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-gray-500 dark:text-gray-400 leading-snug">
-          Формат навчання:
+          <span className="block sm:inline">Формат</span>{" "}
+          <span className="block sm:inline">навчання:</span>
         </span>
         {format === 'онлайн' ? (
           <>
