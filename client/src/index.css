@@ -99,6 +99,7 @@
 /* Flip card animation for alternating lessons (мигалки) */
 .flip-card {
   perspective: 1000px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .flip-card-inner {
@@ -124,6 +125,19 @@
   left: 0;
   width: 100%;
   transform: rotateY(180deg);
+}
+
+/* Remove iOS tap highlight and text decoration */
+.flip-card,
+.flip-card * {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  text-decoration: none !important;
+}
+
+.flip-card span {
+  text-decoration: none !important;
+  border-bottom: none !important;
 }
 
 /* Stacked card effect for alternating lessons */
