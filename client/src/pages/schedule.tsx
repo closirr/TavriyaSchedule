@@ -62,7 +62,7 @@ export default function Schedule() {
               <div className="w-10 h-10 bg-navy-600 rounded-lg flex items-center justify-center">
                 <GraduationCap className="text-white text-lg" />
               </div>
-              <div>
+              <div className="leading-snug">
                 <h1 className="text-xl font-semibold text-navy-700">ВСП «КФКМГ ТНУ ім.В.І.Вернадського»</h1>
                 <p className="text-sm text-gray-500">Розклад занять</p>
               </div>

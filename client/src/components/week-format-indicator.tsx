@@ -21,20 +21,22 @@ export default function WeekFormatIndicator({ metadata, currentWeek, isWeekManua
   const format = metadata?.defaultFormat;
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       {/* Week indicator */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-navy-50 dark:bg-navy-900/30 rounded-lg flex items-center justify-center">
           <Calendar className="w-4 h-4 text-navy-600 dark:text-navy-400" />
         </div>
-        <span className="text-sm font-medium text-navy-700 dark:text-navy-300">
+        <span className="text-sm font-medium text-navy-700 dark:text-navy-300 leading-snug">
           {currentWeek}-й тиждень
         </span>
       </div>
 
       {/* Format indicator */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500 dark:text-gray-400">Формат навчання:</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-gray-500 dark:text-gray-400 leading-snug">
+          Формат навчання:
+        </span>
         {format === 'онлайн' ? (
           <>
             <div className="w-8 h-8 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
