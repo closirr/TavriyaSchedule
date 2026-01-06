@@ -1,25 +1,28 @@
 # Product Overview
 
-This is a **Schedule Management System** for ВСП «КФКМГ ТНУ ім.В.І.Вернадського» - a Ukrainian educational institution.
+Це **Система перегляду розкладу** для ВСП «КФКМГ ТНУ ім.В.І.Вернадського» - українського освітнього закладу.
 
-## Core Functionality
+## Архітектура
 
-- **Excel Schedule Import**: Upload and parse Excel files containing class schedules
-- **Schedule Visualization**: Display weekly schedules in a grid format with filtering capabilities
-- **Multi-format Export**: Generate schedules in PDF, DOCX, and other formats
-- **Search & Filtering**: Filter by group, teacher, classroom, or search terms
-- **Statistics Dashboard**: View analytics on lessons, groups, teachers, and classrooms
-- **Responsive Design**: Mobile-friendly interface with Ukrainian localization
+**Статичний SPA** - повністю клієнтський додаток без бекенда. Розклад зберігається в Google Таблицях і завантажується напряму в браузер через публічний CSV експорт.
 
-## Key Features
+## Основний функціонал
 
-- File upload for Excel schedule data
-- Real-time schedule filtering and search
-- Week navigation for schedule viewing
-- Multiple export formats (PDF generators using different libraries)
-- Statistics and analytics dashboard
-- Template gallery for different schedule layouts
+- **Завантаження з Google Sheets**: Автоматичне завантаження розкладу з Google Таблиць
+- **Візуалізація розкладу**: Відображення тижневого розкладу у вигляді сітки
+- **Фільтрація**: Фільтр за групою, викладачем, аудиторією або пошуковим запитом
+- **Друк**: Друк розкладу через браузер з оптимізованими стилями
+- **Статистика**: Перегляд аналітики по заняттях, групах, викладачах
+- **Адаптивний дизайн**: Mobile-friendly інтерфейс з українською локалізацією
 
-## Target Users
+## Ключові особливості
 
-Educational administrators, teachers, and students who need to view and manage class schedules for the college.
+- Дані завантажуються з Google Sheets (без бекенда)
+- Фільтрація та пошук в реальному часі
+- Навігація по тижнях
+- Друк через браузер
+- Панель статистики
+
+## Цільова аудиторія
+
+Адміністратори, викладачі та студенти коледжу, яким потрібно переглядати розклад занять.

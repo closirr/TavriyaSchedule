@@ -149,6 +149,26 @@ function extractTimeSlots(lessons: Lesson[]): { startTime: string; endTime: stri
 }
 
 /**
+ * Сортує групи за курсом (перша цифра) і потім за назвою
+ * Наприклад: Ек-11, Ек-12, Ел-11, Ек-21, Ек-22, Ел-21
+ */
+function sortGroupsByCourseAndName(groups: string[]): string[] {
+  return groups.sort((a, b) => {
+    // Витягуємо першу цифру з назви групи (курс)
+    const courseA = a.match(/\d/)?.[0] || '9';
+    const courseB = b.match(/\d/)?.[0] || '9';
+    
+    // Спочатку порівнюємо за курсом
+    if (courseA !== courseB) {
+      return courseA.localeCompare(courseB);
+    }
+    
+    // Якщо курс однаковий - порівнюємо за назвою
+    return a.localeCompare(b, 'uk');
+  });
+}
+
+/**
  * Конвертує масив Lesson[] у формат PrinterScheduleData
  */
 export function convertLessonsToPrinterFormat(
@@ -158,8 +178,8 @@ export function convertLessonsToPrinterFormat(
 ): PrinterScheduleData {
   console.log('[PRINTER] Converting lessons:', lessons.length);
   
-  // Отримуємо унікальні групи
-  const groups = Array.from(new Set(lessons.map(l => l.group))).sort();
+  // Отримуємо унікальні групи та сортуємо за курсом і назвою
+  const groups = sortGroupsByCourseAndName(Array.from(new Set(lessons.map(l => l.group))));
   console.log('[PRINTER] Groups found:', groups);
   
   // Динамічно витягуємо часові слоти з даних
@@ -575,21 +595,16 @@ function getStyles(): string {
       border-collapse: collapse;
       table-layout: fixed;
       border: 2px solid #000;
+      margin-bottom: 5px;
     }
     
     .day-table th,
     .day-table td {
       border: 1px solid #000;
-      padding: 4px 3px;
+      padding: 2px 3px;
       text-align: center;
       vertical-align: middle;
       word-wrap: break-word;
-      height: 100%;
-    }
-    
-    .day-table th {
-      background-color: #e8f4fc;
-      font-weight: bold;
     }`;
 }
 

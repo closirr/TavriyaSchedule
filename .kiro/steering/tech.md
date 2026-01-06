@@ -1,66 +1,49 @@
 # Technology Stack
 
+## Architecture
+**Static SPA (Single Page Application)** - чисто клієнтський додаток без бекенда. Дані завантажуються з Google Sheets через публічний CSV експорт.
+
 ## Frontend
 - **React 18** with TypeScript
 - **Vite** as build tool and dev server
 - **Tailwind CSS** for styling with custom design system
 - **Radix UI** components for accessible UI primitives
 - **Wouter** for client-side routing
-- **TanStack Query** for server state management
-- **React Hook Form** with Zod validation
+- **TanStack Query** for data fetching and caching
+- **Zod** for data validation
 - **Framer Motion** for animations
 
-## Backend
-- **Express.js** with TypeScript
-- **Node.js** ESM modules
-- **Drizzle ORM** with PostgreSQL
-- **Neon Database** (serverless PostgreSQL)
-- **Zod** for schema validation
-- **Multer** for file uploads
+## Data Source
+- **Google Sheets** - розклад зберігається в Google Таблицях
+- **CSV Export** - дані завантажуються через публічний CSV URL
+- **Client-side parsing** - парсинг CSV відбувається в браузері
 
-## Document Generation
-- **jsPDF** with AutoTable plugin
-- **PDFKit** for PDF generation
-- **Puppeteer** for HTML-to-PDF conversion
-- **html-pdf** library
-- **XLSX** for Excel file processing
+## Document Generation (Client-side)
+- **Browser Print API** - друк через вбудований механізм браузера
+- **CSS Print Styles** - стилі для друку
 
 ## Development Tools
 - **TypeScript 5.6** with strict mode
-- **ESBuild** for server bundling
-- **TSX** for development server
-- **Drizzle Kit** for database migrations
+- **Vitest** for testing
 
 ## Common Commands
 
 ```bash
 # Development
-npm run dev          # Start development server (Linux/Mac)
-npm run dev:win      # Start development server (Windows)
+npm run dev          # Start Vite dev server
 
 # Building
-npm run build        # Build both client and server for production
+npm run build        # Build static site for production
 npm run check        # TypeScript type checking
 
-# Database
-npm run db:push      # Push schema changes to database
-
-# Production
-npm run start        # Start production server
+# Testing
+npm run test         # Run tests
 ```
 
 ## Environment Configuration
-- **Automatic Environment Detection**: The app automatically detects if running locally or in production
-- **Local Development**: API calls go to `http://localhost:5000`, detailed logging enabled
-- **Production**: API calls go to `https://tavriyascheduleapi.onrender.com`, minimal logging
-- **CORS**: Automatically configured for appropriate origins based on environment
+- **VITE_GOOGLE_SHEET_ID** - ID Google таблиці з розкладом
+- **VITE_GOOGLE_SHEET_GID** - GID конкретного аркуша
 
-## Windows Development Notes
-- Use `npm run dev:win` for Windows development
-- Server runs on `http://localhost:5000` by default
-- Frontend dev server runs on `http://localhost:5173`
-
-## Environment Setup
-- Requires `DATABASE_URL` environment variable
-- Uses ESM modules throughout
-- Configured for deployment on Replit/Render
+## Deployment
+- Статичний сайт можна хостити на будь-якому статичному хостингу (Netlify, Vercel, GitHub Pages, тощо)
+- Build output: `dist/` folder
