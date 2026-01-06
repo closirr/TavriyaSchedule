@@ -29,9 +29,6 @@ export default function WeekFormatIndicator({ metadata, currentWeek, isWeekManua
         </div>
         <span className="text-sm font-medium text-navy-700 dark:text-navy-300">
           {currentWeek}-й тиждень
-          {!isWeekManual && (
-            <span className="text-xs text-gray-400 ml-1">(авто)</span>
-          )}
         </span>
       </div>
 
