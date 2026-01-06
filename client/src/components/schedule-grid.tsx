@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, MapPin, User, Users, RefreshCw } from "lucide-react";
+import { Clock, MapPin, User, Users } from "lucide-react";
 import type { Lesson, WeekNumber } from "@/types/schedule";
 
 /**
@@ -104,14 +104,12 @@ function LessonCard({
         className={`
           border-0 shadow-sm overflow-hidden transition-all bg-white
           ${isCurrent && !isBack ? 'ring-2 ring-navy-400 shadow-lg' : ''}
-          ${!isActiveWeek && lesson.weekNumber ? 'opacity-60' : ''}
+          ${!isActiveWeek && lesson.weekNumber ? 'opacity-70' : ''}
         `}
       >
         <div className="flex">
           {/* Time Column */}
-          <div className={`w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center ${
-            slot.isAlternating ? 'bg-amber-50' : 'bg-navy-50'
-          }`}>
+          <div className="w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center bg-navy-50">
             <div className="text-xl md:text-2xl font-bold text-navy-700">
               {getLessonNumber(lesson.startTime) || (index + 1)}
             </div>
@@ -158,8 +156,8 @@ function LessonCard({
                 {lesson.weekNumber && (
                   <span className={`px-2 py-0.5 text-[11px] md:text-xs font-semibold rounded-md border ${
                     isActiveWeek 
-                      ? 'bg-green-50 text-green-700 border-green-200' 
-                      : 'bg-amber-50 text-amber-700 border-amber-100'
+                      ? 'bg-navy-100 text-navy-700 border-navy-200' 
+                      : 'bg-gray-100 text-gray-500 border-gray-200'
                   }`}>
                     {weekLabel}
                   </span>
@@ -184,12 +182,6 @@ function LessonCard({
       onClick={handleFlip}
       title="Натисніть, щоб побачити заняття іншого тижня"
     >
-      {/* Індикатор мигалки */}
-      <div className="absolute -top-2 -right-2 z-10 flex items-center gap-1 px-2 py-1 bg-amber-500 text-white text-[10px] font-bold rounded-full shadow-md">
-        <RefreshCw className="w-3 h-3" />
-        <span>Мигалка</span>
-      </div>
-      
       <div className="flip-card-inner">
         {/* Front side */}
         <div className="flip-card-front">
