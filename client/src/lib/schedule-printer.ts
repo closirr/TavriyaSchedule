@@ -21,12 +21,12 @@ interface PrinterLessonData {
 
 /**
  * Дані для комірки - може бути звичайний урок, "мигалка" (тижні) або підгрупи
- * Мигалка - комірка розділена вертикальною лінією:
- * - ліва частина (week1) - предмет для 1-го тижня (чисельник)
- * - права частина (week2) - предмет для 2-го тижня (знаменник)
- * Підгрупи - комірка розділена горизонтальною лінією:
- * - верхня частина (subgroup1) - предмет для 1-ї підгрупи
- * - нижня частина (subgroup2) - предмет для 2-ї підгрупи
+ * Мигалка - комірка розділена горизонтальною лінією:
+ * - верхня частина (week1) - предмет для 1-го тижня
+ * - нижня частина (week2) - предмет для 2-го тижня
+ * Підгрупи - комірка розділена вертикальною лінією:
+ * - ліва частина (subgroup1) - предмет для 1-ї підгрупи
+ * - права частина (subgroup2) - предмет для 2-ї підгрупи
  */
 interface PrinterCellData {
   /** Звичайний урок (без розділення по тижнях) */
@@ -584,41 +584,16 @@ function getStyles(): string {
       color: #666;
     }
 
-    /* Стилі для мигалок - комірок з двома предметами (тижні) */
+    /* Стилі для мигалок - комірок з двома предметами (тижні) - горизонтальний поділ */
     .split-cell {
       display: flex;
+      flex-direction: column;
       width: 100%;
       height: 100%;
       min-height: 40px;
     }
     
     .split-cell .week-part {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 2px;
-    }
-    
-    .split-cell .week-part.week1 {
-      border-right: 1px solid #000;
-    }
-    
-    .split-cell .week-part.week2 {
-      /* права частина без додаткової границі */
-    }
-
-    /* Стилі для підгруп - комірок з горизонтальним поділом */
-    .subgroup-cell {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      height: 100%;
-      min-height: 40px;
-    }
-    
-    .subgroup-cell .subgroup-part {
       flex: 1 1 50%;
       min-height: 35px;
       display: flex;
@@ -628,12 +603,37 @@ function getStyles(): string {
       padding: 2px;
     }
     
-    .subgroup-cell .subgroup-part.subgroup1 {
+    .split-cell .week-part.week1 {
       border-bottom: 1px solid #000;
     }
     
-    .subgroup-cell .subgroup-part.subgroup2 {
+    .split-cell .week-part.week2 {
       /* нижня частина без додаткової границі */
+    }
+
+    /* Стилі для підгруп - комірок з вертикальним поділом */
+    .subgroup-cell {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      min-height: 40px;
+    }
+    
+    .subgroup-cell .subgroup-part {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2px;
+    }
+    
+    .subgroup-cell .subgroup-part.subgroup1 {
+      border-right: 1px solid #000;
+    }
+    
+    .subgroup-cell .subgroup-part.subgroup2 {
+      /* права частина без додаткової границі */
     }
 
     .day-block {
