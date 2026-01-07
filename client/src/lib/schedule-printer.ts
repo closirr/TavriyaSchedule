@@ -474,10 +474,29 @@ function getStyles(): string {
 
     .top-line {
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
+      align-items: flex-start;
       margin-top: 10px;
-      margin-right: 10px;
+      padding: 0 10px;
       font-size: 11px;
+    }
+
+    .qr-block {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .qr-block img {
+      width: 60px;
+      height: 60px;
+    }
+
+    .qr-block .qr-text {
+      font-size: 9px;
+      max-width: 100px;
+      line-height: 1.3;
+      color: #333;
     }
 
     .approve-block {
@@ -882,6 +901,10 @@ ${getStyles()}
 
 <div id="wrapper">
   <div class="top-line">
+    <div class="qr-block">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=https://tavriyaschedule.onrender.com" alt="QR Code" />
+      <span class="qr-text">Посилання на сучасну версію сайту розкладу</span>
+    </div>
     <div class="approve-block">
       ЗАТВЕРДЖУЮ<br>
       Директор коледжу<br>
