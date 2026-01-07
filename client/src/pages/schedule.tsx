@@ -1,4 +1,4 @@
-import { GraduationCap, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import ScheduleFilters from "@/components/schedule-filters";
 import ScheduleGrid from "@/components/schedule-grid";
 import { useScheduleData } from "@/hooks/useScheduleData";
@@ -49,9 +49,11 @@ export default function Schedule() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-start gap-4 py-3 sm:items-center sm:py-0 sm:h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-navy-600 rounded-lg flex items-center justify-center">
-                <GraduationCap className="text-white text-lg" />
-              </div>
+              <img 
+                src="/favicon.png" 
+                alt="КФКМГ" 
+                className="w-10 h-10 rounded-lg"
+              />
               <div className="leading-snug">
                 <h1 className="text-xl font-semibold text-navy-700">ВСП «КФКМГ ТНУ ім.В.І.Вернадського»</h1>
                 <p className="text-sm text-gray-500">Розклад занять</p>

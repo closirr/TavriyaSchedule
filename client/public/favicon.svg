@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="18" fill="#3b5998"/>
+  <g fill="white">
+    <!-- Graduation cap top -->
+    <polygon points="50,25 15,42 50,55 85,42"/>
+    <!-- Cap button -->
+    <circle cx="50" cy="42" r="4"/>
+    <!-- Tassel string -->
+    <line x1="50" y1="42" x2="75" y2="55" stroke="white" stroke-width="2.5"/>
+    <!-- Tassel end -->
+    <circle cx="75" cy="58" r="5"/>
+    <!-- Cap base/board bottom part -->
+    <path d="M30,48 L30,62 Q50,72 70,62 L70,48 L50,58 L30,48 Z"/>
+  </g>
+</svg>

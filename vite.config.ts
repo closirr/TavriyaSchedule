@@ -4,22 +4,30 @@ import path from "path";
 
 // Static site configuration for Tavriya Schedule
 // Google Sheets URL is configured via VITE_GOOGLE_SHEETS_URL environment variable
-export default defineConfig(({ mode }) => ({
-  plugins: [react()],
-  // Remove console.log in production
-  esbuild: {
-    drop: mode === 'production' ? ['console', 'debugger'] : [],
-  },
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+export default defineConfig(({ mode, command }) => {
+  // Determine base path based on build target
+  const getBasePath = () => {
+    if (command === 'serve') return '/'; // Development
+    if (process.env.BUILD_TARGET === 'render') return '/'; // Render build
+    return '/schedule/'; // Main site build (default production)
+  };
+
+  return {
+    plugins: [react()],
+    // Remove console.log in production
+    esbuild: {
+      drop: mode === 'production' ? ['console', 'debugger'] : [],
     },
-  },
-  root: path.resolve(import.meta.dirname, "client"),
-  base: '/',
-  build: {
+    resolve: {
+      alias: {
+        "@": path.resolve(import.meta.dirname, "client", "src"),
+        "@shared": path.resolve(import.meta.dirname, "shared"),
+        "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      },
+    },
+    root: path.resolve(import.meta.dirname, "client"),
+    base: getBasePath(),
+    build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
     sourcemap: true,
@@ -43,7 +51,8 @@ export default defineConfig(({ mode }) => ({
   preview: {
     port: 4173,
   },
-  // Environment variables - VITE_GOOGLE_SHEETS_URL is automatically available
-  // via import.meta.env.VITE_GOOGLE_SHEETS_URL in client code
-  envPrefix: 'VITE_',
-}));
+    // Environment variables - VITE_GOOGLE_SHEETS_URL is automatically available
+    // via import.meta.env.VITE_GOOGLE_SHEETS_URL in client code
+    envPrefix: 'VITE_',
+  };
+});
