@@ -79,6 +79,8 @@ export interface Lesson {
   group: string;
   /** Classroom/room number */
   classroom: string;
+  /** Lesson number (1, 2, 3, etc.) - optional, from spreadsheet or calculated */
+  lessonNumber?: number;
   /** Week number (1 or 2) - optional, for alternating schedules */
   weekNumber?: WeekNumber;
   /** Subgroup number (1 or 2) - optional, for group splitting */

@@ -4,37 +4,6 @@ import { Clock, MapPin, User, Users } from "lucide-react";
 import type { Lesson, WeekNumber, SubgroupNumber } from "@/types/schedule";
 
 /**
- * Маппінг часу початку пари до номера пари
- * Стандартний розклад дзвінків
- */
-const LESSON_TIME_TO_NUMBER: Record<string, number> = {
-  '09:00': 1,
-  '9:00': 1,
-  '10:30': 2,
-  '12:30': 3,
-  '14:00': 4,
-  '15:30': 5,
-};
-
-/**
- * Визначає номер пари за часом початку
- */
-function getLessonNumber(startTime: string): number | null {
-  if (LESSON_TIME_TO_NUMBER[startTime]) {
-    return LESSON_TIME_TO_NUMBER[startTime];
-  }
-  const withoutLeadingZero = startTime.replace(/^0/, '');
-  if (LESSON_TIME_TO_NUMBER[withoutLeadingZero]) {
-    return LESSON_TIME_TO_NUMBER[withoutLeadingZero];
-  }
-  const withLeadingZero = startTime.replace(/^(\d):/, '0$1:');
-  if (LESSON_TIME_TO_NUMBER[withLeadingZero]) {
-    return LESSON_TIME_TO_NUMBER[withLeadingZero];
-  }
-  return null;
-}
-
-/**
  * Генерує унікальний ключ для групування мигалок
  * Ключ базується на часі і групі — предмет/викладач можуть відрізнятись
  */
@@ -122,7 +91,7 @@ function LessonCard({
           {/* Time Column */}
           <div className="w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center bg-navy-50">
             <div className="text-xl md:text-2xl font-bold text-navy-700">
-              {getLessonNumber(lesson.startTime) || (index + 1)}
+              {lesson.lessonNumber || (index + 1)}
             </div>
             <div className="w-full my-2 border-t border-gray-400" />
             <div className="text-base md:text-lg text-navy-700">
@@ -234,9 +203,11 @@ function SubgroupCard({
   if (!baseLesson) return null;
 
   const renderSubgroupContent = (lesson: Lesson | undefined, subgroupLabel: string, showLabel: boolean = true) => {
-    // Однакова структура для обох випадків - flex-1 забезпечує рівну висоту
+    // Якщо немає заняття - не рендеримо нічого
+    if (!lesson) return null;
+    
     return (
-      <div className="flex-1 p-3 md:p-4 flex flex-col">
+      <div className="p-3 md:p-4 flex flex-col">
         {showLabel && (
           <div className="flex items-center gap-2 mb-1">
             <span className="px-1.5 py-0.5 bg-navy-100 text-navy-700 text-[10px] md:text-xs font-medium rounded">
@@ -244,29 +215,23 @@ function SubgroupCard({
             </span>
           </div>
         )}
-        {lesson ? (
-          <div className="flex-1">
-            <h4 className="font-semibold text-navy-700 text-sm md:text-base leading-tight break-words">
-              {lesson.subject}
-            </h4>
+        <div className="flex-1">
+          <h4 className="font-semibold text-navy-700 text-sm md:text-base leading-tight break-words">
+            {lesson.subject}
+          </h4>
+          
+          <div className="mt-2 space-y-1.5">
+            <div className="flex items-center gap-2 text-gray-600">
+              <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <span className="text-xs md:text-sm truncate">{lesson.teacher}</span>
+            </div>
             
-            <div className="mt-2 space-y-1.5">
-              <div className="flex items-center gap-2 text-gray-600">
-                <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                <span className="text-xs md:text-sm truncate">{lesson.teacher}</span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-gray-600">
-                <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                <span className="text-xs md:text-sm">{lesson.classroom}</span>
-              </div>
+            <div className="flex items-center gap-2 text-gray-600">
+              <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <span className="text-xs md:text-sm">{lesson.classroom}</span>
             </div>
           </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <span className="text-gray-400 text-sm">—</span>
-          </div>
-        )}
+        </div>
       </div>
     );
   };
@@ -287,7 +252,7 @@ function SubgroupCard({
           {/* Time Column */}
           <div className="w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center bg-navy-50">
             <div className="text-xl md:text-2xl font-bold text-navy-700">
-              {getLessonNumber(selectedLesson.startTime) || (index + 1)}
+              {selectedLesson.lessonNumber || (index + 1)}
             </div>
             <div className="w-full my-2 border-t border-gray-400" />
             <div className="text-base md:text-lg text-navy-700">
@@ -306,7 +271,7 @@ function SubgroupCard({
 
           {/* Content - Single subgroup using same structure as full mode */}
           <div className="flex-1 flex flex-col">
-            {renderSubgroupContent(selectedLesson, `${selectedSubgroup} підгр.`, true)}
+            {renderSubgroupContent(selectedLesson, `${selectedSubgroup} підгрупа`, true)}
           </div>
 
           {/* Group badge */}
@@ -331,7 +296,7 @@ function SubgroupCard({
         {/* Time Column */}
         <div className="w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center bg-navy-50">
           <div className="text-xl md:text-2xl font-bold text-navy-700">
-            {getLessonNumber(baseLesson.startTime) || (index + 1)}
+            {baseLesson.lessonNumber || (index + 1)}
           </div>
           <div className="w-full my-2 border-t border-gray-400" />
           <div className="text-base md:text-lg text-navy-700">
@@ -351,13 +316,15 @@ function SubgroupCard({
         {/* Content - Split into two subgroups */}
         <div className="flex-1 flex flex-col">
           {/* Підгрупа 1 - зверху */}
-          {renderSubgroupContent(subgroup1, '1 підгр.')}
+          {renderSubgroupContent(subgroup1, '1 підгрупа')}
           
-          {/* Горизонтальна лінія-розділювач */}
-          <div className="border-t border-gray-300 mx-2" />
+          {/* Горизонтальна лінія-розділювач - тільки якщо є обидві підгрупи */}
+          {subgroup1 && subgroup2 && (
+            <div className="border-t border-gray-300 mx-2" />
+          )}
           
           {/* Підгрупа 2 - знизу */}
-          {renderSubgroupContent(subgroup2, '2 підгр.')}
+          {renderSubgroupContent(subgroup2, '2 підгрупа')}
         </div>
 
         {/* Group badge */}

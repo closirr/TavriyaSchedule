@@ -11,6 +11,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 const STORAGE_KEY = 'tavriya-schedule-group';
+const TEACHER_STORAGE_KEY = 'tavriya-schedule-teacher';
 const SUBGROUP_STORAGE_KEY = 'tavriya-schedule-subgroup';
 import type {
   Lesson,
@@ -129,16 +130,20 @@ export function useScheduleData(): UseScheduleDataReturn {
   const configResult = getConfig();
   const configError = configResult.success ? null : configResult.error.message;
   
-  // Local state for filters - initialize with saved group and subgroup from localStorage
+  // Local state for filters - initialize with saved group, teacher and subgroup from localStorage
   const [filters, setFiltersState] = useState<ScheduleFilters>(() => {
     try {
       const savedGroup = localStorage.getItem(STORAGE_KEY);
+      const savedTeacher = localStorage.getItem(TEACHER_STORAGE_KEY);
       const savedSubgroup = localStorage.getItem(SUBGROUP_STORAGE_KEY);
       
       const initialFilters: ScheduleFilters = {};
       
+      // Відновлюємо або групу, або викладача (не обидва одночасно)
       if (savedGroup) {
         initialFilters.group = savedGroup;
+      } else if (savedTeacher) {
+        initialFilters.teacher = savedTeacher;
       }
       
       if (savedSubgroup && (savedSubgroup === '1' || savedSubgroup === '2')) {
@@ -198,14 +203,25 @@ export function useScheduleData(): UseScheduleDataReturn {
     [lessons, filters]
   );
   
-  // Memoized setFilters callback - saves group and subgroup to localStorage
+  // Memoized setFilters callback - saves group, teacher and subgroup to localStorage
   const setFilters = useCallback((newFilters: ScheduleFilters) => {
     setFiltersState(newFilters);
     
     try {
-      // Save group when selected
+      // Save group when selected, clear teacher
       if (newFilters.group) {
         localStorage.setItem(STORAGE_KEY, newFilters.group);
+        localStorage.removeItem(TEACHER_STORAGE_KEY);
+      }
+      // Save teacher when selected, clear group
+      else if (newFilters.teacher) {
+        localStorage.setItem(TEACHER_STORAGE_KEY, newFilters.teacher);
+        localStorage.removeItem(STORAGE_KEY);
+      }
+      // Clear both when neither is selected
+      else if (!newFilters.group && !newFilters.teacher) {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(TEACHER_STORAGE_KEY);
       }
       
       // Save subgroup when selected, clear when set to undefined
@@ -213,12 +229,6 @@ export function useScheduleData(): UseScheduleDataReturn {
         localStorage.setItem(SUBGROUP_STORAGE_KEY, newFilters.subgroup.toString());
       } else if (newFilters.subgroup === undefined && 'subgroup' in newFilters) {
         // Explicitly clear subgroup when set to undefined
-        localStorage.removeItem(SUBGROUP_STORAGE_KEY);
-      }
-      
-      // Clear subgroup when group changes (new group selected)
-      const currentGroup = localStorage.getItem(STORAGE_KEY);
-      if (newFilters.group && currentGroup && newFilters.group !== currentGroup) {
         localStorage.removeItem(SUBGROUP_STORAGE_KEY);
       }
       

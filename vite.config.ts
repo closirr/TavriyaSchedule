@@ -30,7 +30,7 @@ export default defineConfig(({ mode, command }) => {
     build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: false, // Disable source maps for smaller build size
     // Optimize for static hosting
     rollupOptions: {
       output: {

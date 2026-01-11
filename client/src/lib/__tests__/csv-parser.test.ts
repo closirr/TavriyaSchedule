@@ -221,6 +221,77 @@ describe('CSV Parser', () => {
       expect(firstLesson.group).toBe('КН-21');
     });
 
+    it('should auto-detect current week when cell is empty', () => {
+      const csv = buildVerticalCsv([
+        '2 семестр 2024-2025 н.р.',
+        'тиждень навчання:,,,, ', // Empty cell in column E (index 4)
+        'Час,КН-21,,',
+        ',Предмет,Викладач,Аудиторія',
+        'Понеділок',
+        '09:00-10:30,Математика,Іванов,101',
+      ]);
+
+      const result = parseScheduleCSV(csv);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.lessons).toHaveLength(1);
+      expect(result.metadata?.currentWeek).toBeTypeOf('number');
+      expect([1, 2]).toContain(result.metadata?.currentWeek);
+    });
+
+    it('should auto-detect current week when cell contains "авто"', () => {
+      const csv = buildVerticalCsv([
+        '2 семестр 2024-2025 н.р.',
+        'тиждень навчання:,,,,авто', // "авто" in column E (index 4)
+        'Час,КН-21,,',
+        ',Предмет,Викладач,Аудиторія',
+        'Понеділок',
+        '09:00-10:30,Математика,Іванов,101',
+      ]);
+
+      const result = parseScheduleCSV(csv);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.lessons).toHaveLength(1);
+      expect(result.metadata?.currentWeek).toBeTypeOf('number');
+      expect([1, 2]).toContain(result.metadata?.currentWeek);
+    });
+
+    it('should auto-detect current week when cell contains "auto"', () => {
+      const csv = buildVerticalCsv([
+        '2 семестр 2024-2025 н.р.',
+        'тиждень навчання:,,,,auto', // "auto" in column E (index 4)
+        'Час,КН-21,,',
+        ',Предмет,Викладач,Аудиторія',
+        'Понеділок',
+        '09:00-10:30,Математика,Іванов,101',
+      ]);
+
+      const result = parseScheduleCSV(csv);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.lessons).toHaveLength(1);
+      expect(result.metadata?.currentWeek).toBeTypeOf('number');
+      expect([1, 2]).toContain(result.metadata?.currentWeek);
+    });
+
+    it('should prefer explicit week over auto-detection', () => {
+      const csv = buildVerticalCsv([
+        '2 семестр 2024-2025 н.р.',
+        'тиждень навчання:,,,,2', // Explicit "2" should override auto-detection
+        'Час,КН-21,,',
+        ',Предмет,Викладач,Аудиторія',
+        'Понеділок',
+        '09:00-10:30,Математика,Іванов,101',
+      ]);
+
+      const result = parseScheduleCSV(csv);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.lessons).toHaveLength(1);
+      expect(result.metadata?.currentWeek).toBe(2);
+    });
+
     it('should reuse Monday time slots for other days', () => {
       const csv = buildVerticalCsv([
         ...buildVerticalHeader('КН-21'),

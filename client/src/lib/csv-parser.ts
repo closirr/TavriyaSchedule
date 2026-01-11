@@ -173,8 +173,35 @@ function splitAlternatingValues(value: string): [string, string] | null {
 }
 
 /**
+ * Determines the current week number automatically based on the current date.
+ * Uses the start of the academic year (September 1st) as reference.
+ * Week 1 = odd weeks from September 1st, Week 2 = even weeks.
+ */
+function determineCurrentWeekAutomatically(): WeekNumber {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  
+  // Academic year starts September 1st
+  // If we're before September, use previous academic year
+  const academicYearStart = now.getMonth() < 8 // August = 7, September = 8
+    ? new Date(currentYear - 1, 8, 1) // September 1st of previous year
+    : new Date(currentYear, 8, 1);    // September 1st of current year
+  
+  // Calculate weeks since academic year start
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const weeksSinceStart = Math.floor((now.getTime() - academicYearStart.getTime()) / msPerWeek);
+  
+  // Week 1 = odd weeks (0, 2, 4, ...), Week 2 = even weeks (1, 3, 5, ...)
+  const currentWeek = (weeksSinceStart % 2 === 0) ? 1 : 2;
+  
+  console.log(`[CSV-PARSER] Auto-determined week: ${currentWeek} (weeks since ${academicYearStart.toDateString()}: ${weeksSinceStart})`);
+  return currentWeek as WeekNumber;
+}
+
+/**
  * Extracts metadata from CSV header rows
  * Week number is read from cell E3 (row 3, column E) - manual override
+ * If cell is empty or contains "авто", automatically determines current week
  */
 export function extractMetadata(lines: string[]): ScheduleMetadata {
   const metadata: ScheduleMetadata = {};
@@ -186,6 +213,8 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
     console.log(`  Row ${i + 1}:`, fields.slice(0, 8));
   }
   
+  let shouldAutoDetect = false;
+  
   // Search for week value in first 5 rows, column E (index 4) or nearby
   for (let rowIdx = 0; rowIdx < Math.min(5, lines.length); rowIdx++) {
     const fields = parseCSVLine(lines[rowIdx]);
@@ -193,11 +222,23 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
     // Check columns D, E, F, G (indices 3, 4, 5, 6) for week value
     for (let colIdx = 3; colIdx <= 6; colIdx++) {
       const cell = fields[colIdx]?.trim() || '';
-      if (!cell) continue;
+      if (!cell) {
+        // Empty cell - should auto-detect
+        shouldAutoDetect = true;
+        continue;
+      }
       
       const cellLower = cell.toLowerCase();
       console.log(`[CSV-PARSER] Checking cell [${rowIdx + 1}, ${colIdx + 1}]: "${cell}" -> "${cellLower}"`);
       
+      // Check for auto-detection keywords
+      if (cellLower === 'авто' || cellLower === 'auto') {
+        shouldAutoDetect = true;
+        console.log(`[CSV-PARSER] Auto-detection requested ("${cell}" at row ${rowIdx + 1}, col ${colIdx + 1})`);
+        break;
+      }
+      
+      // Check for explicit week values
       if (cellLower === 'перший' || cellLower === '1' || cellLower === 'i' || cellLower === 'непарний' || cellLower === 'перша') {
         metadata.currentWeek = 1;
         console.log(`[CSV-PARSER] Week found: 1 ("${cell}" at row ${rowIdx + 1}, col ${colIdx + 1})`);
@@ -208,7 +249,7 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
         break;
       }
     }
-    if (metadata.currentWeek) break;
+    if (metadata.currentWeek && !shouldAutoDetect) break;
   }
   
   // Check header lines for other metadata (format, semester, week from text patterns)
@@ -223,6 +264,7 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
       const weekFromText = extractWeekNumber(fullLine);
       if (weekFromText) {
         metadata.currentWeek = weekFromText;
+        shouldAutoDetect = false; // Found explicit week, don't auto-detect
         console.log(`[CSV-PARSER] Week found from text pattern: ${weekFromText} ("${fullLine}")`);
       }
     }
@@ -244,27 +286,56 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
     }
   }
   
+  // If no explicit week found or auto-detection requested, determine automatically
+  if (!metadata.currentWeek || shouldAutoDetect) {
+    metadata.currentWeek = determineCurrentWeekAutomatically();
+  }
+  
   return metadata;
 }
 
 
 /**
- * Parses time range like "9:00-10:20" or "1) 9:00-10:20" into start and end times
- * Ignores lesson number prefix (e.g., "1)", "2)", etc.)
+ * Extracts lesson number from text (e.g., "1)", "2)", "1 пара", "пара 2")
  */
-export function parseTimeRange(timeStr: string): { startTime: string; endTime: string } | null {
+export function extractLessonNumber(text: string): number | null {
+  const normalized = text.toLowerCase().trim();
+  
+  // Match patterns like "1)", "2)", "1 пара", "пара 2", "1-а пара"
+  const match = normalized.match(/^(\d+)\)|(\d+)\s*[-\s]?(?:а|я)?\s*пара|пара\s*(\d+)|^(\d+)$/);
+  if (match) {
+    const num = parseInt(match[1] || match[2] || match[3] || match[4]);
+    if (num >= 1 && num <= 10) { // Reasonable range for lesson numbers
+      return num;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Parses time range like "9:00-10:20" or "1) 9:00-10:20" into start and end times
+ * Also extracts lesson number from prefix (e.g., "1)", "2)", etc.)
+ */
+export function parseTimeRange(timeStr: string): { startTime: string; endTime: string; lessonNumber?: number } | null {
+  // First try to extract lesson number from prefix
+  const lessonNumber = extractLessonNumber(timeStr);
+  
   // Match time with optional lesson number prefix like "1) ", "2) ", etc.
-  const match = timeStr.match(/^(?:\d+\)\s*)?(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})$/);
+  // Support formats like "1) 9-10", "1) 9:00-10:20", "9:00-10:20"
+  const match = timeStr.match(/^(?:\d+\)\s*)?(\d{1,2}):?(\d{2})?\s*[-–]\s*(\d{1,2}):?(\d{2})?$/);
   if (!match) return null;
   
-  const normalizeTime = (t: string) => {
-    const [h, m] = t.split(':');
-    return `${h.padStart(2, '0')}:${m}`;
+  const normalizeTime = (h: string, m?: string) => {
+    const hours = h.padStart(2, '0');
+    const minutes = (m || '00').padStart(2, '0');
+    return `${hours}:${minutes}`;
   };
   
   return {
-    startTime: normalizeTime(match[1]),
-    endTime: normalizeTime(match[2]),
+    startTime: normalizeTime(match[1], match[2]),
+    endTime: normalizeTime(match[3], match[4]),
+    lessonNumber: lessonNumber || undefined,
   };
 }
 
@@ -566,7 +637,7 @@ export function parseScheduleCSV(csv: string): ParseResult {
   let lessonIndex = 0;
   
   // Time slots extracted from Monday (first day) - reused for all days
-  const timeSlots: { startTime: string; endTime: string }[] = [];
+  const timeSlots: { startTime: string; endTime: string; lessonNumber?: number }[] = [];
   let isFirstDay = true;
   let currentLessonInDay = 0;
   
@@ -624,7 +695,7 @@ export function parseScheduleCSV(csv: string): ParseResult {
     const timeRange = parseTimeRange(firstCell);
     
     // Determine the time slot to use
-    let effectiveTimeRange: { startTime: string; endTime: string } | null = null;
+    let effectiveTimeRange: { startTime: string; endTime: string; lessonNumber?: number } | null = null;
     
     if (timeRange) {
       // We have explicit time in this row
@@ -637,7 +708,11 @@ export function parseScheduleCSV(csv: string): ParseResult {
           ts => ts.startTime === timeRange.startTime && ts.endTime === timeRange.endTime
         );
         if (!exists) {
-          timeSlots.push(timeRange);
+          timeSlots.push({
+            startTime: timeRange.startTime,
+            endTime: timeRange.endTime,
+            lessonNumber: timeRange.lessonNumber
+          });
         }
       }
     } else if (!isFirstDay && timeSlots.length > 0) {
@@ -690,6 +765,7 @@ export function parseScheduleCSV(csv: string): ParseResult {
             teacher: variant.teacher,
             group: group.groupName,
             classroom: variant.classroom,
+            lessonNumber: effectiveTimeRange.lessonNumber,
             weekNumber: variant.weekNumber,
             subgroupNumber: variant.subgroupNumber,
             format: metadata.defaultFormat,
