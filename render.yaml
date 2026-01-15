@@ -8,6 +8,8 @@ services:
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:
+      - key: BUILD_TARGET
+        value: render
       - key: VITE_GOOGLE_SHEETS_URL
         sync: false  # Set this manually in Render dashboard
     headers:
