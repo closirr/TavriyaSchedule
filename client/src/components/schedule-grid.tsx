@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, MapPin, User, Users } from "lucide-react";
 import type { Lesson, WeekNumber, SubgroupNumber } from "@/types/schedule";
@@ -49,12 +49,14 @@ interface ScheduleGridProps {
 function LessonCard({ 
   slot, 
   index, 
-  isCurrent, 
+  isCurrent,
+  isNext,
   currentWeek 
 }: { 
   slot: LessonSlot; 
   index: number; 
   isCurrent: boolean;
+  isNext: boolean;
   currentWeek?: WeekNumber;
 }) {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -75,7 +77,7 @@ function LessonCard({
     }
   };
 
-  const renderLessonContent = (lesson: Lesson, isBack: boolean = false) => {
+  const renderLessonContent = (lesson: Lesson, isBack: boolean = false, showNext: boolean = false) => {
     const weekLabel = lesson.weekNumber === 1 ? '1-й тиждень' : '2-й тиждень';
     const isActiveWeek = currentWeek === lesson.weekNumber;
     
@@ -84,6 +86,7 @@ function LessonCard({
         className={`
           border-0 shadow-sm overflow-hidden transition-all bg-white
           ${isCurrent && !isBack ? 'ring-2 ring-navy-400 shadow-lg' : ''}
+          ${isNext && !isBack && !isCurrent ? 'ring-2 ring-green-400 shadow-lg' : ''}
           ${!isActiveWeek && lesson.weekNumber ? 'opacity-70' : ''}
         `}
       >
@@ -104,6 +107,11 @@ function LessonCard({
             {isCurrent && !isBack && (
               <span className="mt-2 px-2 py-0.5 bg-navy-600 text-white text-xs rounded-full">
                 Зараз
+              </span>
+            )}
+            {isNext && !isBack && !isCurrent && (
+              <span className="mt-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
+                Наступна
               </span>
             )}
           </div>
@@ -152,7 +160,7 @@ function LessonCard({
 
   // Звичайне заняття без мигалки
   if (!slot.isAlternating) {
-    return renderLessonContent(frontLesson);
+    return renderLessonContent(frontLesson, false, isNext);
   }
 
   // Мигалка з flip-анімацією
@@ -165,13 +173,13 @@ function LessonCard({
       <div className="flip-card-inner">
         {/* Front side */}
         <div className="flip-card-front">
-          {renderLessonContent(frontLesson)}
+          {renderLessonContent(frontLesson, false, isNext)}
         </div>
         
         {/* Back side */}
         {backLesson && (
           <div className="flip-card-back">
-            {renderLessonContent(backLesson, true)}
+            {renderLessonContent(backLesson, true, false)}
           </div>
         )}
       </div>
@@ -188,11 +196,13 @@ function SubgroupCard({
   slot, 
   index, 
   isCurrent,
+  isNext,
   selectedSubgroup
 }: { 
   slot: LessonSlot; 
   index: number; 
   isCurrent: boolean;
+  isNext: boolean;
   selectedSubgroup?: SubgroupNumber;
 }) {
   const subgroup1 = slot.subgroup1Lesson;
@@ -246,6 +256,7 @@ function SubgroupCard({
         className={`
           border-0 shadow-sm overflow-hidden transition-all bg-white
           ${isCurrent ? 'ring-2 ring-navy-400 shadow-lg' : ''}
+          ${isNext && !isCurrent ? 'ring-2 ring-green-400 shadow-lg' : ''}
         `}
       >
         <div className="flex">
@@ -265,6 +276,11 @@ function SubgroupCard({
             {isCurrent && (
               <span className="mt-2 px-2 py-0.5 bg-navy-600 text-white text-xs rounded-full">
                 Зараз
+              </span>
+            )}
+            {isNext && !isCurrent && (
+              <span className="mt-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
+                Наступна
               </span>
             )}
           </div>
@@ -290,6 +306,7 @@ function SubgroupCard({
       className={`
         border-0 shadow-sm overflow-hidden transition-all bg-white
         ${isCurrent ? 'ring-2 ring-navy-400 shadow-lg' : ''}
+        ${isNext && !isCurrent ? 'ring-2 ring-green-400 shadow-lg' : ''}
       `}
     >
       <div className="flex">
@@ -309,6 +326,11 @@ function SubgroupCard({
           {isCurrent && (
             <span className="mt-2 px-2 py-0.5 bg-navy-600 text-white text-xs rounded-full">
               Зараз
+            </span>
+          )}
+          {isNext && !isCurrent && (
+            <span className="mt-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
+              Наступна
             </span>
           )}
         </div>
@@ -476,13 +498,13 @@ export default function ScheduleGrid({
     return grouped;
   };
 
-  const isCurrentDay = (dayIndex: number) => {
+  const isCurrentDay = useCallback((dayIndex: number) => {
     const today = new Date().getDay();
     const todayIndex = today === 0 ? 6 : today - 1;
     return dayIndex === todayIndex;
-  };
+  }, []);
 
-  const isCurrentLesson = (slot: LessonSlot, dayIndex: number) => {
+  const isCurrentLesson = useCallback((slot: LessonSlot, dayIndex: number) => {
     if (!isCurrentDay(dayIndex)) return false;
     // Враховуємо всі типи занять: звичайні, мигалки та підгрупи
     const lesson = slot.regularLesson || slot.week1Lesson || slot.week2Lesson || slot.subgroup1Lesson || slot.subgroup2Lesson;
@@ -490,6 +512,51 @@ export default function ScheduleGrid({
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     return currentTime >= lesson.startTime && currentTime <= lesson.endTime;
+  }, [isCurrentDay]);
+
+  // Групуємо слоти за днями для пошуку наступного заняття
+  const groupedSlots = useMemo(() => groupSlotsByDay(lessonSlots), [lessonSlots]);
+
+  // Знаходимо наступне заняття (якщо поточного немає)
+  const nextLesson = useMemo(() => {
+    // Перевіряємо, чи є поточне заняття
+    const hasCurrentLesson = lessonSlots.some((slot) => 
+      isCurrentLesson(slot, selectedDay)
+    );
+    
+    // Якщо є поточне заняття, не шукаємо наступне
+    if (hasCurrentLesson) return null;
+    
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const todayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1;
+
+    // Спочатку шукаємо в поточному дні
+    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+      const checkDayIndex = (todayIndex + dayOffset) % 7;
+      const daySlots = groupedSlots[daysOfWeek[checkDayIndex]] || [];
+      
+      for (const slot of daySlots) {
+        const lesson = slot.regularLesson || slot.week1Lesson || slot.week2Lesson || slot.subgroup1Lesson || slot.subgroup2Lesson;
+        if (!lesson) continue;
+
+        // Для поточного дня перевіряємо, чи заняття ще не почалось
+        if (dayOffset === 0) {
+          if (lesson.startTime > currentTime) {
+            return { slot, dayIndex: checkDayIndex };
+          }
+        } else {
+          // Для наступних днів беремо перше заняття
+          return { slot, dayIndex: checkDayIndex };
+        }
+      }
+    }
+    return null;
+  }, [lessonSlots, selectedDay, groupedSlots, isCurrentLesson, daysOfWeek]);
+
+  const isNextLesson = (slot: LessonSlot, dayIndex: number) => {
+    if (!nextLesson) return false;
+    return nextLesson.slot.key === slot.key && nextLesson.dayIndex === dayIndex;
   };
 
   if (isLoading) {
@@ -509,7 +576,6 @@ export default function ScheduleGrid({
     );
   }
 
-  const groupedSlots = groupSlotsByDay(lessonSlots);
   const currentDaySlots = groupedSlots[daysOfWeek[selectedDay]] || [];
 
   return (
@@ -626,6 +692,7 @@ export default function ScheduleGrid({
                   slot={slot}
                   index={index}
                   isCurrent={isCurrentLesson(slot, selectedDay)}
+                  isNext={isNextLesson(slot, selectedDay)}
                   selectedSubgroup={selectedSubgroup}
                 />
               ) : (
@@ -633,6 +700,7 @@ export default function ScheduleGrid({
                   slot={slot}
                   index={index}
                   isCurrent={isCurrentLesson(slot, selectedDay)}
+                  isNext={isNextLesson(slot, selectedDay)}
                   currentWeek={currentWeek}
                 />
               )}
