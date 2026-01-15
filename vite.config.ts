@@ -1,6 +1,20 @@
-import { defineConfig } from "vite";
+import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+
+// Plugin to replace %BASE_URL% in HTML
+function baseUrlPlugin(): Plugin {
+  let base = '/';
+  return {
+    name: 'base-url-plugin',
+    configResolved(config) {
+      base = config.base;
+    },
+    transformIndexHtml(html) {
+      return html.replace(/%BASE_URL%/g, base);
+    },
+  };
+}
 
 // Static site configuration for Tavriya Schedule
 // Google Sheets URL is configured via VITE_GOOGLE_SHEETS_URL environment variable
@@ -13,7 +27,7 @@ export default defineConfig(({ mode, command }) => {
   };
 
   return {
-    plugins: [react()],
+    plugins: [react(), baseUrlPlugin()],
     // Remove console.log in production
     esbuild: {
       drop: mode === 'production' ? ['console', 'debugger'] : [],

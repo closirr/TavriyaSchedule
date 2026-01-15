@@ -50,7 +50,7 @@ export default function Schedule() {
           <div className="flex justify-between items-start gap-4 py-3 sm:items-center sm:py-0 sm:h-16">
             <div className="flex items-center space-x-3">
               <img 
-                src="/favicon.png" 
+                src={`${import.meta.env.BASE_URL}favicon.png`} 
                 alt="КФКМГ" 
                 className="w-10 h-10 rounded-lg"
               />
