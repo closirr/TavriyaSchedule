@@ -25,8 +25,9 @@ export default defineConfig(({ mode, command }) => {
   // Determine base path based on build target
   const getBasePath = () => {
     if (command === 'serve') return '/'; // Development
-    if (process.env.BUILD_TARGET === 'render') return '/'; // Render build
-    return '/schedule/'; // Main site build (default production)
+    // For production: use /schedule/ only if explicitly set, otherwise use /
+    if (process.env.BUILD_TARGET === 'schedule') return '/schedule/'; // Main site build
+    return '/'; // Render and other deployments (default)
   };
 
   return {
