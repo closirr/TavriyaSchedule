@@ -6,10 +6,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Schedule from "@/pages/schedule";
 import NotFound from "@/pages/not-found";
 
-// Base path for production (matches Vite's base config)
-const basePath = import.meta.env.PROD ? "/schedule" : "";
+// Base path for production - should match Vite's base config
+// For Render deployment, use root path
+const basePath = "";
+
+console.log('[APP] Base path:', basePath);
+console.log('[APP] Environment:', import.meta.env.MODE);
+console.log('[APP] Production:', import.meta.env.PROD);
 
 function Router() {
+  console.log('[APP] Rendering Router with base:', basePath);
   return (
     <WouterRouter base={basePath}>
       <Switch>
@@ -21,6 +27,7 @@ function Router() {
 }
 
 function App() {
+  console.log('[APP] Rendering App component');
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
