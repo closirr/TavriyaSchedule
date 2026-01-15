@@ -459,18 +459,6 @@ export default function ScheduleGrid({
     return Array.from(slotMap.values());
   }, [lessons]);
 
-  if (!hasActiveFilter && !isLoading) {
-    return (
-      <div className="mb-8 p-12 bg-white rounded-2xl border border-gray-200 text-center">
-        <div className="w-16 h-16 bg-navy-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Users className="w-8 h-8 text-navy-600" />
-        </div>
-        <p className="text-gray-600 text-lg font-medium">Оберіть групу, викладача або аудиторію</p>
-        <p className="text-gray-400 text-sm mt-2">Використайте пошук вище</p>
-      </div>
-    );
-  }
-
   const getDayDate = (dayIndex: number) => {
     const now = new Date();
     const monday = new Date(now);
@@ -558,6 +546,19 @@ export default function ScheduleGrid({
     if (!nextLesson) return false;
     return nextLesson.slot.key === slot.key && nextLesson.dayIndex === dayIndex;
   };
+
+  // Early return ПІСЛЯ всіх хуків
+  if (!hasActiveFilter && !isLoading) {
+    return (
+      <div className="mb-8 p-12 bg-white rounded-2xl border border-gray-200 text-center">
+        <div className="w-16 h-16 bg-navy-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Users className="w-8 h-8 text-navy-600" />
+        </div>
+        <p className="text-gray-600 text-lg font-medium">Оберіть групу, викладача або аудиторію</p>
+        <p className="text-gray-400 text-sm mt-2">Використайте пошук вище</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

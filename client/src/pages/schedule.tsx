@@ -5,6 +5,7 @@ import { useScheduleData } from "@/hooks/useScheduleData";
 import { Button } from "@/components/ui/button";
 import { SchedulePrinter, convertLessonsToPrinterFormat } from "@/lib/schedule-printer";
 import { useToast } from "@/hooks/use-toast";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export default function Schedule() {
   const {
@@ -75,27 +76,31 @@ export default function Schedule() {
 
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Filters with Week and Format Indicator */}
-        <ScheduleFilters
-          filters={filters}
-          filterOptions={filterOptions}
-          onFiltersChange={setFilters}
-          metadata={metadata}
-          currentWeek={currentWeek}
-          isWeekManual={isWeekManual}
-          isLoading={isLoading}
-        />
+        <ErrorBoundary>
+          <ScheduleFilters
+            filters={filters}
+            filterOptions={filterOptions}
+            onFiltersChange={setFilters}
+            metadata={metadata}
+            currentWeek={currentWeek}
+            isWeekManual={isWeekManual}
+            isLoading={isLoading}
+          />
+        </ErrorBoundary>
 
         {/* Schedule Grid */}
-        <ScheduleGrid 
-          lessons={filteredLessons} 
-          isLoading={isLoading} 
-          selectedGroup={filters.group} 
-          selectedTeacher={filters.teacher}
-          selectedClassroom={filters.classroom}
-          searchQuery={filters.search}
-          currentWeek={currentWeek}
-          selectedSubgroup={filters.subgroup}
-        />
+        <ErrorBoundary>
+          <ScheduleGrid 
+            lessons={filteredLessons} 
+            isLoading={isLoading} 
+            selectedGroup={filters.group} 
+            selectedTeacher={filters.teacher}
+            selectedClassroom={filters.classroom}
+            searchQuery={filters.search}
+            currentWeek={currentWeek}
+            selectedSubgroup={filters.subgroup}
+          />
+        </ErrorBoundary>
       </div>
 
       {/* Footer */}

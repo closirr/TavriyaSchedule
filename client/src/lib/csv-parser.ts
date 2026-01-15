@@ -156,7 +156,6 @@ function splitAlternatingValues(value: string): [string, string] | null {
   // Explicit "1 тиждень ... / 2 тиждень ..." pattern
   const explicitMatch = normalized.match(/(?:1|i)\s*[-–.]?\s*тиждень[:\-]?\s*(.*?)\/\s*(?:2|ii)\s*[-–.]?\s*тиждень[:\-]?\s*(.*)/i);
   if (explicitMatch) {
-    console.log(`[CSV-PARSER] splitAlternatingValues explicit match: "${value}" -> ["${explicitMatch[1]}", "${explicitMatch[2]}"]`);
     return [explicitMatch[1]?.trim() ?? '', explicitMatch[2]?.trim() ?? ''];
   }
 
@@ -164,7 +163,6 @@ function splitAlternatingValues(value: string): [string, string] | null {
   if (normalized.includes('/')) {
     const parts = normalized.split('/').map(p => p.trim());
     if (parts.length >= 2) {
-      console.log(`[CSV-PARSER] splitAlternatingValues "/" split: "${value}" -> ["${parts[0]}", "${parts[1]}"]`);
       return [parts[0] ?? '', parts[1] ?? ''];
     }
   }
@@ -229,23 +227,19 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
       }
       
       const cellLower = cell.toLowerCase();
-      console.log(`[CSV-PARSER] Checking cell [${rowIdx + 1}, ${colIdx + 1}]: "${cell}" -> "${cellLower}"`);
       
       // Check for auto-detection keywords
       if (cellLower === 'авто' || cellLower === 'auto') {
         shouldAutoDetect = true;
-        console.log(`[CSV-PARSER] Auto-detection requested ("${cell}" at row ${rowIdx + 1}, col ${colIdx + 1})`);
         break;
       }
       
       // Check for explicit week values
       if (cellLower === 'перший' || cellLower === '1' || cellLower === 'i' || cellLower === 'непарний' || cellLower === 'перша') {
         metadata.currentWeek = 1;
-        console.log(`[CSV-PARSER] Week found: 1 ("${cell}" at row ${rowIdx + 1}, col ${colIdx + 1})`);
         break;
       } else if (cellLower === 'другий' || cellLower === '2' || cellLower === 'ii' || cellLower === 'парний' || cellLower === 'друга') {
         metadata.currentWeek = 2;
-        console.log(`[CSV-PARSER] Week found: 2 ("${cell}" at row ${rowIdx + 1}, col ${colIdx + 1})`);
         break;
       }
     }
@@ -265,7 +259,6 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
       if (weekFromText) {
         metadata.currentWeek = weekFromText;
         shouldAutoDetect = false; // Found explicit week, don't auto-detect
-        console.log(`[CSV-PARSER] Week found from text pattern: ${weekFromText} ("${fullLine}")`);
       }
     }
     
@@ -535,7 +528,6 @@ function buildLessonVariants(
       });
     }
 
-    console.log(`[CSV-PARSER] buildLessonVariants subgroups: "${subject}" -> ${result.length} lessons`);
     return result;
   }
 
