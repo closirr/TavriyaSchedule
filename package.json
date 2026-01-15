@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:render": "cross-env BUILD_TARGET=render vite build",
-    "build:main": "vite build",
+    "build:render": "vite build",
+    "build:main": "cross-env BUILD_TARGET=schedule vite build",
     "preview": "vite preview",
     "check": "tsc",
     "test": "vitest --run",
