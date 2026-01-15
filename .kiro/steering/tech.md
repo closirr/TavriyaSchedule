@@ -33,12 +33,36 @@
 npm run dev          # Start Vite dev server
 
 # Building
-npm run build        # Build static site for production
+npm run build        # Build static site for production (root path /)
+npm run build:main   # Build for main site deployment (/schedule/ path)
 npm run check        # TypeScript type checking
 
 # Testing
 npm run test         # Run tests
 ```
+
+## Build Configuration
+
+Проєкт підтримує два режими деплою:
+
+### 1. Render (окремий домен) - корінь `/`
+```bash
+npm run build
+```
+- Base path: `/`
+- Використовується для https://tavriyaschedule.onrender.com
+- Router base: `` (порожній)
+
+### 2. Головний сайт - підпапка `/schedule/`
+```bash
+npm run build:main
+```
+- Base path: `/schedule/`
+- Використовується для інтеграції в головний сайт
+- Router base: `/schedule`
+- Встановлює `BUILD_TARGET=schedule`
+
+**Важливо:** Base path в `vite.config.ts` та Router base в `App.tsx` мають співпадати!
 
 ## Environment Configuration
 - **VITE_GOOGLE_SHEET_ID** - ID Google таблиці з розкладом
