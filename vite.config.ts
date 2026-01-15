@@ -32,9 +32,9 @@ export default defineConfig(({ mode, command }) => {
 
   return {
     plugins: [react(), baseUrlPlugin()],
-    // Remove console.log in production - temporarily disabled for debugging
+    // Remove console.log in production
     esbuild: {
-      drop: [], // mode === 'production' ? ['console', 'debugger'] : [],
+      drop: mode === 'production' ? ['console', 'debugger'] : [],
     },
     resolve: {
       alias: {
