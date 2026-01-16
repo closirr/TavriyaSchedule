@@ -61,6 +61,7 @@ export default defineConfig(({ mode, command }) => {
   },
   server: {
     port: 5173,
+    host: true, // Дозволяє доступ по мережі
     fs: {
       strict: true,
       deny: ["**/.*"],
