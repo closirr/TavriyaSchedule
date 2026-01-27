@@ -737,12 +737,12 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
           <thead>
             <tr class="header-row">
               <th colspan="${3 + groups.length}" style="border: none; padding: 8px 0;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 0 10px;">
-                  <div style="text-align: left; font-size: 16px; font-weight: bold;">
+                <div style="position: relative; padding: 0 10px;">
+                  <div style="text-align: center; font-size: 16px; font-weight: bold;">
                     РОЗКЛАД ЗАНЯТЬ<br>
                     <span style="font-size: 11px; font-weight: normal;">на ${escapeHtml(scheduleData.semester)}</span>
                   </div>
-                  <div style="text-align: right; font-size: 11px; font-weight: normal; line-height: 1.4;">
+                  <div style="position: absolute; top: 0; right: 10px; text-align: right; font-size: 11px; font-weight: normal; line-height: 1.4;">
                     ЗАТВЕРДЖУЮ<br>
                     Директор коледжу<br>
                     ${escapeHtml(scheduleData.directorName)}
