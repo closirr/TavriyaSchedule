@@ -71,3 +71,23 @@ npm run build:main
 ## Deployment
 - Статичний сайт можна хостити на будь-якому статичному хостингу (Netlify, Vercel, GitHub Pages, тощо)
 - Build output: `dist/` folder
+
+## SSH Deploy (Manual)
+
+Якщо потрібно вручну задеплоїти на SSH сервер:
+
+```bash
+# 1. Білд проєкту
+npm run build:main
+
+# 2. Видалення старих файлів на сервері
+ssh assets@212.26.132.199 "rm -rf /home/assets/schedule/*"
+
+# 3. Завантаження нових файлів
+scp -r dist/* assets@212.26.132.199:/home/assets/schedule/
+```
+
+Або використовуйте автоматичний скрипт:
+```bash
+npm run deploy
+```

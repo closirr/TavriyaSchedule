@@ -625,10 +625,10 @@ export default function ScheduleGrid({
         })}
       </div>
 
-      {/* Day Selector - Mobile */}
-      <div className="md:hidden mb-6 -mx-4 px-4">
-        <div className="overflow-x-auto pb-2">
-          <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
+      {/* Day Selector - Mobile with full-width scroll */}
+      <div className="md:hidden mb-6 relative left-1/2 right-1/2 -mx-[50vw] w-screen">
+        <div className="overflow-x-auto pb-2 px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="inline-flex gap-2">
             {daysOfWeek.map((day, index) => {
               const daySlots = groupedSlots[day] || [];
               const isToday = isCurrentDay(index);

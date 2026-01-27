@@ -7,8 +7,9 @@ import Schedule from "@/pages/schedule";
 import NotFound from "@/pages/not-found";
 
 // Base path for production - should match Vite's base config
-// For Render deployment, use root path
-const basePath = "";
+// For Render deployment, use root path ("")
+// For main site deployment, use "/schedule"
+const basePath = import.meta.env.VITE_BUILD_TARGET === "schedule" ? "/schedule" : "";
 
 function Router() {
   return (

@@ -7,11 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "build:render": "vite build",
-    "build:main": "cross-env BUILD_TARGET=schedule vite build",
+    "build:main": "cross-env VITE_BUILD_TARGET=schedule vite build --base=/schedule/",
     "preview": "vite preview",
     "check": "tsc",
     "test": "vitest --run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deploy": "powershell -ExecutionPolicy Bypass -File deploy.ps1",
+    "deploy:main": "bash deploy.sh main",
+    "deploy:win": "deploy.bat render",
+    "deploy:main:win": "deploy.bat main"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
