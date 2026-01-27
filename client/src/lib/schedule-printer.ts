@@ -468,7 +468,7 @@ function getStyles(): string {
 
     body {
       font-family: "Times New Roman", serif;
-      font-size: 11px;
+      font-size: 13px;
       margin: 0;
       padding: 0;
     }
@@ -568,23 +568,58 @@ function getStyles(): string {
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
+    #printLoader {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    .loader-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loader-text {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+    }
+
     @media print {
       .print-controls { display: none; }
       .print-hint { display: none; }
+      #printLoader { display: none !important; }
     }
 
-    .col-days { width: 26px; }
-    .col-number { width: 20px; }
-    .col-time { width: 60px; }
+    .col-days { width: 1% !important; white-space: nowrap !important; }
+    .col-number { width: 1% !important; white-space: nowrap !important; }
+    .col-time { width: 1% !important; white-space: nowrap !important; min-width: 85px !important; }
 
     .day-cell {
       writing-mode: vertical-rl;
       transform: rotate(180deg);
       font-weight: bold;
-      font-size: 12px;
+      font-size: 13px;
     }
 
-    .time-cell { font-size: 10px; }
+    .time-cell { font-size: 11px; }
 
     .day-separator td {
       border-top: 2px solid #000 !important;
@@ -595,17 +630,17 @@ function getStyles(): string {
     }
 
     .subject {
-      font-size: 11px;
+      font-size: 13px;
       font-weight: bold;
     }
 
     .teacher {
-      font-size: 9px;
+      font-size: 11px;
       font-style: italic;
     }
 
     .classroom {
-      font-size: 9px;
+      font-size: 11px;
       color: #666;
     }
 
@@ -673,7 +708,7 @@ function getStyles(): string {
     .day-table {
       width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
+      table-layout: auto;
       border: 2px solid #000;
       margin-bottom: 5px;
     }
@@ -685,6 +720,14 @@ function getStyles(): string {
       text-align: center;
       vertical-align: middle;
       word-wrap: break-word;
+    }
+    
+    /* Вузькі колонки не розтягуються */
+    .col-days,
+    .col-number,
+    .col-time {
+      white-space: nowrap;
+      width: 1%;
     }`;
 }
 
@@ -736,13 +779,19 @@ function generateDayBlocks(scheduleData: PrinterScheduleData, config: PrinterCon
         <table class="day-table">
           <thead>
             <tr class="header-row">
-              <th colspan="${3 + groups.length}" style="border: none; padding: 8px 0;">
-                <div style="position: relative; padding: 0 10px;">
-                  <div style="text-align: center; font-size: 16px; font-weight: bold;">
-                    РОЗКЛАД ЗАНЯТЬ<br>
-                    <span style="font-size: 11px; font-weight: normal;">на ${escapeHtml(scheduleData.semester)}</span>
+              <th colspan="${3 + groups.length}" style="border: none; padding: 8px 0 8px 0;">
+                <div style="position: relative; padding: 0 10px; min-height: 65px;">
+                  <div style="position: absolute; top: 2px; left: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=http://kfkmg.tnu.edu.ua/schedule" alt="QR Code" style="width: 60px; height: 60px;" />
+                      <span style="font-size: 9px; max-width: 100px; line-height: 1.3; color: #333;">Посилання на сучасну версію сайту розкладу</span>
+                    </div>
                   </div>
-                  <div style="position: absolute; top: 0; right: 10px; text-align: right; font-size: 11px; font-weight: normal; line-height: 1.4;">
+                  <div style="text-align: center; font-size: 18px; font-weight: bold; padding-top: 5px;">
+                    РОЗКЛАД ЗАНЯТЬ<br>
+                    <span style="font-size: 12px; font-weight: normal;">на ${escapeHtml(scheduleData.semester)}</span>
+                  </div>
+                  <div style="position: absolute; top: 2px; right: 10px; text-align: right; font-size: 12px; font-weight: normal; line-height: 1.4;">
                     ЗАТВЕРДЖУЮ<br>
                     Директор коледжу<br>
                     ${escapeHtml(scheduleData.directorName)}
@@ -915,29 +964,17 @@ ${getStyles()}
   </style>
 </head>
 <body>
+<div id="printLoader">
+  <div class="loader-spinner"></div>
+  <div class="loader-text">Підготовка до друку...</div>
+</div>
+
 <div class="print-controls">
   <button id="printBtn" onclick="window.print()">Друк</button>
   <p class="print-hint">При друку вимкніть "Колонтитули" (Headers and footers) в налаштуваннях</p>
 </div>
 
 <div id="wrapper">
-  <div class="top-line">
-    <div class="qr-block">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=https://tavriyaschedule.onrender.com" alt="QR Code" />
-      <span class="qr-text">Посилання на сучасну версію сайту розкладу</span>
-    </div>
-    <div class="approve-block">
-      ЗАТВЕРДЖУЮ<br>
-      Директор коледжу<br>
-      ${escapeHtml(scheduleData.directorName)}<span class="line"></span>
-    </div>
-  </div>
-
-  <div class="title-block">
-    <h1>РОЗКЛАД ЗАНЯТЬ</h1>
-    <div>на ${escapeHtml(scheduleData.semester)}</div>
-  </div>
-
   ${generateDayBlocks(scheduleData, this.config)}
 </div>
 
@@ -955,6 +992,31 @@ ${getStyles()}
     if (printWindow) {
       printWindow.document.write(printContent);
       printWindow.document.close();
+      
+      // Додаємо обробник для показу лоадера при друку
+      printWindow.addEventListener('load', () => {
+        const printBtn = printWindow.document.getElementById('printBtn');
+        if (printBtn) {
+          printBtn.addEventListener('click', () => {
+            // Показуємо лоадер
+            const loader = printWindow.document.getElementById('printLoader');
+            if (loader) {
+              loader.style.display = 'flex';
+            }
+            
+            // Викликаємо діалог друку
+            printWindow.print();
+            
+            // Ховаємо лоадер після закриття діалогу друку
+            // (використовуємо setTimeout, бо немає прямого способу відстежити закриття діалогу)
+            setTimeout(() => {
+              if (loader) {
+                loader.style.display = 'none';
+              }
+            }, 1000);
+          });
+        }
+      });
     }
   }
 }
