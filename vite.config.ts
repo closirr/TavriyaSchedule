@@ -1,7 +1,10 @@
-import { defineConfig, Plugin } from "vite";
+import { defineConfig, loadEnv, Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from 'url';
+import fs from 'fs/promises';
+import { parseScheduleCSV } from './client/src/lib/csv-parser';
+import { createScheduleApiIndex, createScheduleApiPayload } from './client/src/lib/schedule-api';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,9 +22,74 @@ function baseUrlPlugin(): Plugin {
   };
 }
 
+function scheduleApiPlugin(googleSheetsUrl?: string): Plugin {
+  let outDir = '';
+
+  return {
+    name: 'schedule-api-plugin',
+    apply: 'build',
+    configResolved(config) {
+      outDir = config.build.outDir;
+    },
+    async closeBundle() {
+      const apiDir = path.resolve(outDir, 'api');
+      await fs.mkdir(apiDir, { recursive: true });
+
+      const generatedAt = new Date();
+      const index = createScheduleApiIndex(generatedAt);
+      await fs.writeFile(
+        path.join(apiDir, 'index.json'),
+        `${JSON.stringify(index, null, 2)}\n`,
+        'utf8'
+      );
+
+      if (!googleSheetsUrl) {
+        this.warn('VITE_GOOGLE_SHEETS_URL is not set; schedule API data files were not generated.');
+        return;
+      }
+
+      const response = await fetch(googleSheetsUrl, {
+        headers: {
+          Accept: 'text/csv, text/plain, */*',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate schedule API: ${response.status} ${response.statusText}`);
+      }
+
+      const csv = await response.text();
+      const parseResult = parseScheduleCSV(csv);
+      const payload = createScheduleApiPayload({
+        lessons: parseResult.lessons,
+        metadata: parseResult.metadata,
+        generatedAt,
+        source: {
+          type: 'google-sheets-csv',
+          url: googleSheetsUrl,
+        },
+        parseErrors: parseResult.errors.length,
+      });
+
+      await fs.writeFile(
+        path.join(apiDir, 'schedule.json'),
+        `${JSON.stringify(payload, null, 2)}\n`,
+        'utf8'
+      );
+      await fs.writeFile(
+        path.join(apiDir, 'lessons.json'),
+        `${JSON.stringify(payload.lessons, null, 2)}\n`,
+        'utf8'
+      );
+    },
+  };
+}
+
 // Static site configuration for Tavriya Schedule
 // Google Sheets URL is configured via VITE_GOOGLE_SHEETS_URL environment variable
 export default defineConfig(({ mode, command }) => {
+  const env = loadEnv(mode, __dirname, 'VITE_');
+
   // Determine base path based on build target
   const getBasePath = () => {
     if (command === 'serve') return '/'; // Development
@@ -31,7 +99,7 @@ export default defineConfig(({ mode, command }) => {
   };
 
   return {
-    plugins: [react(), baseUrlPlugin()],
+    plugins: [react(), baseUrlPlugin(), scheduleApiPlugin(env.VITE_GOOGLE_SHEETS_URL)],
     // Remove console.log in production
     esbuild: {
       drop: mode === 'production' ? ['console', 'debugger'] : [],
