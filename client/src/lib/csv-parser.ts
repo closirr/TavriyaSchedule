@@ -200,6 +200,7 @@ function determineCurrentWeekAutomatically(): WeekNumber {
  * Extracts metadata from CSV header rows
  * Week number is read from cell E3 (row 3, column E) - manual override
  * If cell is empty or contains "авто", automatically determines current week
+ * Learning format is read from cell G2 (row 2, column G) - online/offline/auto
  */
 export function extractMetadata(lines: string[]): ScheduleMetadata {
   const metadata: ScheduleMetadata = {};
@@ -212,6 +213,24 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
   }
   
   let shouldAutoDetect = false;
+  
+  // Read cell G2 (row 2, column G = index 6) for learning format setting
+  if (lines.length >= 2) {
+    const row2Fields = parseCSVLine(lines[1]);
+    const g2Cell = row2Fields[6]?.trim() || '';
+    const g2Lower = g2Cell.toLowerCase();
+    
+    if (g2Lower === 'онлайн' || g2Lower === 'online') {
+      metadata.learningFormat = 'онлайн';
+      console.log('[CSV-PARSER] Learning format from G2: онлайн');
+    } else if (g2Lower === 'офлайн' || g2Lower === 'оф{1,2}лайн' || g2Lower === 'offline' || g2Lower === 'очн') {
+      metadata.learningFormat = 'офлайн';
+      console.log('[CSV-PARSER] Learning format from G2: офлайн');
+    } else if (g2Lower === 'авто' || g2Lower === 'auto') {
+      metadata.learningFormat = 'авто';
+      console.log('[CSV-PARSER] Learning format from G2: авто');
+    }
+  }
   
   // Search for week value in first 5 rows, column E (index 4) or nearby
   for (let rowIdx = 0; rowIdx < Math.min(5, lines.length); rowIdx++) {
@@ -624,6 +643,12 @@ export function parseScheduleCSV(csv: string): ParseResult {
   // Extract metadata from header rows
   const metadata = extractMetadata(lines);
   
+  // Determine which column to use for time slots based on learning format
+  // Column A (index 0) = offline bell schedule
+  // Column L (index 11) = online bell schedule
+  const timeSlotColumnIndex = metadata.learningFormat === 'онлайн' ? 11 : 0;
+  console.log(`[CSV-PARSER] Using time slot column index: ${timeSlotColumnIndex} (learning format: ${metadata.learningFormat || 'default'})`);
+  
   let currentGroups: GroupColumn[] = [];
   let currentDay: DayOfWeek | null = null;
   let lessonIndex = 0;
@@ -683,8 +708,9 @@ export function parseScheduleCSV(csv: string): ParseResult {
     
     if (!currentDay || currentGroups.length === 0) continue;
     
-    // Try to parse time from first cell
-    const timeRange = parseTimeRange(firstCell);
+    // Try to parse time from the appropriate column (based on learning format)
+    const timeCell = fields[timeSlotColumnIndex]?.trim() || '';
+    const timeRange = parseTimeRange(timeCell);
     
     // Determine the time slot to use
     let effectiveTimeRange: { startTime: string; endTime: string; lessonNumber?: number } | null = null;
@@ -734,6 +760,11 @@ export function parseScheduleCSV(csv: string): ParseResult {
     // If we used time from the row (not from slots), increment counter
     if (timeRange) {
       currentLessonInDay++;
+    }
+    
+    // Debug: log which column is being used for time slots
+    if (isFirstDay && currentDay === 'Понеділок' && timeRange) {
+      console.log(`[CSV-PARSER] Monday time slot from column ${timeSlotColumnIndex}: ${timeRange.startTime}-${timeRange.endTime}`);
     }
     
     for (const group of currentGroups) {

@@ -20,6 +20,7 @@ export type {
   FetchResult,
   WeekNumber,
   LessonFormat,
+  LearningFormat,
   ScheduleMetadata,
 } from "../client/src/types/schedule";
 

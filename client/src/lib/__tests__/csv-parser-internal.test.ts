@@ -250,6 +250,74 @@ describe('CSV Parser Internal Functions', () => {
     expect(metadata.semester).toBe('2 семестр 2024-2025 н.р.');
   });
 
+  describe('Learning format extraction from cell G2', () => {
+    it('should extract "онлайн" from cell G2', () => {
+      // Row 1: header, Row 2: G2 = "онлайн" (index 6)
+      // Column G = index 6, so we need 7 fields: indices 0-6
+      // CSV: ,,,,,,онлайн  (6 commas = 7 fields)
+      const lines = [
+        'Час,КН-21,,,',
+        ',,,,,,онлайн',
+      ];
+      const metadata = extractMetadata(lines);
+      expect(metadata.learningFormat).toBe('онлайн');
+    });
+
+    it('should extract "офлайн" from cell G2', () => {
+      const lines = [
+        'Час,КН-21,,,',
+        ',,,,,,офлайн',
+      ];
+      const metadata = extractMetadata(lines);
+      expect(metadata.learningFormat).toBe('офлайн');
+    });
+
+    it('should extract "авто" from cell G2', () => {
+      const lines = [
+        'Час,КН-21,,,',
+        ',,,,,,авто',
+      ];
+      const metadata = extractMetadata(lines);
+      expect(metadata.learningFormat).toBe('авто');
+    });
+
+    it('should handle case-insensitive values in G2', () => {
+      const lines = [
+        'Час,КН-21,,,',
+        ',,,,,,ОНЛАЙН',
+      ];
+      const metadata = extractMetadata(lines);
+      expect(metadata.learningFormat).toBe('онлайн');
+    });
+
+    it('should handle English values in G2', () => {
+      const lines = [
+        'Час,КН-21,,,',
+        ',,,,,,online',
+      ];
+      const metadata = extractMetadata(lines);
+      expect(metadata.learningFormat).toBe('онлайн');
+    });
+
+    it('should not set learningFormat if G2 is empty', () => {
+      const lines = [
+        'Час,КН-21,,,',
+        ',,,,,,,',
+      ];
+      const metadata = extractMetadata(lines);
+      expect(metadata.learningFormat).toBeUndefined();
+    });
+
+    it('should not set learningFormat if G2 has unrelated value', () => {
+      const lines = [
+        'Час,КН-21,,,',
+        ',,,,,,some text',
+      ];
+      const metadata = extractMetadata(lines);
+      expect(metadata.learningFormat).toBeUndefined();
+    });
+  });
+
   /**
    * **Feature: excel-schedule-parsing-tests, Property 9: Group Header Parsing Creates Correct Structures**
    * **Validates: Requirements 5.2, 5.3, 5.4**

@@ -90,6 +90,14 @@ export interface Lesson {
 }
 
 /**
+ * Learning format setting from cell G2
+ * - "онлайн": use online bell schedule (column L)
+ * - "офлайн": use offline bell schedule (column A)
+ * - "авто": auto-detect based on existing logic
+ */
+export type LearningFormat = 'онлайн' | 'офлайн' | 'авто';
+
+/**
  * Schedule metadata extracted from the document
  */
 export interface ScheduleMetadata {
@@ -99,6 +107,8 @@ export interface ScheduleMetadata {
   defaultFormat?: LessonFormat;
   /** Semester info (e.g., "2 семестр 2024-2025 н.р.") */
   semester?: string;
+  /** Learning format setting from cell G2 (онлайн/офлайн/авто) */
+  learningFormat?: LearningFormat;
 }
 
 /**
