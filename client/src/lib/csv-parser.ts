@@ -212,8 +212,6 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
     console.log(`  Row ${i + 1}:`, fields.slice(0, 8));
   }
   
-  let shouldAutoDetect = false;
-  
   // Read cell G2 (row 2, column G = index 6) for learning format setting
   if (lines.length >= 2) {
     const row2Fields = parseCSVLine(lines[1]);
@@ -223,7 +221,7 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
     if (g2Lower === 'онлайн' || g2Lower === 'online') {
       metadata.learningFormat = 'онлайн';
       console.log('[CSV-PARSER] Learning format from G2: онлайн');
-    } else if (g2Lower === 'офлайн' || g2Lower === 'оф{1,2}лайн' || g2Lower === 'offline' || g2Lower === 'очн') {
+    } else if (/^оф{1,2}лайн$/.test(g2Lower) || g2Lower === 'offline' || g2Lower === 'очн') {
       metadata.learningFormat = 'офлайн';
       console.log('[CSV-PARSER] Learning format from G2: офлайн');
     } else if (g2Lower === 'авто' || g2Lower === 'auto') {
@@ -240,8 +238,6 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
     for (let colIdx = 3; colIdx <= 6; colIdx++) {
       const cell = fields[colIdx]?.trim() || '';
       if (!cell) {
-        // Empty cell - should auto-detect
-        shouldAutoDetect = true;
         continue;
       }
       
@@ -249,7 +245,6 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
       
       // Check for auto-detection keywords
       if (cellLower === 'авто' || cellLower === 'auto') {
-        shouldAutoDetect = true;
         break;
       }
       
@@ -262,7 +257,7 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
         break;
       }
     }
-    if (metadata.currentWeek && !shouldAutoDetect) break;
+    if (metadata.currentWeek) break;
   }
   
   // Check header lines for other metadata (format, semester, week from text patterns)
@@ -277,7 +272,6 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
       const weekFromText = extractWeekNumber(fullLine);
       if (weekFromText) {
         metadata.currentWeek = weekFromText;
-        shouldAutoDetect = false; // Found explicit week, don't auto-detect
       }
     }
     
@@ -299,7 +293,8 @@ export function extractMetadata(lines: string[]): ScheduleMetadata {
   }
   
   // If no explicit week found or auto-detection requested, determine automatically
-  if (!metadata.currentWeek || shouldAutoDetect) {
+  // An explicit week always wins, even when an earlier metadata cell was empty.
+  if (!metadata.currentWeek) {
     metadata.currentWeek = determineCurrentWeekAutomatically();
   }
   
@@ -708,63 +703,44 @@ export function parseScheduleCSV(csv: string): ParseResult {
     
     if (!currentDay || currentGroups.length === 0) continue;
     
-    // Try to parse time from the appropriate column (based on learning format)
-    const timeCell = fields[timeSlotColumnIndex]?.trim() || '';
-    const timeRange = parseTimeRange(timeCell);
-    
-    // Determine the time slot to use
+    // The bell schedule is a single global scale. Read it only from Monday:
+    // column A for offline mode or column L for online mode. Times in the
+    // rows for other days are decorative and must never override these slots.
     let effectiveTimeRange: { startTime: string; endTime: string; lessonNumber?: number } | null = null;
-    
-    if (timeRange) {
-      // We have explicit time in this row
-      effectiveTimeRange = timeRange;
-      
-      // If this is Monday (first day), collect time slots
-      if (isFirstDay && currentDay === 'Понеділок') {
-        // Only add if not already in the list
-        const exists = timeSlots.some(
-          ts => ts.startTime === timeRange.startTime && ts.endTime === timeRange.endTime
-        );
-        if (!exists) {
-          timeSlots.push({
-            startTime: timeRange.startTime,
-            endTime: timeRange.endTime,
-            lessonNumber: timeRange.lessonNumber
-          });
-        }
+
+    if (isFirstDay && currentDay === 'Понеділок') {
+      const mondayTimeCell = fields[timeSlotColumnIndex]?.trim() || '';
+      const mondayTimeRange = parseTimeRange(mondayTimeCell);
+
+      if (mondayTimeRange) {
+        const lessonNumber = mondayTimeRange.lessonNumber ?? timeSlots.length + 1;
+        effectiveTimeRange = {
+          ...mondayTimeRange,
+          lessonNumber,
+        };
+
+        timeSlots.push({
+          startTime: mondayTimeRange.startTime,
+          endTime: mondayTimeRange.endTime,
+          lessonNumber,
+        });
       }
     } else if (!isFirstDay && timeSlots.length > 0) {
-      // No time in this row, but we have collected time slots from Monday
-      // Check if this row has lesson data (not empty)
-      const hasLessonData = currentGroups.some(group => {
-        const subject = fields[group.subjectCol]?.trim() || '';
-        const teacher = fields[group.teacherCol]?.trim() || '';
-        return subject || teacher;
-      });
-      
-      if (hasLessonData && currentLessonInDay < timeSlots.length) {
+      // Every row after Monday corresponds to the same ordinal slot as the
+      // Monday scale, including an empty row for a group with no lesson.
+      if (currentLessonInDay < timeSlots.length) {
         effectiveTimeRange = timeSlots[currentLessonInDay];
-        currentLessonInDay++;
       }
+      currentLessonInDay++;
     }
     
     // If we still don't have a time range, skip this row
     if (!effectiveTimeRange) {
-      // But if we have time, increment the counter for Monday
-      if (timeRange && isFirstDay) {
-        currentLessonInDay++;
-      }
       continue;
     }
-    
-    // If we used time from the row (not from slots), increment counter
-    if (timeRange) {
-      currentLessonInDay++;
-    }
-    
-    // Debug: log which column is being used for time slots
-    if (isFirstDay && currentDay === 'Понеділок' && timeRange) {
-      console.log(`[CSV-PARSER] Monday time slot from column ${timeSlotColumnIndex}: ${timeRange.startTime}-${timeRange.endTime}`);
+
+    if (isFirstDay && currentDay === 'Понеділок') {
+      console.log(`[CSV-PARSER] Monday time slot from column ${timeSlotColumnIndex}: ${effectiveTimeRange.startTime}-${effectiveTimeRange.endTime}`);
     }
     
     for (const group of currentGroups) {

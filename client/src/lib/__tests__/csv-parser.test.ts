@@ -315,5 +315,67 @@ describe('CSV Parser', () => {
       expect(tuesdayLessons[1].startTime).toBe('10:40');
       expect(tuesdayLessons[1].endTime).toBe('12:10');
     });
+
+    it('should preserve the Excel slot number in online mode when a group skips an earlier lesson', () => {
+      const row = (onlineTime: string, subject = '', teacher = '', classroom = '') => {
+        const fields = Array(12).fill('');
+        fields[1] = subject;
+        fields[2] = teacher;
+        fields[3] = classroom;
+        fields[11] = onlineTime;
+        return fields.join(',');
+      };
+
+      const csv = buildVerticalCsv([
+        '1 тиждень',
+        ',,,,,,онлайн',
+        'Час,MT21,,,,,,,,,,',
+        ',Предмет,Викладач,Аудиторія,,,,,,,,',
+        'Понеділок',
+        row('09:00-10:00', 'Математика', 'Іванов', '101'),
+        row('10:10-11:10', 'Фізика', 'Петров', '102'),
+        row('11:20-12:20'),
+        row('12:30-13:30', 'Інформатика', 'Сидоренко', '103'),
+        'Вівторок',
+        row(''),
+        row(''),
+        row(''),
+        row('', 'Інформатика', 'Сидоренко', '103'),
+      ]);
+
+      const result = parseScheduleCSV(csv);
+      const informatics = result.lessons.find(
+        (lesson) => lesson.dayOfWeek === 'Вівторок' && lesson.subject === 'Інформатика'
+      );
+
+      expect(result.metadata?.learningFormat).toBe('онлайн');
+      expect(informatics?.lessonNumber).toBe(4);
+      expect(informatics?.startTime).toBe('12:30');
+      expect(informatics?.endTime).toBe('13:30');
+    });
+
+    it('should use only Monday bell slots and ignore times entered on other days', () => {
+      const csv = buildVerticalCsv([
+        '1 тиждень',
+        ',,,,,,офлайн',
+        'Час,MT21,,,,,,,,,,',
+        ',Предмет,Викладач,Аудиторія,,,,,,,,',
+        'Понеділок',
+        '1) 09:00-10:20,Математика,Іванов,101,,,,,,,,',
+        '2) 10:30-11:50,Фізика,Петров,102,,,,,,,,',
+        '3) 12:10-13:30,Хімія,Сидоренко,103,,,,,,,,',
+        'Вівторок',
+        '1) 08:00-09:00,Інформатика,Гончар,104,,,,,,,,',
+        '2) 09:10-10:10,Програмування,Коваль,105,,,,,,,,',
+      ]);
+
+      const result = parseScheduleCSV(csv);
+      const tuesday = result.lessons.filter((lesson) => lesson.dayOfWeek === 'Вівторок');
+
+      expect(tuesday.map((lesson) => [lesson.lessonNumber, lesson.startTime, lesson.endTime])).toEqual([
+        [1, '09:00', '10:20'],
+        [2, '10:30', '11:50'],
+      ]);
+    });
   });
 });
