@@ -76,6 +76,7 @@ async function fetchOnce(
   try {
     const response = await fetch(url, {
       method: 'GET',
+      cache: 'no-store',
       signal: controller.signal,
       headers: {
         'Accept': 'text/csv, text/plain, */*',
