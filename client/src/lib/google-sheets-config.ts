@@ -16,9 +16,9 @@ export interface GoogleSheetsConfig {
  * or: https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv
  */
 const GOOGLE_SHEETS_URL_PATTERNS = [
-  /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+\/export\?format=csv(&gid=\d+)?$/,
-  /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+\/gviz\/tq\?tqx=out:csv(&gid=\d+)?$/,
-  /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+\/pub\?output=csv(&gid=\d+)?$/,
+  /^https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:e\/)?[a-zA-Z0-9_-]+\/export\?format=csv(&gid=\d+)?$/,
+  /^https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:e\/)?[a-zA-Z0-9_-]+\/gviz\/tq\?tqx=out:csv(&gid=\d+)?$/,
+  /^https:\/\/docs\.google\.com\/spreadsheets\/d\/(?:e\/)?[a-zA-Z0-9_-]+\/pub\?output=csv(&gid=\d+)?$/,
 ];
 
 /**
