@@ -109,6 +109,8 @@ export interface ScheduleMetadata {
   semester?: string;
   /** Learning format setting from cell G2 (онлайн/офлайн/авто) */
   learningFormat?: LearningFormat;
+  /** Announcement text from cell P1 — displayed as a scrolling marquee */
+  announcement?: string;
 }
 
 /**

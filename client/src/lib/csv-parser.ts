@@ -205,11 +205,13 @@ function determineCurrentWeekAutomatically(): WeekNumber {
 export function extractMetadata(lines: string[]): ScheduleMetadata {
   const metadata: ScheduleMetadata = {};
   
-  // Debug: log first 5 rows to see structure
-  console.log('[CSV-PARSER] First 5 rows for metadata:');
-  for (let i = 0; i < Math.min(5, lines.length); i++) {
-    const fields = parseCSVLine(lines[i]);
-    console.log(`  Row ${i + 1}:`, fields.slice(0, 8));
+  // Read cell P1 (row 1, column P = index 15) for announcement text
+  if (lines.length >= 1) {
+    const row1Fields = parseCSVLine(lines[0]);
+    const p1Cell = row1Fields[15]?.trim() || '';
+    if (p1Cell) {
+      metadata.announcement = p1Cell;
+    }
   }
   
   let shouldAutoDetect = false;

@@ -1,6 +1,7 @@
 import { Printer } from "lucide-react";
 import ScheduleFilters from "@/components/schedule-filters";
 import ScheduleGrid from "@/components/schedule-grid";
+import Marquee from "@/components/marquee";
 import { useScheduleData } from "@/hooks/useScheduleData";
 import { Button } from "@/components/ui/button";
 import { SchedulePrinter, convertLessonsToPrinterFormat } from "@/lib/schedule-printer";
@@ -73,6 +74,9 @@ export default function Schedule() {
           </div>
         </div>
       </header>
+
+      {/* Announcement marquee — only shows when P1 has text */}
+      {metadata?.announcement && <Marquee text={metadata.announcement} />}
 
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1">
         {/* Filters with Week and Format Indicator */}
