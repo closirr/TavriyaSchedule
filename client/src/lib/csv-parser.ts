@@ -5,7 +5,7 @@
  * Handles the specific format: groups in columns, days as row separators.
  */
 
-console.log('[CSV-PARSER] Version 2.0 loaded - Vertical format parser');
+globalThis.console.info('[CSV-PARSER] Version 2.0 loaded - Vertical format parser');
 
 import type { Lesson, ParseResult, DayOfWeek, ScheduleMetadata, WeekNumber, SubgroupNumber, LessonFormat, ParseError } from '../types/schedule';
 import { DAY_NAME_MAP } from '../types/schedule';
