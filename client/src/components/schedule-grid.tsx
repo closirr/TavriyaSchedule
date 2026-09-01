@@ -590,9 +590,8 @@ export default function ScheduleGrid({
           const hasLessons = daySlots.length > 0;
 
           return (
-            <div key={day} className="flex flex-col items-center">
-              <div className={`h-3 mb-1 text-[10px] leading-3 ${isToday ? 'text-blue-500' : 'invisible'}`}>сьогодні</div>
-              <button
+            <button
+              key={day}
               onClick={() => setSelectedDay(index)}
               className={`
                 px-3 py-2.5 rounded-lg font-medium transition-all min-w-[90px] relative text-center border-[3px]
@@ -602,8 +601,8 @@ export default function ScheduleGrid({
                       ? 'bg-blue-50 text-navy-700 border-navy-600'
                       : 'bg-gray-100 text-navy-700 border-navy-600'
                     : hasLessons
-                      ? 'bg-blue-50 text-navy-700 border-blue-300 hover:bg-blue-100'
-                      : 'bg-gray-100 text-navy-700 border-blue-300 hover:bg-gray-200'
+                      ? 'bg-blue-50 text-navy-700 border-transparent hover:bg-blue-100'
+                      : 'bg-gray-100 text-navy-700 border-transparent hover:bg-gray-200'
                   : isSelected
                     ? 'bg-white text-navy-700 border-navy-600'
                     : hasLessons
@@ -612,6 +611,7 @@ export default function ScheduleGrid({
                 }
               `}
             >
+              <div className={`text-xs h-4 ${isToday ? 'text-navy-600' : 'invisible'}`}>сьогодні</div>
               <div className="text-sm font-semibold">{day}</div>
               <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                 {getDayDate(index)}
@@ -621,8 +621,7 @@ export default function ScheduleGrid({
                   {daySlots.length} {daySlots.length === 1 ? 'пара' : daySlots.length < 5 ? 'пари' : 'пар'}
                 </div>
               )}
-              </button>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -638,9 +637,8 @@ export default function ScheduleGrid({
               const hasLessons = daySlots.length > 0;
 
               return (
-                <div key={day} className="flex flex-col items-center">
-                  <div className={`h-3 mb-1 text-[10px] leading-3 ${isToday ? 'text-blue-500' : 'invisible'}`}>сьогодні</div>
-                  <button
+                <button
+                  key={day}
                   onClick={() => setSelectedDay(index)}
                   className={`
                     px-4 py-3 rounded-xl font-medium transition-all min-w-[100px] flex-shrink-0 relative border-[3px]
@@ -652,14 +650,15 @@ export default function ScheduleGrid({
                         : hasLessons
                           ? 'bg-blue-50 text-navy-700 border-transparent'
                           : 'bg-gray-100 text-navy-700 border-transparent'
-                        : isSelected
-                          ? 'bg-white text-navy-700 border-navy-600'
-                          : hasLessons
-                            ? 'bg-white text-gray-700 border-transparent'
-                            : 'bg-gray-100 text-gray-400 border-transparent'
+                      : isSelected
+                        ? 'bg-white text-navy-700 border-navy-600'
+                        : hasLessons
+                          ? 'bg-white text-gray-700 border-transparent'
+                          : 'bg-gray-100 text-gray-400 border-transparent'
                     }
                   `}
                 >
+                  <div className={`text-xs h-4 ${isToday ? 'text-navy-600' : 'invisible'}`}>сьогодні</div>
                   <div className="text-sm">{day}</div>
                   <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                     {getDayDate(index)}
@@ -669,8 +668,7 @@ export default function ScheduleGrid({
                       {daySlots.length} {daySlots.length === 1 ? 'пара' : daySlots.length < 5 ? 'пари' : 'пар'}
                     </div>
                   )}
-                  </button>
-                </div>
+                </button>
               );
             })}
           </div>
