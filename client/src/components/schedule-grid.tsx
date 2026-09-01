@@ -594,20 +594,20 @@ export default function ScheduleGrid({
               key={day}
               onClick={() => setSelectedDay(index)}
               className={`
-                px-3 py-2.5 rounded-lg font-medium transition-all min-w-[90px] relative text-center
+                px-3 py-2.5 rounded-lg font-medium transition-all min-w-[90px] relative text-center border-[3px]
                 ${isToday
                   ? isSelected
                     ? hasLessons 
-                      ? 'bg-blue-50 text-navy-700 border-[3px] border-navy-600'
-                      : 'bg-gray-100 text-navy-700 border-[3px] border-navy-600'
+                      ? 'bg-blue-50 text-navy-700 border-navy-600'
+                      : 'bg-gray-100 text-navy-700 border-navy-600'
                     : hasLessons
-                      ? 'bg-blue-50 text-navy-700 border-2 border-blue-300 hover:bg-blue-100'
-                      : 'bg-gray-100 text-navy-700 border-2 border-blue-300 hover:bg-gray-200'
+                      ? 'bg-blue-50 text-navy-700 border-blue-300 hover:bg-blue-100'
+                      : 'bg-gray-100 text-navy-700 border-blue-300 hover:bg-gray-200'
                   : isSelected
-                    ? 'bg-white text-navy-700 border-[3px] border-navy-600'
+                    ? 'bg-white text-navy-700 border-navy-600'
                     : hasLessons
-                      ? 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-                      : 'bg-gray-100 text-gray-400'
+                      ? 'bg-white text-gray-700 hover:bg-gray-100 border-gray-200'
+                      : 'bg-gray-100 text-gray-400 border-transparent'
                 }
               `}
             >
@@ -640,20 +640,20 @@ export default function ScheduleGrid({
                   key={day}
                   onClick={() => setSelectedDay(index)}
                   className={`
-                    px-4 py-3 rounded-xl font-medium transition-all min-w-[100px] flex-shrink-0 relative
+                    px-4 py-3 rounded-xl font-medium transition-all min-w-[100px] flex-shrink-0 relative border-[3px]
                     ${isToday
                       ? isSelected
                         ? hasLessons
-                          ? 'bg-blue-50 text-navy-700 border-[3px] border-navy-600'
-                          : 'bg-gray-100 text-navy-700 border-[3px] border-navy-600'
+                          ? 'bg-blue-50 text-navy-700 border-navy-600'
+                          : 'bg-gray-100 text-navy-700 border-navy-600'
                         : hasLessons
-                          ? 'bg-blue-50 text-navy-700 border-2 border-blue-300'
-                          : 'bg-gray-100 text-navy-700 border-2 border-blue-300'
+                          ? 'bg-blue-50 text-navy-700 border-blue-300'
+                          : 'bg-gray-100 text-navy-700 border-blue-300'
                       : isSelected
-                        ? 'bg-white text-navy-700 border-[3px] border-navy-600'
+                        ? 'bg-white text-navy-700 border-navy-600'
                         : hasLessons
-                          ? 'bg-white text-gray-700 border border-gray-200'
-                          : 'bg-gray-100 text-gray-400'
+                          ? 'bg-white text-gray-700 border-gray-200'
+                          : 'bg-gray-100 text-gray-400 border-transparent'
                     }
                   `}
                 >
