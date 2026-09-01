@@ -611,7 +611,6 @@ export default function ScheduleGrid({
                 }
               `}
             >
-              <div className={`text-xs h-4 ${isToday ? 'text-navy-600' : 'invisible'}`}>сьогодні</div>
               <div className="text-sm font-semibold">{day}</div>
               <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                 {getDayDate(index)}
@@ -658,7 +657,6 @@ export default function ScheduleGrid({
                     }
                   `}
                 >
-                  <div className={`text-xs h-4 ${isToday ? 'text-navy-600' : 'invisible'}`}>сьогодні</div>
                   <div className="text-sm">{day}</div>
                   <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                     {getDayDate(index)}
