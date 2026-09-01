@@ -601,12 +601,12 @@ export default function ScheduleGrid({
                       ? 'bg-blue-50 text-navy-700 border-navy-600'
                       : 'bg-gray-100 text-navy-700 border-navy-600'
                     : hasLessons
-                      ? 'bg-blue-50 text-navy-700 border-blue-300 hover:bg-blue-100'
-                      : 'bg-gray-100 text-navy-700 border-blue-300 hover:bg-gray-200'
+                      ? 'bg-blue-50 text-navy-700 border-transparent hover:bg-blue-100'
+                      : 'bg-gray-100 text-navy-700 border-transparent hover:bg-gray-200'
                   : isSelected
                     ? 'bg-white text-navy-700 border-navy-600'
                     : hasLessons
-                      ? 'bg-white text-gray-700 hover:bg-gray-100 border-gray-200'
+                      ? 'bg-white text-gray-700 hover:bg-gray-100 border-transparent'
                       : 'bg-gray-100 text-gray-400 border-transparent'
                 }
               `}
@@ -647,12 +647,12 @@ export default function ScheduleGrid({
                           ? 'bg-blue-50 text-navy-700 border-navy-600'
                           : 'bg-gray-100 text-navy-700 border-navy-600'
                         : hasLessons
-                          ? 'bg-blue-50 text-navy-700 border-blue-300'
-                          : 'bg-gray-100 text-navy-700 border-blue-300'
+                          ? 'bg-blue-50 text-navy-700 border-transparent'
+                          : 'bg-gray-100 text-navy-700 border-transparent'
                       : isSelected
                         ? 'bg-white text-navy-700 border-navy-600'
                         : hasLessons
-                          ? 'bg-white text-gray-700 border-gray-200'
+                          ? 'bg-white text-gray-700 border-transparent'
                           : 'bg-gray-100 text-gray-400 border-transparent'
                     }
                   `}
