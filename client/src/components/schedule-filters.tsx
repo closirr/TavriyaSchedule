@@ -182,7 +182,7 @@ export default function ScheduleFilters({ filters, filterOptions, onFiltersChang
 
   return (
     <div className="mb-8">
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+      <div className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
         {/* Search input */}
         <div className="relative w-full">
           <div className="relative">

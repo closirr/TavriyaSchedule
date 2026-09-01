@@ -90,7 +90,7 @@ function LessonCard({
           ${!isActiveWeek && lesson.weekNumber ? 'opacity-70' : ''}
         `}
       >
-        <div className="flex">
+        <div className="relative flex">
           {/* Time Column */}
           <div className="w-20 md:w-28 flex-shrink-0 p-3 md:p-4 flex flex-col items-center justify-center bg-navy-50">
             <div className="text-xl md:text-2xl font-bold text-navy-700">
@@ -119,7 +119,7 @@ function LessonCard({
           {/* Content */}
           <CardContent className="flex-1 p-3 md:p-4">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-3">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 pr-20 md:pr-0">
                 <h3 className="font-semibold text-navy-700 text-sm md:text-base leading-tight break-words">
                   {lesson.subject}
                 </h3>
@@ -137,7 +137,7 @@ function LessonCard({
                 </div>
               </div>
 
-              <div className="flex md:flex-col items-center md:items-end gap-2 flex-shrink-0">
+              <div className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 md:static md:transform-none flex flex-col items-end gap-2 flex-shrink-0">
                 <span className="px-2.5 py-1 bg-navy-100 text-navy-700 text-xs md:text-sm font-medium rounded-md">
                   {lesson.group}
                 </span>
@@ -590,19 +590,20 @@ export default function ScheduleGrid({
           const hasLessons = daySlots.length > 0;
 
           return (
-            <button
-              key={day}
+            <div key={day} className="flex flex-col items-center">
+              <div className={`h-3 mb-1 text-[10px] leading-3 ${isToday ? 'text-blue-500' : 'invisible'}`}>сьогодні</div>
+              <button
               onClick={() => setSelectedDay(index)}
               className={`
                 px-3 py-2.5 rounded-lg font-medium transition-all min-w-[90px] relative text-center border-[3px]
                 ${isToday
                   ? isSelected
                     ? hasLessons 
-                      ? 'bg-blue-50 text-navy-700 border-navy-600'
-                      : 'bg-gray-100 text-navy-700 border-navy-600'
+                      ? 'bg-blue-50 text-navy-700 border-blue-600'
+                      : 'bg-gray-100 text-navy-700 border-blue-600'
                     : hasLessons
-                      ? 'bg-blue-50 text-navy-700 border-transparent hover:bg-blue-100'
-                      : 'bg-gray-100 text-navy-700 border-transparent hover:bg-gray-200'
+                      ? 'bg-blue-50 text-navy-700 border-blue-600 hover:bg-blue-100'
+                      : 'bg-gray-100 text-navy-700 border-blue-600 hover:bg-gray-200'
                   : isSelected
                     ? 'bg-white text-navy-700 border-navy-600'
                     : hasLessons
@@ -615,12 +616,11 @@ export default function ScheduleGrid({
               <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                 {getDayDate(index)}
               </div>
-              {hasLessons && (
-                <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500'}`}>
-                  {daySlots.length} {daySlots.length === 1 ? 'пара' : daySlots.length < 5 ? 'пари' : 'пар'}
-                </div>
-              )}
-            </button>
+              <div className={`text-xs mt-0.5 ${hasLessons ? (isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500') : 'invisible'}`}>
+                {hasLessons ? `${daySlots.length} ${daySlots.length === 1 ? 'пара' : daySlots.length < 5 ? 'пари' : 'пар'}` : '\u00a0'}
+              </div>
+              </button>
+            </div>
           );
         })}
       </div>
@@ -636,19 +636,20 @@ export default function ScheduleGrid({
               const hasLessons = daySlots.length > 0;
 
               return (
-                <button
-                  key={day}
+                <div key={day} className="flex flex-col items-center">
+                  <div className={`h-3 mb-1 text-[10px] leading-3 ${isToday ? 'text-blue-500' : 'invisible'}`}>сьогодні</div>
+                  <button
                   onClick={() => setSelectedDay(index)}
                   className={`
                     px-4 py-3 rounded-xl font-medium transition-all min-w-[100px] flex-shrink-0 relative border-[3px]
                     ${isToday
                       ? isSelected
                         ? hasLessons
-                          ? 'bg-blue-50 text-navy-700 border-navy-600'
-                          : 'bg-gray-100 text-navy-700 border-navy-600'
+                          ? 'bg-blue-50 text-navy-700 border-blue-600'
+                          : 'bg-gray-100 text-navy-700 border-blue-600'
                         : hasLessons
-                          ? 'bg-blue-50 text-navy-700 border-transparent'
-                          : 'bg-gray-100 text-navy-700 border-transparent'
+                          ? 'bg-blue-50 text-navy-700 border-blue-600'
+                          : 'bg-gray-100 text-navy-700 border-blue-600'
                       : isSelected
                         ? 'bg-white text-navy-700 border-navy-600'
                         : hasLessons
@@ -661,12 +662,11 @@ export default function ScheduleGrid({
                   <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                     {getDayDate(index)}
                   </div>
-                  {hasLessons && (
-                    <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500'}`}>
-                      {daySlots.length} {daySlots.length === 1 ? 'пара' : daySlots.length < 5 ? 'пари' : 'пар'}
-                    </div>
-                  )}
-                </button>
+                  <div className={`text-xs mt-0.5 ${hasLessons ? (isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500') : 'invisible'}`}>
+                    {hasLessons ? `${daySlots.length} ${daySlots.length === 1 ? 'пара' : daySlots.length < 5 ? 'пари' : 'пар'}` : '\u00a0'}
+                  </div>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -674,7 +674,7 @@ export default function ScheduleGrid({
       </div>
 
       {/* Lessons List */}
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className="w-full max-w-4xl mx-auto space-y-4">
         {currentDaySlots.length === 0 ? (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-8 text-center">
