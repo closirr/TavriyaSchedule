@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, MapPin, User, Users } from "lucide-react";
 import type { Lesson, WeekNumber, SubgroupNumber } from "@/types/schedule";
@@ -645,15 +644,13 @@ export default function ScheduleGrid({
               <button
               onClick={() => setSelectedDay(index)}
               className={`
-                px-3 py-2.5 rounded-lg font-medium transition-all min-w-[90px] relative text-center border-[3px]
+                px-3 py-2.5 rounded-lg font-medium transition-all min-w-[90px] relative text-center border-2
                 ${isToday
                   ? isSelected
-                    ? hasLessons 
-                      ? 'bg-blue-50 text-navy-700 border-blue-600'
-                      : 'bg-gray-100 text-navy-700 border-blue-600'
+                    ? 'bg-white text-navy-700 border-blue-600'
                     : hasLessons
-                      ? 'bg-blue-50 text-navy-700 border-blue-600 hover:bg-blue-100'
-                      : 'bg-gray-100 text-navy-700 border-blue-600 hover:bg-gray-200'
+                      ? 'bg-white text-navy-700 border-blue-600 hover:bg-gray-100'
+                      : 'bg-white text-navy-700 border-blue-600 hover:bg-gray-100'
                   : isSelected
                     ? 'bg-white text-navy-700 border-navy-600'
                     : hasLessons
@@ -663,10 +660,10 @@ export default function ScheduleGrid({
               `}
             >
               <div className="text-sm font-semibold whitespace-nowrap">{day}</div>
-              <div className={`text-xs mt-0.5 whitespace-nowrap ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
+              <div className={`text-xs mt-0.5 whitespace-nowrap ${isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                 {getDayDate(index)}
               </div>
-              <div className={`text-xs mt-0.5 whitespace-nowrap ${hasLessons ? (isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500') : 'invisible'}`}>
+              <div className={`text-xs mt-0.5 whitespace-nowrap ${hasLessons ? (isSelected ? 'text-navy-500' : 'text-gray-500') : 'invisible'}`}>
                 {hasLessons ? `${daySlots.length} ${daySlots.length === 1 ? 'пара' : daySlots.length < 5 ? 'пари' : 'пар'}` : '\u00a0'}
               </div>
               </button>
@@ -691,15 +688,9 @@ export default function ScheduleGrid({
                   <button
                   onClick={() => setSelectedDay(index)}
                   className={`
-                    px-4 py-3 rounded-xl font-medium transition-all min-w-[100px] flex-shrink-0 relative border-[3px]
+                    px-4 py-3 rounded-xl font-medium transition-all min-w-[100px] flex-shrink-0 relative border-2
                     ${isToday
-                      ? isSelected
-                        ? hasLessons
-                          ? 'bg-blue-50 text-navy-700 border-blue-600'
-                          : 'bg-gray-100 text-navy-700 border-blue-600'
-                        : hasLessons
-                          ? 'bg-blue-50 text-navy-700 border-blue-600'
-                          : 'bg-gray-100 text-navy-700 border-blue-600'
+                      ? 'bg-white text-navy-700 border-blue-600 hover:bg-gray-100'
                       : isSelected
                         ? 'bg-white text-navy-700 border-navy-600'
                         : hasLessons
@@ -709,10 +700,10 @@ export default function ScheduleGrid({
                   `}
                 >
                   <div className="text-sm whitespace-nowrap">{day}</div>
-                  <div className={`text-[11px] mt-0.5 whitespace-nowrap ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
+                  <div className={`text-[11px] mt-0.5 whitespace-nowrap ${isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                     {getDayDate(index)}
                   </div>
-                  <div className={`text-xs mt-0.5 whitespace-nowrap ${hasLessons ? (isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500') : 'invisible'}`}>
+                  <div className={`text-xs mt-0.5 whitespace-nowrap ${hasLessons ? (isSelected ? 'text-navy-500' : 'text-gray-500') : 'invisible'}`}>
                     {hasLessons ? `${daySlots.length} ${daySlots.length === 1 ? 'пара' : daySlots.length < 5 ? 'пари' : 'пар'}` : '\u00a0'}
                   </div>
                   </button>
@@ -726,12 +717,7 @@ export default function ScheduleGrid({
       {/* Lessons List */}
       <div className="w-full max-w-4xl mx-auto space-y-4">
         {currentDaySlots.length === 0 ? (
-          <motion.div
-            key="empty-day"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-          >
+          <div key="empty-day">
             <Card className="border-0 shadow-sm">
               <CardContent className="p-8 text-center">
                 <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -741,20 +727,14 @@ export default function ScheduleGrid({
                 <p className="text-gray-400 text-sm mt-1">Вихідний день або пари не заплановані</p>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         ) : (
           currentDaySlots.map((slot, index) => {
             const isNext = isNextLesson(slot, selectedDay);
             return (
-              <motion.div
-                key={slot.key}
-                className="relative"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: index * 0.05 }}
-              >
+              <div key={slot.key} className="relative">
               {slot.isSubgroupSplit ? (
-                <SubgroupCard 
+                <SubgroupCard
                   slot={slot}
                   index={index}
                   isCurrent={isCurrentLesson(slot, selectedDay)}
@@ -763,7 +743,7 @@ export default function ScheduleGrid({
                   selectedSubgroup={selectedSubgroup}
                 />
               ) : (
-                <LessonCard 
+                <LessonCard
                   slot={slot}
                   index={index}
                   isCurrent={isCurrentLesson(slot, selectedDay)}
@@ -772,7 +752,7 @@ export default function ScheduleGrid({
                   currentWeek={currentWeek}
                 />
               )}
-              </motion.div>
+              </div>
             );
           })
         )}
