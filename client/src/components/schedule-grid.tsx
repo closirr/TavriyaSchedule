@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, MapPin, User, Users } from "lucide-react";
 import type { Lesson, WeekNumber, SubgroupNumber } from "@/types/schedule";
@@ -51,12 +52,15 @@ function LessonCard({
   index, 
   isCurrent,
   isNext,
+  nextIn,
   currentWeek 
 }: { 
   slot: LessonSlot; 
   index: number; 
   isCurrent: boolean;
   isNext: boolean;
+  /** Текст зворотного відліку до початку пари, напр. «через 15 хв» */
+  nextIn?: string;
   currentWeek?: WeekNumber;
 }) {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -110,9 +114,16 @@ function LessonCard({
               </span>
             )}
             {isNext && !isBack && !isCurrent && (
-              <span className="mt-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
-                Наступна
-              </span>
+              <>
+                <span className="mt-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
+                  Наступна
+                </span>
+                {nextIn && (
+                  <span className="mt-1 text-[10px] font-medium text-green-600 whitespace-nowrap">
+                    {nextIn}
+                  </span>
+                )}
+              </>
             )}
           </div>
 
@@ -197,12 +208,15 @@ function SubgroupCard({
   index, 
   isCurrent,
   isNext,
+  nextIn,
   selectedSubgroup
 }: { 
   slot: LessonSlot; 
   index: number; 
   isCurrent: boolean;
   isNext: boolean;
+  /** Текст зворотного відліку до початку пари, напр. «через 15 хв» */
+  nextIn?: string;
   selectedSubgroup?: SubgroupNumber;
 }) {
   const subgroup1 = slot.subgroup1Lesson;
@@ -279,9 +293,16 @@ function SubgroupCard({
               </span>
             )}
             {isNext && !isCurrent && (
-              <span className="mt-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
-                Наступна
-              </span>
+              <>
+                <span className="mt-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
+                  Наступна
+                </span>
+                {nextIn && (
+                  <span className="mt-1 text-[10px] font-medium text-green-600 whitespace-nowrap">
+                    {nextIn}
+                  </span>
+                )}
+              </>
             )}
           </div>
 
@@ -329,9 +350,16 @@ function SubgroupCard({
             </span>
           )}
           {isNext && !isCurrent && (
-            <span className="mt-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
-              Наступна
-            </span>
+            <>
+              <span className="mt-2 px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
+                Наступна
+              </span>
+              {nextIn && (
+                <span className="mt-1 text-[10px] font-medium text-green-600 whitespace-nowrap">
+                  {nextIn}
+                </span>
+              )}
+            </>
           )}
         </div>
 
@@ -378,6 +406,13 @@ export default function ScheduleGrid({
     const today = new Date().getDay();
     return today === 0 ? 6 : today - 1;
   });
+
+  // «Живий» годинник: оновлюється кожні 30 с, щоб «Зараз»/«Наступна» і відлік не застигали
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const hasActiveFilter = selectedGroup || selectedTeacher || selectedClassroom || searchQuery;
 
@@ -497,10 +532,9 @@ export default function ScheduleGrid({
     // Враховуємо всі типи занять: звичайні, мигалки та підгрупи
     const lesson = slot.regularLesson || slot.week1Lesson || slot.week2Lesson || slot.subgroup1Lesson || slot.subgroup2Lesson;
     if (!lesson) return false;
-    const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     return currentTime >= lesson.startTime && currentTime <= lesson.endTime;
-  }, [isCurrentDay]);
+  }, [isCurrentDay, now]);
 
   // Групуємо слоти за днями для пошуку наступного заняття
   const groupedSlots = useMemo(() => groupSlotsByDay(lessonSlots), [lessonSlots]);
@@ -515,7 +549,6 @@ export default function ScheduleGrid({
     // Якщо є поточне заняття, не шукаємо наступне
     if (hasCurrentLesson) return null;
     
-    const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const todayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1;
 
@@ -540,7 +573,24 @@ export default function ScheduleGrid({
       }
     }
     return null;
-  }, [lessonSlots, selectedDay, groupedSlots, isCurrentLesson, daysOfWeek]);
+  }, [lessonSlots, selectedDay, groupedSlots, isCurrentLesson, daysOfWeek, now]);
+
+  // Зворотний відлік до наступної пари: «через 15 хв», «через 2 год», «через 1 день»
+  const nextCountdown = useMemo(() => {
+    if (!nextLesson) return null;
+    const lesson = nextLesson.slot.regularLesson || nextLesson.slot.week1Lesson || nextLesson.slot.week2Lesson || nextLesson.slot.subgroup1Lesson || nextLesson.slot.subgroup2Lesson;
+    if (!lesson) return null;
+    const [h, m] = (lesson.startTime || '').split(':').map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    const todayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1;
+    const dayOffset = (nextLesson.dayIndex - todayIndex + 7) % 7;
+    const minutesUntil = dayOffset * 1440 + h * 60 + m - (now.getHours() * 60 + now.getMinutes());
+    if (minutesUntil <= 0) return null;
+    if (minutesUntil < 60) return `через ${minutesUntil} хв`;
+    if (minutesUntil < 1440) return `через ${Math.floor(minutesUntil / 60)} год`;
+    const days = Math.floor(minutesUntil / 1440);
+    return `через ${days} ${days === 1 ? 'день' : days < 5 ? 'дні' : 'днів'}`;
+  }, [nextLesson, now]);
 
   const isNextLesson = (slot: LessonSlot, dayIndex: number) => {
     if (!nextLesson) return false;
@@ -612,11 +662,11 @@ export default function ScheduleGrid({
                 }
               `}
             >
-              <div className="text-sm font-semibold">{day}</div>
-              <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
+              <div className="text-sm font-semibold whitespace-nowrap">{day}</div>
+              <div className={`text-xs mt-0.5 whitespace-nowrap ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                 {getDayDate(index)}
               </div>
-              <div className={`text-xs mt-0.5 ${hasLessons ? (isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500') : 'invisible'}`}>
+              <div className={`text-xs mt-0.5 whitespace-nowrap ${hasLessons ? (isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500') : 'invisible'}`}>
                 {hasLessons ? `${daySlots.length} ${daySlots.length === 1 ? 'пара' : daySlots.length < 5 ? 'пари' : 'пар'}` : '\u00a0'}
               </div>
               </button>
@@ -627,7 +677,7 @@ export default function ScheduleGrid({
 
       {/* Day Selector - Mobile with full-width scroll */}
       <div className="md:hidden mb-6 relative left-1/2 right-1/2 -mx-[50vw] w-screen">
-        <div className="overflow-x-auto pb-2 px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="overflow-x-auto scrollbar-none pb-2 px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="inline-flex gap-2">
             {daysOfWeek.map((day, index) => {
               const daySlots = groupedSlots[day] || [];
@@ -658,11 +708,11 @@ export default function ScheduleGrid({
                     }
                   `}
                 >
-                  <div className="text-sm">{day}</div>
-                  <div className={`text-xs mt-0.5 ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
+                  <div className="text-sm whitespace-nowrap">{day}</div>
+                  <div className={`text-[11px] mt-0.5 whitespace-nowrap ${isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-400'}`}>
                     {getDayDate(index)}
                   </div>
-                  <div className={`text-xs mt-0.5 ${hasLessons ? (isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500') : 'invisible'}`}>
+                  <div className={`text-xs mt-0.5 whitespace-nowrap ${hasLessons ? (isToday ? 'text-blue-500' : isSelected ? 'text-navy-500' : 'text-gray-500') : 'invisible'}`}>
                     {hasLessons ? `${daySlots.length} ${daySlots.length === 1 ? 'пара' : daySlots.length < 5 ? 'пари' : 'пар'}` : '\u00a0'}
                   </div>
                   </button>
@@ -676,24 +726,40 @@ export default function ScheduleGrid({
       {/* Lessons List */}
       <div className="w-full max-w-4xl mx-auto space-y-4">
         {currentDaySlots.length === 0 ? (
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-8 text-center">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Clock className="w-6 h-6 text-gray-400" />
-              </div>
-              <p className="text-gray-500 font-medium">Занять немає</p>
-              <p className="text-gray-400 text-sm mt-1">Вихідний день або пари не заплановані</p>
-            </CardContent>
-          </Card>
+          <motion.div
+            key="empty-day"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-8 text-center">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Clock className="w-6 h-6 text-gray-400" />
+                </div>
+                <p className="text-gray-500 font-medium">Занять немає</p>
+                <p className="text-gray-400 text-sm mt-1">Вихідний день або пари не заплановані</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         ) : (
-          currentDaySlots.map((slot, index) => (
-            <div key={slot.key} className="relative">
+          currentDaySlots.map((slot, index) => {
+            const isNext = isNextLesson(slot, selectedDay);
+            return (
+              <motion.div
+                key={slot.key}
+                className="relative"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: index * 0.05 }}
+              >
               {slot.isSubgroupSplit ? (
                 <SubgroupCard 
                   slot={slot}
                   index={index}
                   isCurrent={isCurrentLesson(slot, selectedDay)}
-                  isNext={isNextLesson(slot, selectedDay)}
+                  isNext={isNext}
+                  nextIn={isNext ? nextCountdown ?? undefined : undefined}
                   selectedSubgroup={selectedSubgroup}
                 />
               ) : (
@@ -701,12 +767,14 @@ export default function ScheduleGrid({
                   slot={slot}
                   index={index}
                   isCurrent={isCurrentLesson(slot, selectedDay)}
-                  isNext={isNextLesson(slot, selectedDay)}
+                  isNext={isNext}
+                  nextIn={isNext ? nextCountdown ?? undefined : undefined}
                   currentWeek={currentWeek}
                 />
               )}
-            </div>
-          ))
+              </motion.div>
+            );
+          })
         )}
       </div>
     </div>

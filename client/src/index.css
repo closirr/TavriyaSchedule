@@ -87,6 +87,15 @@
 }
 
 @layer utilities {
+  /* Приховує скролбар, зберігаючи прокрутку (мобільна стрічка днів) */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   .navy-50 { color: var(--navy-50); }
   .navy-100 { color: var(--navy-100); }
   .navy-500 { color: var(--navy-500); }
