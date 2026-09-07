@@ -646,13 +646,9 @@ export default function ScheduleGrid({
               className={`
                 px-3 py-2.5 rounded-lg font-medium transition-all min-w-[90px] relative text-center border-2
                 ${isToday
-                  ? isSelected
-                    ? 'bg-white text-navy-700 border-blue-600'
-                    : hasLessons
-                      ? 'bg-white text-navy-700 border-blue-600 hover:bg-gray-100'
-                      : 'bg-white text-navy-700 border-blue-600 hover:bg-gray-100'
+                  ? 'bg-white text-navy-700 border-blue-600 hover:bg-gray-100'
                   : isSelected
-                    ? 'bg-white text-navy-700 border-navy-600'
+                    ? 'bg-white text-navy-700 border-navy-600 hover:bg-gray-100'
                     : hasLessons
                       ? 'bg-white text-gray-700 hover:bg-gray-100 border-transparent'
                       : 'bg-gray-100 text-gray-400 border-transparent'
@@ -692,7 +688,7 @@ export default function ScheduleGrid({
                     ${isToday
                       ? 'bg-white text-navy-700 border-blue-600 hover:bg-gray-100'
                       : isSelected
-                        ? 'bg-white text-navy-700 border-navy-600'
+                        ? 'bg-white text-navy-700 border-navy-600 hover:bg-gray-100'
                         : hasLessons
                           ? 'bg-white text-gray-700 border-transparent'
                           : 'bg-gray-100 text-gray-400 border-transparent'
