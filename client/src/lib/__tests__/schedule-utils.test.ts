@@ -13,8 +13,9 @@ import {
   calculateStatistics,
   sortLessonsByDayAndTime,
   generateLessonId,
+  calculateAcademicWeek,
 } from '../schedule-utils';
-import type { Lesson, ScheduleFilters, DayOfWeek } from '../../types/schedule';
+import type { Lesson, ScheduleFilters, DayOfWeek, WeekNumber } from '../../types/schedule';
 import { DAYS_OF_WEEK } from '../../types/schedule';
 
 /**
@@ -459,5 +460,65 @@ describe('Schedule Utils', () => {
       expect(id1).toBe(id2);
       expect(id1).toContain('понедельник');
     });
+  });
+});
+
+/**
+ * Real dates taken from "Графік освітнього процесу 2026-2027" (PDF).
+ * The schedule numbers weeks 1..52 continuously; each week starts Monday.
+ * Week 1 = 31.08.2026 - 06.09.2026 (Sept 1, 2026 is a Tuesday).
+ * Odd schedule weeks -> "перший" (1), even -> "другий" (2).
+ */
+describe('calculateAcademicWeek vs Графік освітнього процесу 2026-2027', () => {
+  // [date, schedule week number, day label]
+  const scheduleDates: Array<[Date, number, string]> = [
+    [new Date(2026, 8, 1), 1, 'вівторок, 1 вересня — сам початок семестру'],
+    [new Date(2026, 8, 2), 1, 'середа тижня 1'],
+    [new Date(2026, 8, 6), 1, 'неділя тижня 1 (межа тижня)'],
+    [new Date(2026, 8, 7), 2, 'понеділок тижня 2 (межа тижня)'],
+    [new Date(2026, 8, 13), 2, 'неділя тижня 2'],
+    [new Date(2026, 9, 5), 6, 'понеділок тижня 6, жовтень'],
+    [new Date(2026, 10, 16), 12, 'понеділок тижня 12, листопад'],
+    [new Date(2026, 11, 7), 15, 'понеділок тижня 15, грудень'],
+    [new Date(2026, 11, 28), 18, 'понеділок тижня 18 (останній тиждень 1 семестру)'],
+    [new Date(2027, 0, 4), 19, 'понеділок тижня 19, січень (канікули/сесія)'],
+    [new Date(2027, 0, 10), 19, 'неділя тижня 19 — парність не збивається після Нового року'],
+    [new Date(2027, 1, 1), 23, 'понеділок тижня 23 (початок 2 семестру, лютий)'],
+    [new Date(2027, 1, 3), 23, 'середина 2 семестру, середа тижня 23'],
+    [new Date(2027, 2, 29), 31, 'понеділок тижня 31, березень'],
+    [new Date(2027, 3, 12), 33, 'понеділок тижня 33, квітень'],
+    [new Date(2027, 4, 31), 40, 'понеділок тижня 40, травень'],
+    [new Date(2027, 5, 28), 44, 'понеділок тижня 44, червень'],
+    [new Date(2027, 7, 23), 52, 'понеділок тижня 52, серпень'],
+    [new Date(2027, 7, 29), 52, 'неділя тижня 52 — останній день графіка'],
+  ];
+
+  it.each(scheduleDates)('тиждень графіка %i: %s -> expected %i', (day, scheduleWeek, _label) => {
+    const expectedWeek: WeekNumber = (scheduleWeek % 2 === 1) ? 1 : 2;
+    expect(calculateAcademicWeek(day)).toBe(expectedWeek);
+  });
+
+  it('середина навчального року (січень, канікули) — парність відповідає графіку', () => {
+    // Тиждень 21 = 18.01–24.01.2027 (непарний -> "перший")
+    expect(calculateAcademicWeek(new Date(2027, 0, 18))).toBe(1);
+    expect(calculateAcademicWeek(new Date(2027, 0, 24))).toBe(1);
+    // Тиждень 22 = 25.01–31.01.2027 (парний -> "другий")
+    expect(calculateAcademicWeek(new Date(2027, 0, 25))).toBe(2);
+  });
+
+  it('дата за межами графіка 2026-2027 (липень 2026) — рахується без помилки від попереднього навчального року', () => {
+    const week = calculateAcademicWeek(new Date(2026, 6, 15));
+    expect([1, 2]).toContain(week);
+  });
+
+  it('парність чергується щотижня без розривів через канікули (грудень-лютий)', () => {
+    // 52 послідовні дні з 14.12.2026 по 03.02.2027: сусідні тижні мають різну парність
+    let previous: WeekNumber = calculateAcademicWeek(new Date(2026, 11, 14));
+    for (let offset = 7; offset <= 52; offset += 7) {
+      const day = new Date(2026, 11, 14 + offset);
+      const current: WeekNumber = calculateAcademicWeek(day);
+      expect(current).not.toBe(previous);
+      previous = current;
+    }
   });
 });
