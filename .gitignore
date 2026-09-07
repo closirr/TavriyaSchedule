@@ -21,3 +21,6 @@ test*.pdf
 # Replit specific
 .replit
 replit.md
+
+# Local Netlify folder
+.netlify
