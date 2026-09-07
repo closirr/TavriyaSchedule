@@ -172,26 +172,37 @@ function splitAlternatingValues(value: string): [string, string] | null {
 
 /**
  * Determines the current week number automatically based on the current date.
- * Uses the start of the academic year (September 1st) as reference.
- * Week 1 = odd weeks from September 1st, Week 2 = even weeks.
+ * Uses the educational process schedule: week 1 is the calendar week (starting
+ * Monday) that contains September 1st, then weeks alternate continuously.
  */
 function determineCurrentWeekAutomatically(): WeekNumber {
   const now = new Date();
   const currentYear = now.getFullYear();
-  
+
   // Academic year starts September 1st
   // If we're before September, use previous academic year
-  const academicYearStart = now.getMonth() < 8 // August = 7, September = 8
-    ? new Date(currentYear - 1, 8, 1) // September 1st of previous year
-    : new Date(currentYear, 8, 1);    // September 1st of current year
-  
-  // Calculate weeks since academic year start
-  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-  const weeksSinceStart = Math.floor((now.getTime() - academicYearStart.getTime()) / msPerWeek);
-  
+  const year = now.getMonth() < 8 // August = 7, September = 8
+    ? currentYear - 1
+    : currentYear;
+
+  // Week 1 per the schedule starts on the Monday of the week containing Sept 1
+  // (e.g. 2026/27: Sept 1 is Tuesday, so week 1 starts Monday, August 31)
+  const september1st = new Date(year, 8, 1);
+  const academicYearStart = new Date(september1st);
+  academicYearStart.setDate(academicYearStart.getDate() - ((september1st.getDay() + 6) % 7));
+
+  // Calculate weeks since academic year start (compare by calendar day, not ms,
+  // so the result does not flip mid-day)
+  const dayMs = 24 * 60 * 60 * 1000;
+  const daysSinceStart = Math.floor(
+    (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+      Date.UTC(academicYearStart.getFullYear(), academicYearStart.getMonth(), academicYearStart.getDate())) / dayMs,
+  );
+  const weeksSinceStart = Math.floor(daysSinceStart / 7);
+
   // Week 1 = odd weeks (0, 2, 4, ...), Week 2 = even weeks (1, 3, 5, ...)
   const currentWeek = (weeksSinceStart % 2 === 0) ? 1 : 2;
-  
+
   console.log(`[CSV-PARSER] Auto-determined week: ${currentWeek} (weeks since ${academicYearStart.toDateString()}: ${weeksSinceStart})`);
   return currentWeek as WeekNumber;
 }

@@ -11,23 +11,31 @@ import type { Lesson, ScheduleFilters, FilterOptions, ScheduleStatistics, DayOfW
 import { DAYS_OF_WEEK } from '../types/schedule';
 
 /**
- * Calculates the current academic week number (1 or 2) based on September 1st.
- * Week 1 starts from September 1st, then alternates every week.
- * 
+ * Calculates the current academic week number (1 or 2) based on the
+ * educational process schedule: week 1 is the calendar week (starting Monday)
+ * that contains September 1st, then weeks alternate first/second continuously.
+ *
  * @param date - Date to calculate week for (defaults to current date)
  * @returns 1 or 2 representing the current academic week
  */
 export function calculateAcademicWeek(date: Date = new Date()): WeekNumber {
   const year = date.getMonth() >= 8 ? date.getFullYear() : date.getFullYear() - 1; // Academic year starts in September
   const september1st = new Date(year, 8, 1); // September is month 8 (0-indexed)
-  
-  // Calculate the difference in days
-  const diffTime = date.getTime() - september1st.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  // Calculate week number (0-indexed from Sept 1)
+
+  // Week 1 per the schedule starts on the Monday of the week containing Sept 1
+  // (e.g. 2026/27: Sept 1 is Tuesday, so week 1 starts Monday, August 31)
+  const week1Start = new Date(september1st);
+  week1Start.setDate(week1Start.getDate() - ((september1st.getDay() + 6) % 7));
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const diffDays = Math.floor(
+    (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) -
+      Date.UTC(week1Start.getFullYear(), week1Start.getMonth(), week1Start.getDate())) / dayMs,
+  );
+
+  // Calculate week number (0-indexed from week 1)
   const weekNumber = Math.floor(diffDays / 7);
-  
+
   // Week 1 = odd weeks (0, 2, 4...), Week 2 = even weeks (1, 3, 5...)
   return (weekNumber % 2 === 0) ? 1 : 2;
 }
