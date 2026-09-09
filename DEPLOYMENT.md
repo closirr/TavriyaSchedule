@@ -6,7 +6,16 @@
 |---|---|---|---|
 | **Тестовий** | Netlify — сайт `tavriya-schedule-live` (id `16f254a1-3707-413c-879a-b388f15ef6a8`) | https://tavriya-schedule-live.netlify.app | Перевірка змін перед продом |
 | **Прод #1** | Render — статичний сайт `tavriya-schedule` (конфіг `render.yaml`) | див. Render dashboard | Продакшн |
-| **Прод #2** | Власний сервер по SSH (скрипт `deploy.ps1`) | `http://$SSH_HOST/schedule/` | Продакшн (підшлях `/schedule/`) |
+| **Прод #2** | Власний сервер по SSH (скрипт `deploy.ps1`) | `http://$SSH_HOST/schedule/` (КФКМГ) | Продакшн (підшлях `/schedule/`) |
+
+## Таблиці Google Sheets
+
+| Таблиця | URL | Де використовується |
+|---|---|---|
+| **Prod** | `https://docs.google.com/spreadsheets/d/1pl0PFC1jJ-75NUjiePCFvZuae8qpUQ4cBYxAfsi0ULQ/export?format=csv&gid=0` | Render (змінна в dashboard), SSH-деплой на КФКМГ + локальні збірки (`.env`, `client/.env`) |
+| **Тестова** | `https://docs.google.com/spreadsheets/d/e/2PACX-1vRhg25lMmSQy84JzCAclh2A-rIntzK50o6PZ2CrhTDUYWU0W78YEvPmJnTtZztee1JeJ5VZPgAOxwh4/pub?output=csv` | Netlify (змінна `VITE_GOOGLE_SHEETS_URL` задана через `netlify env:set`, усі контексти) |
+
+**Важливо:** URL для Netlify заданий у налаштуваннях сайту (`netlify env:set`), тому він не залежить від локальних `.env`. Локальні `.env` завжди мають вказувати на prod-таблицю — саме з них збирається SSH-деплой на КФКМГ. Не міняйте `VITE_GOOGLE_SHEETS_URL` у локальних `.env` на тестову таблицю.
 
 ## Тестовий: Netlify
 
@@ -19,6 +28,7 @@ netlify status            # перевірка лінковки
 ```
 
 - Команда збірки та publish-папка (`dist`) беруться з налаштувань сайту в UI Netlify (локальна копія — `.netlify/netlify.toml`): `npm run build`, publish `dist`.
+- URL таблиці (тестова) заданий через `netlify env:set VITE_GOOGLE_SHEETS_URL ...` і підміняє локальний `.env` під час збірки.
 - Netlify = єдиний тестовий environment. **Прод-зміни сюди не потрапляють**, поки їх не задеплоять на Render або SSH окремо.
 
 ## Прод #1: Render
@@ -35,7 +45,7 @@ netlify status            # перевірка лінковки
 .\deploy.ps1
 ```
 
-- Читає `.env` (не комітиться): `SSH_HOST`, `SSH_USER`, `REMOTE_PATH`, опційно `SSH_PORT`, `SSH_KEY_PATH`.
+- Читає `.env` (не комітиться): `SSH_HOST`, `SSH_USER`, `REMOTE_PATH`, опційно `SSH_PORT`, `SSH_KEY_PATH`. Змінна `VITE_GOOGLE_SHEETS_URL` звідси ж потрапляє в білд — тому `.env` має вказувати на **prod-таблицю**.
 - Білдить `npm run build:main` — тобто з базою `/schedule/` (сайти розгортаються у підпапці).
 - Заливає `dist/*` на сервер через `scp`.
 
